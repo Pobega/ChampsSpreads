@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pokemon Champions Doubles SP Optimizer</title>
+  <title>Champions Spreads - VGC Spread Optimizer</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome for Icons -->
@@ -28,242 +28,275 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-  <!-- Header -->
-  <header class="bg-slate-800 border-b border-slate-800 py-4 px-6 shadow-md">
-    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
-      <div class="flex items-center gap-3">
-        <div class="bg-red-600 text-white p-2.5 rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center w-12 h-12">
-          <i class="fa-solid fa-gamepad text-2xl"></i>
+  <!-- Compact Responsive Header -->
+  <header class="bg-slate-800 border-b border-slate-700 py-3 px-4 sm:px-6 shadow-md">
+    <div class="max-w-[1440px] mx-auto flex justify-between items-center gap-4">
+      
+      <!-- Logo / Title (Compact) -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="bg-red-600 text-white p-2 rounded-full shadow flex items-center justify-center w-9 h-9 shrink-0">
+          <i class="fa-solid fa-chart-simple text-lg"></i>
         </div>
-        <div>
-          <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-red-500 to-amber-500 bg-clip-text text-transparent uppercase">
-            Pokemon Champions
+        <div class="min-w-0">
+          <h1 class="text-sm sm:text-base font-black tracking-wider bg-gradient-to-r from-red-500 to-amber-500 bg-clip-text text-transparent uppercase truncate">
+            Champions Spreads
           </h1>
-          <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">Doubles SP (Stat Points) Optimizer</p>
+          <p class="text-[9px] text-slate-400 font-semibold tracking-wider uppercase truncate hidden sm:block">VGC Spread Optimizer</p>
         </div>
       </div>
       
-      <!-- Format Selector & Sample loader -->
-      <div class="flex flex-col sm:flex-row items-center gap-3">
-        <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs">
-          <span class="text-slate-400 font-extrabold uppercase tracking-wider">Active Format:</span>
-          <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-white cursor-pointer uppercase tracking-wider">
-            <option value="regulation_ma" class="bg-slate-800" selected>Regulation M-A</option>
-            <option value="all" class="bg-slate-800">All Pokémon</option>
+      <!-- Header Controls on a Single Row -->
+      <div class="flex items-center gap-2.5 shrink-0">
+        <!-- Format Selector (Dropdown select styled compactly) -->
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300">
+          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Format:</span>
+          <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]">
+            <option value="regulation_ma" class="bg-slate-800">Reg M-A</option>
+            <option value="all" class="bg-slate-800">All Pokém</option>
           </select>
         </div>
-        <button id="load-sample-btn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center gap-2">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Load VGC Sample Matchup
+        
+        <!-- Load Matchup Button (Turned into a gorgeous compact icon button on mobile, text on desktop!) -->
+        <button id="load-sample-btn" class="bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white text-[10px] font-extrabold py-1.5 px-2.5 rounded-lg transition flex items-center gap-1.5 shadow" title="Load VGC Sample Matchup">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span class="hidden md:inline">Load Sample</span>
         </button>
       </div>
+      
     </div>
   </header>
 
-  <!-- Main Layout Container -->
-  <main class="max-w-7xl mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <!-- Main Layout Container (Spacious 1440p Expanded Width!) -->
+  <main class="max-w-[1440px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
     
-    <!-- LEFT COLUMN: Attacker (4/12) -->
-    <section class="lg:col-span-4 bg-slate-800 border border-slate-800/80 rounded-2xl p-5 shadow-xl pokemon-card flex flex-col gap-4">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h2 class="text-lg font-extrabold text-red-400 flex items-center gap-2">
-          <i class="fa-solid fa-sword"></i> Attacker (Offense)
-        </h2>
-        <span class="text-xs bg-red-900/30 text-red-400 border border-red-900/50 px-2 py-0.5 rounded font-mono">Slot A</span>
-      </div>
+    <!-- Mobile Navigation Tabs (Visible only on mobile lg:hidden) -->
+    <div class="lg:hidden col-span-1 flex border border-slate-700 bg-slate-900/40 rounded-2xl p-1 shadow-inner gap-1.5 mb-1.5">
+      <button id="mob-tab-attacker" class="flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-450 hover:text-white">
+        <i class="fa-solid fa-hand-fist"></i> Attacker
+      </button>
+      <button id="mob-tab-results" class="flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-amber-950/30 text-amber-400 border border-amber-900/30 shadow">
+        <i class="fa-solid fa-meteor"></i> Battle & Calcs
+      </button>
+      <button id="mob-tab-defender" class="flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-455 hover:text-white">
+        <i class="fa-solid fa-shield"></i> Defender
+      </button>
+    </div>
+    
+    <!-- LEFT COLUMN: Attacker (4/12) (Visual Column Envelope Outline!) -->
+    <section id="panel-attacker" class="hidden lg:flex lg:flex-col lg:col-span-4 gap-5 bg-slate-950/20 border border-slate-800/80 rounded-3xl p-4">
+      
+      <!-- Card 1: Attacker Profile & Selection -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-red-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4 pokemon-card">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+          <h2 class="text-sm font-black text-red-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-hand-fist text-xs"></i> Attacker Selection
+          </h2>
+        </div>
 
-      <!-- Pokemon Search & Selection -->
-      <div class="relative">
-        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Search Pokemon</label>
+        <!-- Pokemon Search & Selection -->
         <div class="relative">
-          <input type="text" id="attacker-search" placeholder="Search (e.g. Lopunny, Incineroar...)" 
-            class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
-          <div id="attacker-spinner" class="absolute right-3.5 top-3 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Search Pokemon</label>
+          <div class="relative">
+            <input type="text" id="attacker-search" placeholder="Search (e.g. Lopunny, Incineroar...)" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
+            <div id="attacker-spinner" class="absolute right-3 top-2.5 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
+          </div>
+          <!-- Dropdown Results -->
+          <div id="attacker-results" class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden"></div>
         </div>
-        <!-- Dropdown Results -->
-        <div id="attacker-results" class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden"></div>
-      </div>
 
-      <!-- Basic Attacker Profile Card with Stats Bars -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3">
-        <!-- Profile Row -->
-        <div class="flex items-center gap-4">
-          <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-24 h-24 object-contain bg-slate-800 rounded-lg p-1 shadow-inner border border-slate-700/40">
-          <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div>
-              <span id="attacker-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
-            </div>
-            <h3 id="attacker-name" class="font-black text-lg truncate -mt-0.5 text-slate-100">Select a Pokemon</h3>
-            <div id="attacker-types" class="flex gap-1.5">
-              <span class="text-[10px] px-2 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
-            </div>
-          </div>
-        </div>
-        <!-- Stats Bars Grid -->
-        <div id="attacker-stats-bars" class="hidden border-t border-slate-800/60 pt-2.5 flex flex-col gap-1.5 text-[10px]">
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">HP</span>
-            <span id="attacker-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="attacker-bar-hp" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+        <!-- Basic Attacker Profile Card with Stats Bars -->
+        <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
+          <div class="flex items-center gap-3.5">
+            <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-20 h-20 object-contain bg-slate-900 rounded-lg p-1 shadow-inner border border-slate-700/30">
+            <div class="flex-1 min-w-0 flex flex-col gap-1">
+              <div>
+                <span id="attacker-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
+              </div>
+              <h3 id="attacker-name" class="font-black text-base truncate text-slate-100">Select a Pokemon</h3>
+              <div id="attacker-types" class="flex gap-1">
+                <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">Atk</span>
-            <span id="attacker-bar-atk-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="attacker-bar-atk" class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+          
+          <!-- Stats Bars Grid -->
+          <div id="attacker-stats-bars" class="hidden border-t border-slate-700 pt-2 flex flex-col gap-1 text-[9px]">
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">HP</span>
+              <span id="attacker-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="attacker-bar-hp" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">Def</span>
-            <span id="attacker-bar-def-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="attacker-bar-def" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">Atk</span>
+              <span id="attacker-bar-atk-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="attacker-bar-atk" class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">SpA</span>
-            <span id="attacker-bar-spa-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="attacker-bar-spa" class="h-full bg-purple-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">Def</span>
+              <span id="attacker-bar-def-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="attacker-bar-def" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">SpD</span>
-            <span id="attacker-bar-spd-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="attacker-bar-spd" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">SpA</span>
+              <span id="attacker-bar-spa-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="attacker-bar-spa" class="h-full bg-purple-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">Spe</span>
-            <span id="attacker-bar-spe-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="attacker-bar-spe" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">SpD</span>
+              <span id="attacker-bar-spd-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="attacker-bar-spd" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Level & Nature -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Level</label>
-          <input type="number" id="attacker-level" value="50" disabled class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-sm text-center text-slate-500 cursor-not-allowed">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nature</label>
-          <select id="attacker-nature" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-sm focus:outline-none focus:border-red-500 text-slate-100">
-            <!-- Loaded dynamically in JS -->
-          </select>
-        </div>
-      </div>
-
-      <!-- Item & Ability -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Held Item</label>
-          <select id="attacker-item" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-            <option value="none">No offensive item</option>
-            <option value="choice_band">Choice Band (1.5x Atk)</option>
-            <option value="choice_specs">Choice Specs (1.5x SpA)</option>
-            <option value="choice_scarf">Choice Scarf (1.5x Speed)</option>
-            <option value="life_orb">Life Orb (1.3x Damage)</option>
-            <option value="expert_belt">Expert Belt (1.2x Super Eff.)</option>
-            <option value="black_glasses_etc">Type boosting item (1.2x)</option>
-            <option value="mega_stone">Mega Stone</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Attacker Ability</label>
-          <select id="attacker-ability" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-            <option value="none">No offensive ability</option>
-            <option value="huge_power">Huge Power (2x Atk Stat)</option>
-            <option value="guts">Guts Activated (1.5x Atk Stat)</option>
-            <option value="adaptability">Adaptability (2.0x STAB)</option>
-            <option value="technician">Technician (1.5x moves &lt;= 60 power)</option>
-            <option value="sharpness">Sharpness (1.5x Slicing moves)</option>
-            <option value="tough_claws">Tough Claws (1.3x Contact moves)</option>
-            <option value="strong_jaw">Strong Jaw (1.5x Biting moves)</option>
-            <option value="iron-fist">Iron Fist (1.2x Punching moves)</option>
-            <option value="sniper">Sniper (Boosts Crit to 2.25x)</option>
-            <option value="transistor">Transistor (1.3x Electric moves)</option>
-            <option value="steelworker">Steelworker / Rocky Payload (1.5x Steel/Rock moves)</option>
-            <option value="supreme_overlord_5">Supreme Overlord 5 Fainted (1.5x damage)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Attacker Offensive Stats Dashboard (3-Column layout including Speed!) -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5">
-        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-800 pb-1.5">Offensive Stats Dashboard</h4>
-        <div class="grid grid-cols-3 gap-2.5">
-          <!-- Attack Column -->
-          <div class="flex flex-col gap-1 text-left">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>Attack</span>
-              <span class="text-amber-400 text-xs font-black" id="attacker-stat-atk-val">---</span>
-            </div>
-            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
-              <span>Boost</span>
-              <select id="attacker-boost-atk" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
-                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>+0</option>
-                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-              </select>
-            </div>
-          </div>
-          <!-- Sp. Attack Column -->
-          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>Sp. Atk</span>
-              <span class="text-amber-400 text-xs font-black" id="attacker-stat-spa-val">---</span>
-            </div>
-            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
-              <span>Boost</span>
-              <select id="attacker-boost-spa" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
-                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>+0</option>
-                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-              </select>
-            </div>
-          </div>
-          <!-- Speed Column -->
-          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>Speed</span>
-              <span class="text-amber-400 text-xs font-black" id="attacker-stat-spe-val">---</span>
-            </div>
-            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
-              <span>Boost</span>
-              <select id="attacker-boost-spe" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
-                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>+0</option>
-                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-              </select>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">Spe</span>
+              <span id="attacker-bar-spe-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="attacker-bar-spe" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- SP Inputs (Offensive) -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5">
-        <div class="flex justify-between items-center mb-2 border-b border-slate-800 pb-1.5">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Attacker SP Allocations</h4>
+      <!-- Card 2: Attacker Dashboard Configurations -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-red-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4 pokemon-card">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+          <h2 class="text-sm font-black text-red-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-xs"></i> Offense Dashboard
+          </h2>
+        </div>
+
+        <!-- Level & Nature -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Level</label>
+            <input type="number" id="attacker-level" value="50" disabled class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-center text-slate-500 cursor-not-allowed">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Nature</label>
+            <select id="attacker-nature" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+              <!-- Loaded dynamically in JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Item & Ability -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Held Item</label>
+            <select id="attacker-item" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+              <option value="none">No offensive item</option>
+              <option value="choice_band">Choice Band (1.5x Atk)</option>
+              <option value="choice_specs">Choice Specs (1.5x SpA)</option>
+              <option value="choice_scarf">Choice Scarf (1.5x Speed)</option>
+              <option value="life_orb">Life Orb (1.3x Damage)</option>
+              <option value="expert_belt">Expert Belt (1.2x Super Eff.)</option>
+              <option value="black_glasses_etc">Type boosting item (1.2x)</option>
+              <option value="mega_stone">Mega Stone</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Offensive Ability</label>
+            <select id="attacker-ability" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+              <option value="none">No offensive ability</option>
+              <option value="huge_power">Huge Power (2x Atk)</option>
+              <option value="guts">Guts (1.5x Atk)</option>
+              <option value="adaptability">Adaptability (2x STAB)</option>
+              <option value="technician">Technician (1.5x &lt;=60bp)</option>
+              <option value="sharpness">Sharpness (1.5x Slash)</option>
+              <option value="tough_claws">Tough Claws (1.3x Contact)</option>
+              <option value="strong_jaw">Strong Jaw (1.5x Bite)</option>
+              <option value="iron-fist">Iron Fist (1.2x Punch)</option>
+              <option value="sniper">Sniper (2.25x Crits)</option>
+              <option value="transistor">Transistor (1.3x Elec)</option>
+              <option value="steelworker">Steelworker (1.5x Steel/Rock)</option>
+              <option value="supreme_overlord_5">Supreme Overlord (1.5x)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Attacker Stats Dashboard Card -->
+        <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3">
+          <div class="grid grid-cols-3 gap-2.5">
+            <!-- Attack Column -->
+            <div class="flex flex-col gap-1 text-left">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>Attack</span>
+                <span class="text-amber-400 text-xs font-black" id="attacker-stat-atk-val">---</span>
+              </div>
+              <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
+                <span>Boost</span>
+                <select id="attacker-boost-atk" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
+                  <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                  <option value="0" selected>+0</option>
+                  <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+                </select>
+              </div>
+            </div>
+            <!-- Sp. Attack Column -->
+            <div class="flex flex-col gap-1 text-left border-l border-slate-700 pl-2">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>Sp. Atk</span>
+                <span class="text-amber-400 text-xs font-black" id="attacker-stat-spa-val">---</span>
+              </div>
+              <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
+                <span>Boost</span>
+                <select id="attacker-boost-spa" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
+                  <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                  <option value="0" selected>+0</option>
+                  <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+                </select>
+              </div>
+            </div>
+            <!-- Speed Column -->
+            <div class="flex flex-col gap-1 text-left border-l border-slate-700 pl-2">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>Speed</span>
+                <span class="text-amber-400 text-xs font-black" id="attacker-stat-spe-val">---</span>
+              </div>
+              <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
+                <span>Boost</span>
+                <select id="attacker-boost-spe" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
+                  <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                  <option value="0" selected>+0</option>
+                  <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Attacker SP Allocations Sliders -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-red-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4 pokemon-card">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+          <h2 class="text-sm font-black text-red-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-xs"></i> SP Allocations
+          </h2>
           <!-- Presets dropdown -->
-          <select id="attacker-sp-presets" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
+          <select id="attacker-sp-presets" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
             <option value="">-- Presets --</option>
             <option value="phys_attacker">Physical Attacker</option>
             <option value="spec_attacker">Special Attacker</option>
             <option value="mixed_attacker">Mixed Attacker</option>
           </select>
         </div>
-        <div class="flex justify-between items-center text-xs font-mono text-slate-400 mb-2.5">
+        <div class="flex justify-between items-center text-xs font-mono text-slate-400 -mt-1">
           <span>Status sum:</span>
-          <span id="attacker-ev-sum">Used: 0/66 SP</span>
+          <span id="attacker-ev-sum" class="font-bold">Used: 0/66 SP</span>
         </div>
-        <div class="flex flex-col gap-2.5 text-xs">
+        <div class="flex flex-col gap-3.5 text-xs">
           <div>
             <div class="flex justify-between font-mono mb-1">
               <span>Attack SP:</span>
@@ -290,54 +323,76 @@
 
     </section>
 
-    <!-- CENTER COLUMN: Results & Controls (4/12) -->
-    <section class="lg:col-span-4 flex flex-col gap-6">
+    <!-- CENTER COLUMN: Results & Controls (4/12) (Visual Column Envelope Outline!) -->
+    <section id="panel-center" class="hidden lg:flex lg:flex-col lg:col-span-4 gap-5 bg-slate-950/20 border border-slate-800/80 rounded-3xl p-4">
       
       <!-- Mode Selector Tabs -->
-      <div class="bg-slate-800 border border-slate-800 rounded-2xl p-1.5 flex shadow-md">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-1.5 flex shadow-md">
         <button id="tab-survival" class="flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md">
           <i class="fa-solid fa-shield-halved"></i> Bulk Survival SP
         </button>
-        <button id="tab-offensive" class="flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-450 hover:text-white">
+        <button id="tab-offensive" class="flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-400 hover:text-white">
           <i class="fa-solid fa-burst"></i> Offense SP Optimizer
         </button>
       </div>
 
       <!-- Battle Modifiers Card -->
-      <div class="bg-slate-800 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
-        <h3 class="text-sm font-extrabold text-amber-400 flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-amber-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-3.5">
+        <h3 class="text-sm font-extrabold text-amber-400 flex items-center gap-2 border-b border-slate-700 pb-2">
           <i class="fa-solid fa-people-group"></i> Battle Modifiers
         </h3>
         
-        <!-- Row 1: Core Toggles -->
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
-            <input type="checkbox" id="mod-spread" class="rounded accent-amber-500">
-            <span>Spread Move (0.75x)</span>
+        <!-- Connected 2x3 Battle Modifiers Grid (Tactile controller pad style!) -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Button 1: Spread Move (Amber Theme) -->
+          <label class="relative cursor-pointer select-none">
+            <input type="checkbox" id="mod-spread" class="sr-only peer">
+            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-amber-950/30 peer-checked:border-amber-500/60 peer-checked:text-amber-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
+              <span>Spread Move (0.75x)</span>
+            </div>
           </label>
-          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
-            <input type="checkbox" id="mod-crit" class="rounded accent-amber-500">
-            <span>Crit Hit (1.5x)</span>
+          <!-- Button 2: Crit Hit (Amber Theme) -->
+          <label class="relative cursor-pointer select-none">
+            <input type="checkbox" id="mod-crit" class="sr-only peer">
+            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-amber-950/30 peer-checked:border-amber-500/60 peer-checked:text-amber-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
+              <span>Crit Hit (1.5x)</span>
+            </div>
+          </label>
+          <!-- Button 3: Friend Guard (Emerald Theme) -->
+          <label class="relative cursor-pointer select-none">
+            <input type="checkbox" id="mod-friend-guard" class="sr-only peer">
+            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-emerald-950/30 peer-checked:border-emerald-500/60 peer-checked:text-emerald-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
+              <span>Friend Guard (0.75x)</span>
+            </div>
+          </label>
+          <!-- Button 4: Screens (Emerald Theme) -->
+          <label class="relative cursor-pointer select-none">
+            <input type="checkbox" id="mod-screens" class="sr-only peer">
+            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-emerald-950/30 peer-checked:border-emerald-500/60 peer-checked:text-emerald-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
+              <span>Screens (0.66x)</span>
+            </div>
+          </label>
+          <!-- Button 5: Atk Tailwind (Blue Theme) -->
+          <label class="relative cursor-pointer select-none">
+            <input type="checkbox" id="mod-tail-atk" class="sr-only peer">
+            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-blue-950/30 peer-checked:border-blue-500/60 peer-checked:text-blue-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
+              <span>Atk Tailwind (2.0x)</span>
+            </div>
+          </label>
+          <!-- Button 6: Def Tailwind (Blue Theme) -->
+          <label class="relative cursor-pointer select-none">
+            <input type="checkbox" id="mod-tail-def" class="sr-only peer">
+            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-blue-950/30 peer-checked:border-blue-500/60 peer-checked:text-blue-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
+              <span>Def Tailwind (2.0x)</span>
+            </div>
           </label>
         </div>
 
-        <!-- Row 2: VGC Protective Toggles -->
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
-            <input type="checkbox" id="mod-friend-guard" class="rounded accent-amber-500">
-            <span>Friend Guard (0.75x)</span>
-          </label>
-          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
-            <input type="checkbox" id="mod-screens" class="rounded accent-amber-500">
-            <span>Screens (0.66x)</span>
-          </label>
-        </div>
-
-        <!-- Row 3: Weather, Terrain, and Aura Selectors -->
-        <div class="grid grid-cols-3 gap-2 text-xs border-t border-slate-850 pt-2.5">
+        <!-- Row 4: Weather, Terrain, and Aura Selectors (Symmetrical Grid-Cols-3) -->
+        <div class="grid grid-cols-3 gap-2 text-xs border-t border-slate-700/40 pt-3.5">
           <!-- Weather -->
           <div class="flex flex-col gap-1">
-            <label class="block text-[9px] font-bold text-slate-505 uppercase tracking-wider text-left">Weather</label>
+            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">Weather</label>
             <select id="mod-weather-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="none">None</option>
               <option value="sun">Sun</option>
@@ -348,7 +403,7 @@
           </div>
           <!-- Terrain -->
           <div class="flex flex-col gap-1">
-            <label class="block text-[9px] font-bold text-slate-505 uppercase tracking-wider text-left">Terrain</label>
+            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">Terrain</label>
             <select id="mod-terrain-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="none">None</option>
               <option value="electric">Electric</option>
@@ -359,70 +414,86 @@
           </div>
           <!-- Aura -->
           <div class="flex flex-col gap-1">
-            <label class="block text-[9px] font-bold text-slate-505 uppercase tracking-wider text-left">Aura</label>
+            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">Aura</label>
             <select id="mod-aura-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="none">None</option>
-              <option value="fairy">Fairy Aura</option>
-              <option value="dark">Dark Aura</option>
+              <option value="fairy">Fairy</option>
+              <option value="dark">Dark</option>
             </select>
           </div>
         </div>
       </div>
 
-      <!-- Attack Selection Card (With new dynamic Speed Tier Comparison Banner!) -->
-      <div class="bg-slate-800 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3.5 pokemon-card">
-        <h3 class="text-sm font-extrabold text-red-400 flex items-center gap-2 border-b border-slate-800 pb-2">
+      <!-- Attack Selection Card -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-amber-500/80 rounded-2xl p-4 shadow-xl flex flex-col gap-3.5 pokemon-card">
+        <h3 class="text-sm font-extrabold text-red-400 flex items-center gap-2 border-b border-slate-750 pb-2">
           <i class="fa-solid fa-meteor"></i> Attack Selection
         </h3>
         
         <!-- Dynamic Speed Comparison Banner -->
-        <div id="speed-comparison-banner" class="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 text-center text-[11px] font-extrabold flex items-center justify-center gap-2 shadow-inner transition-all duration-300">
-          <!-- Populated dynamically in JS! -->
-          <span class="text-slate-500 italic"><i class="fa-solid fa-hourglass-half mr-1 text-[10px]"></i> Awaiting Speed Stats...</span>
+        <div id="speed-comparison-banner" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-center text-[11px] font-extrabold flex items-center justify-center gap-2 shadow-inner transition-all duration-300">
+          <span class="text-slate-500 italic animate-pulse"><i class="fa-solid fa-hourglass-half mr-1 text-[10px]"></i> Awaiting Speed Stats...</span>
         </div>
 
-        <div class="flex flex-col gap-1.5 text-xs border-t border-slate-800/40 pt-2">
+        <div class="flex flex-col gap-1.5 text-xs border-t border-slate-700/40 pt-2">
           <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">Select Move</label>
-          <select id="attacker-move-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+          <select id="attacker-move-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
             <option value="custom">--- Custom Move ---</option>
           </select>
         </div>
 
-        <!-- Custom/Loaded Move Stats Override -->
-        <div class="grid grid-cols-3 gap-2 text-slate-100 mt-1">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Type</label>
-            <select id="move-type" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
-              <!-- Loaded in JS -->
+        <!-- Premium Dynamic Move Badges Deck -->
+        <div class="flex items-center justify-between gap-2.5 mt-1.5 bg-slate-900/45 border border-slate-700 rounded-xl p-3 text-xs font-bold shadow-inner">
+          
+          <!-- Dynamic Move Type Badge Column -->
+          <div class="flex flex-col gap-1.5 text-left">
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Type</span>
+            <div id="move-type-badge-container" class="flex items-center h-6">
+              <!-- Renders dynamic colored Pokemon type badge in JS! -->
+            </div>
+            <!-- Hidden Select (Revealed strictly only when 'Custom Move' is selected!) -->
+            <select id="move-type" class="hidden bg-slate-900 border border-slate-700 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+              <!-- Option list populated dynamically in JS -->
             </select>
           </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Power</label>
-            <input type="number" id="move-power" value="80" min="0" max="250" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center focus:outline-none focus:border-red-500 text-slate-100">
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Category</label>
-            <select id="move-category" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+
+          <!-- Dynamic Move Category Badge Column -->
+          <div class="flex flex-col gap-1.5 text-left border-l border-slate-800 pl-3.5">
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Category</span>
+            <div id="move-category-badge-container" class="flex items-center h-6">
+              <!-- Renders '[👊 Physical]' or '[✨ Special]' dynamically in JS! -->
+            </div>
+            <select id="move-category" class="hidden bg-slate-900 border border-slate-700 rounded-lg py-1 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="physical">Physical</option>
               <option value="special">Special</option>
             </select>
           </div>
+
+          <!-- Dynamic Move Power Stat Column -->
+          <div class="flex flex-col gap-1.5 text-right border-l border-slate-800 pl-3.5">
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono">Power</span>
+            <div class="flex items-center justify-end gap-1 h-6">
+              <input type="number" id="move-power" value="80" min="0" max="250" class="w-10 bg-transparent font-black font-mono text-sm text-right text-amber-400 focus:outline-none focus:ring-0 border-b border-transparent focus:border-amber-500/30 py-0">
+              <span class="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider shrink-0">BP</span>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <!-- Interactive Optimizer Result Panel -->
-      <div id="optimizer-output-card" class="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between min-h-[250px]">
+      <div id="optimizer-output-card" class="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 border-t-2 border-t-amber-500/80 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between min-h-[250px]">
         <div class="flex flex-col gap-3">
-          <h3 class="text-base font-extrabold text-white border-b border-slate-800 pb-2 flex justify-between items-center">
+          <h3 class="text-base font-extrabold text-white border-b border-slate-700 pb-2 flex justify-between items-center">
             <span>Optimization Output</span>
             <span id="calc-status" class="text-[10px] font-bold bg-green-950 text-green-400 border border-green-900/50 px-2 py-0.5 rounded uppercase">Live</span>
           </h3>
 
-          <!-- SURVIVAL RESULTS (Default Active) -->
+          <!-- SURVIVAL RESULTS -->
           <div id="survival-results" class="flex flex-col gap-4">
             <p class="text-xs text-slate-400">Calculate target SP spreads to survive the opponent's attack.</p>
             
-            <div id="survival-not-possible" class="hidden bg-red-950/30 border border-red-900/50 text-red-300 p-3.5 rounded-xl text-xs">
+            <div id="survival-not-possible" class="hidden bg-red-950 border border-red-900 text-red-300 p-3.5 rounded-xl text-xs">
               <i class="fa-solid fa-circle-exclamation mr-1"></i> 
               Survival is impossible! Even with maximum bulk (32 HP / 32 Defense / SP Cap), this move will always OHKO.
             </div>
@@ -436,7 +507,7 @@
             </div>
           </div>
 
-          <!-- OFFENSIVE KO RESULTS (Initially Hidden) -->
+          <!-- OFFENSIVE KO RESULTS -->
           <div id="offensive-results" class="flex flex-col gap-4 hidden">
             <p class="text-xs text-slate-400">Optimize attacker's investment to secure a KO against the defender.</p>
             
@@ -452,7 +523,7 @@
               </div>
             </div>
 
-            <div id="offensive-not-possible" class="hidden bg-amber-950/30 border border-amber-900/50 text-amber-300 p-3.5 rounded-xl text-xs">
+            <div id="offensive-not-possible" class="hidden bg-amber-950 border border-amber-900 text-amber-300 p-3.5 rounded-xl text-xs">
               <i class="fa-solid fa-circle-exclamation mr-1"></i> 
               Target outcome is impossible even with maximum Nature and 32 SP offensive investment.
             </div>
@@ -468,7 +539,7 @@
         </div>
 
         <!-- Damage Roll Graph and Percentages -->
-        <div class="border-t border-slate-800 pt-4 mt-4 flex flex-col gap-2.5">
+        <div class="border-t border-slate-700 pt-4 mt-4 flex flex-col gap-2.5">
           <div class="flex justify-between items-center text-xs">
             <span class="font-bold text-slate-300">Damage Output Range:</span>
             <span id="damage-percentage-range" class="font-mono font-bold text-amber-400">0% - 0%</span>
@@ -488,195 +559,207 @@
 
     </section>
 
-    <!-- RIGHT COLUMN: Defender (4/12) -->
-    <section class="lg:col-span-4 bg-slate-800 border border-slate-800/80 rounded-2xl p-5 shadow-xl pokemon-card flex flex-col gap-4">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h2 class="text-lg font-extrabold text-blue-400 flex items-center gap-2">
-          <i class="fa-solid fa-shield"></i> Defender (Bulk)
-        </h2>
-        <span class="text-xs bg-blue-900/30 text-blue-400 border border-blue-900/50 px-2 py-0.5 rounded font-mono">Slot B</span>
-      </div>
+    <!-- RIGHT COLUMN: Defender (4/12) (Visual Column Envelope Outline!) -->
+    <section id="panel-defender" class="hidden lg:flex lg:flex-col lg:col-span-4 gap-5 bg-slate-950/20 border border-slate-800/80 rounded-3xl p-4">
+      
+      <!-- Card 1: Defender Profile & Selection -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-blue-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4 pokemon-card">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+          <h2 class="text-sm font-black text-blue-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-shield text-xs"></i> Defender Selection
+          </h2>
+        </div>
 
-      <!-- Pokemon Search & Selection -->
-      <div class="relative">
-        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Search Pokemon</label>
+        <!-- Pokemon Search & Selection -->
         <div class="relative">
-          <input type="text" id="defender-search" placeholder="Search (e.g. Amoonguss, Garchomp...)" 
-            class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
-          <div id="defender-spinner" class="absolute right-3.5 top-3 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Search Pokemon</label>
+          <div class="relative">
+            <input type="text" id="defender-search" placeholder="Search (e.g. Amoonguss, Garchomp...)" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
+            <div id="defender-spinner" class="absolute right-3 top-2.5 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
+          </div>
+          <!-- Dropdown Results -->
+          <div id="defender-results" class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden"></div>
         </div>
-        <!-- Dropdown Results -->
-        <div id="defender-results" class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden"></div>
-      </div>
 
-      <!-- Basic Defender Profile Card with Stats Bars -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3">
-        <!-- Profile Row -->
-        <div class="flex items-center gap-4">
-          <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-24 h-24 object-contain bg-slate-800 rounded-lg p-1 shadow-inner border border-slate-700/40">
-          <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div>
-              <span id="defender-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
-            </div>
-            <h3 id="defender-name" class="font-black text-lg truncate -mt-0.5 text-slate-100">Select a Pokemon</h3>
-            <div id="defender-types" class="flex gap-1.5">
-              <span class="text-[10px] px-2 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
-            </div>
-          </div>
-        </div>
-        <!-- Stats Bars Grid -->
-        <div id="defender-stats-bars" class="hidden border-t border-slate-800/60 pt-2.5 flex flex-col gap-1.5 text-[10px]">
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">HP</span>
-            <span id="defender-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="defender-bar-hp" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+        <!-- Basic Defender Profile Card with Stats Bars -->
+        <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
+          <div class="flex items-center gap-3.5">
+            <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-20 h-20 object-contain bg-slate-900 rounded-lg p-1 shadow-inner border border-slate-700/40">
+            <div class="flex-1 min-w-0 flex flex-col gap-1">
+              <div>
+                <span id="defender-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
+              </div>
+              <h3 id="defender-name" class="font-black text-base truncate text-slate-100">Select a Pokemon</h3>
+              <div id="defender-types" class="flex gap-1">
+                <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">Atk</span>
-            <span id="defender-bar-atk-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="defender-bar-atk" class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+          
+          <!-- Stats Bars Grid -->
+          <div id="defender-stats-bars" class="hidden border-t border-slate-700 pt-2 flex flex-col gap-1 text-[9px]">
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">HP</span>
+              <span id="defender-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="defender-bar-hp" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">Def</span>
-            <span id="defender-bar-def-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="defender-bar-def" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">Atk</span>
+              <span id="defender-bar-atk-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="defender-bar-atk" class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">SpA</span>
-            <span id="defender-bar-spa-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="defender-bar-spa" class="h-full bg-purple-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">Def</span>
+              <span id="defender-bar-def-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="defender-bar-def" class="h-full bg-indigo-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">SpD</span>
-            <span id="defender-bar-spd-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="defender-bar-spd" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">SpA</span>
+              <span id="defender-bar-spa-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="defender-bar-spa" class="h-full bg-purple-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-7 font-extrabold text-slate-400 uppercase">Spe</span>
-            <span id="defender-bar-spe-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
-            <div class="flex-1 h-1.5 bg-slate-850 rounded-full overflow-hidden">
-              <div id="defender-bar-spe" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">SpD</span>
+              <span id="defender-bar-spd-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="defender-bar-spd" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Level & Nature -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Level</label>
-          <input type="number" id="defender-level" value="50" disabled class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-sm text-center text-slate-500 cursor-not-allowed">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nature</label>
-          <select id="defender-nature" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-sm focus:outline-none focus:border-blue-500 text-slate-100">
-            <!-- Loaded dynamically in JS -->
-          </select>
-        </div>
-      </div>
-
-      <!-- Defender Items & Ability -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Held Item</label>
-          <select id="defender-item" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-            <option value="none">No defensive item</option>
-            <option value="assault_vest">Assault Vest (1.5x SpD)</option>
-            <option value="eviolite">Eviolite (1.5x Def/SpD)</option>
-            <option value="berries">Super effective Berry (0.5x)</option>
-            <option value="choice_scarf">Choice Scarf (1.5x Speed)</option>
-            <option value="mega_stone">Mega Stone</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Defender Ability</label>
-          <select id="defender-ability" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-            <option value="none">No defensive ability</option>
-            <option value="multiscale">Multiscale / Shadow Shield (0.5x Full HP)</option>
-            <option value="fluffy">Fluffy (0.5x Contact Physical)</option>
-            <option value="ice_scales">Ice Scales (0.5x Special)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Defender Stats Dashboard (4-Column layout including Speed!) -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3.5">
-        <h4 class="text-xs font-bold text-slate-400 uppercase mb-0.5 tracking-wider border-b border-slate-800 pb-1.5">Defensive Stats Dashboard</h4>
-        
-        <div class="grid grid-cols-4 gap-2 text-[10px]">
-          <!-- HP Column -->
-          <div class="flex flex-col gap-1 text-left">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>HP</span>
-              <span class="text-blue-400 text-xs font-black" id="defender-stat-hp-val">---</span>
-            </div>
-            <div class="text-[8px] text-slate-555 italic mt-2.5">No Boost</div>
-          </div>
-          <!-- Defense Column -->
-          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>Def</span>
-              <span class="text-blue-400 text-xs font-black" id="defender-stat-def-val">---</span>
-            </div>
-            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-450">
-              <span>Boost</span>
-              <select id="defender-boost-def" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
-                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>+0</option>
-                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-              </select>
-            </div>
-          </div>
-          <!-- Sp. Defense Column -->
-          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>SpD</span>
-              <span class="text-blue-400 text-xs font-black" id="defender-stat-spd-val">---</span>
-            </div>
-            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-450">
-              <span>Boost</span>
-              <select id="defender-boost-spd" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
-                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>+0</option>
-                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-              </select>
-            </div>
-          </div>
-          <!-- Speed Column -->
-          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
-            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
-              <span>Speed</span>
-              <span class="text-blue-400 text-xs font-black" id="defender-stat-spe-val">---</span>
-            </div>
-            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-450">
-              <span>Boost</span>
-              <select id="defender-boost-spe" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
-                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>+0</option>
-                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-              </select>
+            <div class="flex items-center gap-2">
+              <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">Spe</span>
+              <span id="defender-bar-spe-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
+              <div class="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="defender-bar-spe" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- SP Inputs (Defensive) -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5">
-        <div class="flex justify-between items-center mb-2 border-b border-slate-800 pb-1.5">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Defender SP Allocations</h4>
+      <!-- Card 2: Defender Dashboard Configurations -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-blue-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4 pokemon-card">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+          <h2 class="text-sm font-black text-blue-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-xs"></i> Bulk Dashboard
+          </h2>
+        </div>
+
+        <!-- Level & Nature -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Level</label>
+            <input type="number" id="defender-level" value="50" disabled class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-center text-slate-500 cursor-not-allowed">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Nature</label>
+            <select id="defender-nature" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer">
+              <!-- Loaded dynamically in JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Defender Items & Ability -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Held Item</label>
+            <select id="defender-item" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer">
+              <option value="none">No defensive item</option>
+              <option value="assault_vest">Assault Vest (1.5x SpD)</option>
+              <option value="eviolite">Eviolite (1.5x Def/SpD)</option>
+              <option value="berries">Super effective Berry (0.5x)</option>
+              <option value="choice_scarf">Choice Scarf (1.5x Speed)</option>
+              <option value="mega_stone">Mega Stone</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Defensive Ability</label>
+            <select id="defender-ability" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer">
+              <option value="none">No defensive ability</option>
+              <option value="multiscale">Multiscale / Shadow Shield (0.5x)</option>
+              <option value="fluffy">Fluffy (0.5x Contact Physical)</option>
+              <option value="ice_scales">Ice Scales (0.5x Special)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Defender Stats Dashboard Card -->
+        <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3">
+          <div class="grid grid-cols-4 gap-2 text-[10px]">
+            <!-- HP Column -->
+            <div class="flex flex-col gap-1 text-left">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>HP</span>
+                <span class="text-blue-400 text-xs font-black" id="defender-stat-hp-val">---</span>
+              </div>
+              <div class="text-[8px] text-slate-500 italic mt-2.5">No Boost</div>
+            </div>
+            <!-- Defense Column -->
+            <div class="flex flex-col gap-1 text-left border-l border-slate-700 pl-2">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>Def</span>
+                <span class="text-blue-400 text-xs font-black" id="defender-stat-def-val">---</span>
+              </div>
+              <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-455">
+                <span>Boost</span>
+                <select id="defender-boost-def" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
+                  <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                  <option value="0" selected>+0</option>
+                  <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+                </select>
+              </div>
+            </div>
+            <!-- Sp. Defense Column -->
+            <div class="flex flex-col gap-1 text-left border-l border-slate-700 pl-2">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>SpD</span>
+                <span class="text-blue-400 text-xs font-black" id="defender-stat-spd-val">---</span>
+              </div>
+              <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-455">
+                <span>Boost</span>
+                <select id="defender-boost-spd" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
+                  <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                  <option value="0" selected>+0</option>
+                  <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+                </select>
+              </div>
+            </div>
+            <!-- Speed Column -->
+            <div class="flex flex-col gap-1 text-left border-l border-slate-700 pl-2">
+              <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+                <span>Speed</span>
+                <span class="text-blue-400 text-xs font-black" id="defender-stat-spe-val">---</span>
+              </div>
+              <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-455">
+                <span>Boost</span>
+                <select id="defender-boost-spe" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
+                  <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                  <option value="0" selected>+0</option>
+                  <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Defender SP Allocations Sliders (With blue top accent bar!) -->
+      <div class="bg-slate-800 border border-slate-700 border-t-2 border-t-blue-500/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4 pokemon-card">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+          <h2 class="text-sm font-black text-blue-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-xs"></i> SP Allocations
+          </h2>
           <!-- Presets dropdown -->
-          <select id="defender-sp-presets" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
+          <select id="defender-sp-presets" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
             <option value="">-- Presets --</option>
             <option value="max_phys_bulk">Max Physical Bulk</option>
             <option value="max_spec_bulk">Max Special Bulk</option>
@@ -684,11 +767,11 @@
             <option value="fast_bulky">Fast Bulky</option>
           </select>
         </div>
-        <div class="flex justify-between items-center text-xs font-mono text-slate-400 mb-2.5">
+        <div class="flex justify-between items-center text-xs font-mono text-slate-400 -mt-1">
           <span>Status sum:</span>
-          <span id="defender-ev-sum">Used: 0/66 SP</span>
+          <span id="defender-ev-sum" class="font-bold">Used: 0/66 SP</span>
         </div>
-        <div class="flex flex-col gap-2.5 text-xs">
+        <div class="flex flex-col gap-3.5 text-xs">
           <div>
             <div class="flex justify-between font-mono mb-1">
               <span>HP SP:</span>

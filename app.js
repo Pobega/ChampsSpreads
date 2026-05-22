@@ -607,7 +607,7 @@ function formatDisplayName(apiName) {
 }
 
 async function fetchPokemonDetails(apiName) {
-  const cacheKey = `poke_details_v4_${apiName}`;
+  const cacheKey = `poke_details_v6_${apiName}`;
   const cached = Storage.get(cacheKey);
   if (cached) return cached;
 
@@ -745,12 +745,16 @@ const DOM = {
   moveType: document.getElementById('move-type'),
   movePower: document.getElementById('move-power'),
   moveCategory: document.getElementById('move-category'),
+  moveTypeBadgeContainer: document.getElementById('move-type-badge-container'),
+  moveCategoryBadgeContainer: document.getElementById('move-category-badge-container'),
 
   modSpread: document.getElementById('mod-spread'),
   modWeatherSelect: document.getElementById('mod-weather-select'),
   modCrit: document.getElementById('mod-crit'),
   modFriendGuard: document.getElementById('mod-friend-guard'),
   modScreens: document.getElementById('mod-screens'),
+  modTailAtk: document.getElementById('mod-tail-atk'),
+  modTailDef: document.getElementById('mod-tail-def'),
   modTerrainSelect: document.getElementById('mod-terrain-select'),
   modAuraSelect: document.getElementById('mod-aura-select'),
   speedComparisonBanner: document.getElementById('speed-comparison-banner'),
@@ -937,16 +941,7 @@ function setAttackerDetails(details) {
 
   // Enable overrides by default
   DOM.movePower.value = 80;
-  DOM.movePower.disabled = false;
-  DOM.movePower.className = "w-full bg-slate-800 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center focus:outline-none focus:border-red-500 text-slate-100";
-
-  DOM.moveType.value = "Normal";
-  DOM.moveType.disabled = false;
-  DOM.moveType.className = "w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
-
-  DOM.moveCategory.value = "physical";
-  DOM.moveCategory.disabled = false;
-  DOM.moveCategory.className = "w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
+  updateMoveDetailsVisuals("Normal", "physical", true);
 
   updateLiveStats();
 }
@@ -1047,6 +1042,9 @@ function setDefenderDetails(details) {
   if (STATE.attacker.item === 'choice_scarf') {
     finalAttackerSpe = Math.floor(finalAttackerSpe * 1.5);
   }
+  if (DOM.modTailAtk.checked) {
+    finalAttackerSpe = finalAttackerSpe * 2;
+  }
 
   DOM.attackerStatAtkVal.textContent = finalAtk;
   DOM.attackerStatSpaVal.textContent = finalSpa;
@@ -1067,6 +1065,9 @@ function setDefenderDetails(details) {
   );
   if (STATE.defender.item === 'choice_scarf') {
     finalDefenderSpe = Math.floor(finalDefenderSpe * 1.5);
+  }
+  if (DOM.modTailDef.checked) {
+    finalDefenderSpe = finalDefenderSpe * 2;
   }
 
   DOM.defenderStatHpVal.textContent = finalHp;
@@ -1388,7 +1389,7 @@ function bindEvents() {
     DOM.defenderEvHp, DOM.defenderEvDef, DOM.defenderEvSpd, DOM.defenderEvSpe,
     DOM.moveType, DOM.movePower, DOM.moveCategory,
     DOM.modSpread, DOM.modWeatherSelect, DOM.modCrit,
-    DOM.modFriendGuard, DOM.modScreens, DOM.modTerrainSelect, DOM.modAuraSelect
+    DOM.modFriendGuard, DOM.modScreens, DOM.modTailAtk, DOM.modTailDef, DOM.modTerrainSelect, DOM.modAuraSelect
   ];
 
   inputs.forEach(inp => {
@@ -1487,41 +1488,19 @@ function bindEvents() {
     updateLiveStats();
   });
 
-
-
   DOM.attackerMoveSelect.addEventListener('change', async (e) => {
     const val = e.target.value;
     
     if (val === 'custom') {
-      // Enable overrides
-      DOM.movePower.disabled = false;
-      DOM.movePower.className = "w-full bg-slate-800 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center focus:outline-none focus:border-red-500 text-slate-100";
-      
-      DOM.moveType.disabled = false;
-      DOM.moveType.className = "w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
-      
-      DOM.moveCategory.disabled = false;
-      DOM.moveCategory.className = "w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
-      
+      updateMoveDetailsVisuals("Normal", "physical", true);
       updateLiveStats();
       return;
     }
 
     try {
       const move = await fetchMoveDetails(val);
-      
       DOM.movePower.value = move.power;
-      DOM.movePower.disabled = true;
-      DOM.movePower.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center text-slate-400 cursor-not-allowed";
-      
-      DOM.moveType.value = move.type;
-      DOM.moveType.disabled = true;
-      DOM.moveType.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-slate-400 cursor-not-allowed";
-      
-      DOM.moveCategory.value = move.category.toLowerCase();
-      DOM.moveCategory.disabled = true;
-      DOM.moveCategory.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-slate-400 cursor-not-allowed";
-      
+      updateMoveDetailsVisuals(move.type, move.category, false);
       updateLiveStats();
     } catch (err) {
       console.error('Error fetching move info', err);
@@ -1531,6 +1510,46 @@ function bindEvents() {
   DOM.loadSampleBtn.addEventListener('click', () => {
     loadSampleVGCScenario();
   });
+}
+
+function updateMoveDetailsVisuals(type, category, isCustom) {
+  if (isCustom) {
+    // Hide static badges containers
+    DOM.moveTypeBadgeContainer.innerHTML = "";
+    DOM.moveCategoryBadgeContainer.innerHTML = "";
+    
+    // Reveal customizable select elements!
+    DOM.moveType.classList.remove('hidden');
+    DOM.moveCategory.classList.remove('hidden');
+    
+    // Style active input power bubble
+    DOM.movePower.disabled = false;
+    DOM.movePower.className = "w-10 bg-slate-900 border border-slate-700 rounded-lg text-center text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-black font-mono py-0.5 focus:ring-1 focus:ring-amber-500/30";
+  } else {
+    // Hide select dropdowns
+    DOM.moveType.classList.add('hidden');
+    DOM.moveCategory.classList.add('hidden');
+    
+    // Render gorgeous colored VGC Type Badge!
+    DOM.moveTypeBadgeContainer.innerHTML = `
+      <span class="text-[10px] px-2 py-0.5 font-black uppercase rounded ${getTypeBgClass(type)} text-white shadow-sm select-none">${type}</span>
+    `;
+    
+    // Render gorgeous themed Category Badge!
+    const isPhysical = category.toLowerCase() === 'physical';
+    const catColor = isPhysical ? 'bg-red-950/30 text-red-400 border border-red-900/30' : 'bg-purple-950/30 text-purple-400 border border-purple-900/30';
+    const catIcon = isPhysical ? 'fa-hand-fist' : 'fa-wand-magic-sparkles';
+    const catText = isPhysical ? 'Physical' : 'Special';
+    DOM.moveCategoryBadgeContainer.innerHTML = `
+      <span class="text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${catColor} flex items-center gap-1 shadow-sm select-none">
+        <i class="fa-solid ${catIcon} text-[9px]"></i> ${catText}
+      </span>
+    `;
+    
+    // Style locked read-only input power bubble
+    DOM.movePower.disabled = true;
+    DOM.movePower.className = "w-10 bg-transparent font-black font-mono text-sm text-right text-slate-400 cursor-not-allowed py-0";
+  }
 }
 
 async function loadSampleVGCScenario() {
@@ -1593,16 +1612,7 @@ async function loadSampleVGCScenario() {
   try {
     const move = await fetchMoveDetails("drain-punch");
     DOM.movePower.value = move.power;
-    DOM.movePower.disabled = true;
-    DOM.movePower.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center text-slate-400 cursor-not-allowed";
-
-    DOM.moveType.value = move.type;
-    DOM.moveType.disabled = true;
-    DOM.moveType.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-slate-400 cursor-not-allowed";
-
-    DOM.moveCategory.value = move.category.toLowerCase();
-    DOM.moveCategory.disabled = true;
-    DOM.moveCategory.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-slate-400 cursor-not-allowed";
+    updateMoveDetailsVisuals(move.type, move.category, false);
   } catch (err) {
     console.error("Failed to load preloaded Drain Punch move info", err);
   }
@@ -1610,13 +1620,58 @@ async function loadSampleVGCScenario() {
   DOM.modSpread.checked = false;
   DOM.modWeatherSelect.value = 'none';
   DOM.modCrit.checked = false;
+  DOM.modTailAtk.checked = false;
+  DOM.modTailDef.checked = false;
 
   updateLiveStats();
+}
+
+function initMobileTabbing() {
+  const mobTabAttacker = document.getElementById('mob-tab-attacker');
+  const mobTabResults = document.getElementById('mob-tab-results');
+  const mobTabDefender = document.getElementById('mob-tab-defender');
+
+  const panelAttacker = document.getElementById('panel-attacker');
+  const panelCenter = document.getElementById('panel-center');
+  const panelDefender = document.getElementById('panel-defender');
+
+  if (!mobTabAttacker || !mobTabResults || !mobTabDefender) return;
+
+  function switchTab(activeTab) {
+    // Reset tab button styles
+    mobTabAttacker.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
+    mobTabResults.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
+    mobTabDefender.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
+
+    // Hide all panels under mobile
+    panelAttacker.classList.add('hidden');
+    panelCenter.classList.add('hidden');
+    panelDefender.classList.add('hidden');
+
+    if (activeTab === 'attacker') {
+      mobTabAttacker.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-red-950/30 text-red-400 border border-red-900/30 shadow";
+      panelAttacker.classList.remove('hidden');
+    } else if (activeTab === 'results') {
+      mobTabResults.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-amber-950/30 text-amber-400 border border-amber-900/30 shadow";
+      panelCenter.classList.remove('hidden');
+    } else if (activeTab === 'defender') {
+      mobTabDefender.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-blue-950/30 text-blue-400 border border-blue-900/30 shadow";
+      panelDefender.classList.remove('hidden');
+    }
+  }
+
+  mobTabAttacker.addEventListener('click', () => switchTab('attacker'));
+  mobTabResults.addEventListener('click', () => switchTab('results'));
+  mobTabDefender.addEventListener('click', () => switchTab('defender'));
+
+  // Start with Results & Controls visible by default on mobile!
+  switchTab('results');
 }
 
 async function init() {
   populateDropdowns();
   bindEvents();
+  initMobileTabbing();
 
   bindAutocomplete(
     DOM.attackerSearch,
@@ -1635,7 +1690,20 @@ async function init() {
   await initPokemonList();
   await initStatusMovesList();
 
-  await loadSampleVGCScenario();
+  try {
+    await loadSampleVGCScenario();
+  } catch (err) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = "bg-red-950 border-2 border-red-500 text-red-300 p-5 rounded-2xl m-6 text-xs font-mono shadow-2xl relative z-[9999] text-left";
+    errorDiv.innerHTML = `
+      <h3 class="text-sm font-black uppercase text-white mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation animate-pulse text-red-400"></i> VGC Startup Preloader Crash!
+      </h3>
+      <p class="font-bold">${err.name}: ${err.message}</p>
+      <pre class="mt-3 bg-slate-950 p-3 rounded-xl overflow-x-auto max-w-full leading-relaxed text-[10px] opacity-85">${err.stack}</pre>
+    `;
+    document.body.prepend(errorDiv);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
