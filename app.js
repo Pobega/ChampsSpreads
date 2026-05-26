@@ -203,7 +203,7 @@ function calculateDamageRolls(attacker, defender, move, modifiers) {
     effectiveAtk = Math.floor(effectiveAtk * 1.5);
   }
 
-  if (attacker.ability === 'huge_power' && isPhysical) {
+  if (attacker.ability === 'huge-power' && isPhysical) {
     effectiveAtk = Math.floor(effectiveAtk * 2.0);
   } else if (attacker.ability === 'guts' && isPhysical) {
     effectiveAtk = Math.floor(effectiveAtk * 1.5);
@@ -277,12 +277,12 @@ function calculateDamageRolls(attacker, defender, move, modifiers) {
     if (slicingMoves.includes(moveNameLower)) {
       attackerAbilityMod *= 1.5;
     }
-  } else if (attacker.ability === 'tough_claws') {
+  } else if (attacker.ability === 'tough-claws') {
     const contactMoves = ['fake-out', 'close-combat', 'u-turn', 'sucker-punch', 'flare-blitz', 'wood-hammer', 'triple-axel', 'knock-off', 'high-jump-kick', 'drain-punch', 'thunder-punch', 'ice-punch', 'fire-punch', 'brave-bird', 'extreme-speed', 'bullet-punch'];
     if (contactMoves.includes(moveNameLower)) {
       attackerAbilityMod *= 1.3;
     }
-  } else if (attacker.ability === 'strong_jaw') {
+  } else if (attacker.ability === 'strong-jaw') {
     const bitingMoves = ['crunch', 'psychic-fangs', 'thunder-fang', 'ice-fang', 'fire-fang', 'fishious-rend', 'bite', 'hyper-fang'];
     if (bitingMoves.includes(moveNameLower)) {
       attackerAbilityMod *= 1.5;
@@ -294,9 +294,11 @@ function calculateDamageRolls(attacker, defender, move, modifiers) {
     }
   } else if (attacker.ability === 'transistor' && move.type === 'Electric') {
     attackerAbilityMod *= 1.3;
-  } else if (attacker.ability === 'steelworker' && (move.type === 'Steel' || move.type === 'Rock')) {
+  } else if (attacker.ability === 'steelworker' && move.type === 'Steel') {
     attackerAbilityMod *= 1.5;
-  } else if (attacker.ability === 'supreme_overlord_5') {
+  } else if (attacker.ability === 'rocky-payload' && move.type === 'Rock') {
+    attackerAbilityMod *= 1.5;
+  } else if (attacker.ability === 'supreme-overlord') {
     attackerAbilityMod *= 1.5;
   }
   mod *= attackerAbilityMod;
@@ -307,11 +309,11 @@ function calculateDamageRolls(attacker, defender, move, modifiers) {
 
   // Defensive Abilities (Multiscale, Fluffy, Ice Scales)
   let defenderAbilityMod = 1.0;
-  if (defender.ability === 'multiscale') {
+  if (defender.ability === 'multiscale' || defender.ability === 'shadow-shield') {
     defenderAbilityMod = 0.5;
   } else if (defender.ability === 'fluffy' && isPhysical) {
     defenderAbilityMod = 0.5;
-  } else if (defender.ability === 'ice_scales' && !isPhysical) {
+  } else if (defender.ability === 'ice-scales' && !isPhysical) {
     defenderAbilityMod = 0.5;
   }
   mod *= defenderAbilityMod;
