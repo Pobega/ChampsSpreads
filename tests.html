@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Champions Spreads - Engine Tests</title>
+  <style>
+    body { font-family: ui-monospace, monospace; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }
+    h1 { margin: 0 0 16px; font-size: 18px; }
+    .summary { padding: 8px 12px; border-radius: 6px; margin-bottom: 16px; font-weight: bold; }
+    .summary.pass { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+    .summary.fail { background: #450a0a; color: #f87171; border: 1px solid #991b1b; }
+    .case { border-left: 4px solid #334155; padding: 8px 12px; margin: 6px 0; background: #1e293b; border-radius: 0 6px 6px 0; }
+    .case.pass { border-color: #16a34a; }
+    .case.fail { border-color: #dc2626; }
+    .case.snap { border-color: #ca8a04; }
+    .name { font-weight: bold; }
+    .detail { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+    .actual { color: #fbbf24; }
+    .expected { color: #94a3b8; }
+    code { background: #0f172a; padding: 1px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Damage Engine — Golden Case Tests</h1>
+  <div id="summary" class="summary">Running…</div>
+  <div id="results"></div>
+
+  <script type="module">
+    import { calculateDamageRolls } from './src/engine/damage.js';
+
+    // Synthetic test mons with round base stats so the math is traceable.
+    const NORMAL_MON = (overrides = {}) => ({
+      baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+      sps:       { hp: 0,   atk: 0,   def: 0,   spa: 0,   spd: 0,   spe: 0 },
+      ivs:       { hp: 31,  atk: 31,  def: 31,  spa: 31,  spd: 31,  spe: 31 },
+      boosts:    { atk: 0, spa: 0, def: 0, spd: 0, spe: 0 },
+      nature: 'neutral',
+      item: 'none',
+      ability: 'none',
+      types: ['Normal'],
+      ...overrides,
+    });
+
+    const TACKLE = { apiName: 'tackle', type: 'Normal', power: 80, category: 'physical' };
+    const FAKE_OUT = { apiName: 'fake-out', type: 'Normal', power: 40, category: 'physical' };
+
+    // Expected min/max recorded from the engine's behavior at the time of writing.
+    // If you intentionally change the formula, run the tests, then paste the new
+    // numbers in. An unintentional change shows up as a red ✗.
+    const CASES = [
+      {
+        name: 'baseline: +atk attacker, Normal STAB, no modifiers',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        defender: NORMAL_MON({ sps: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'no STAB: Fighting attacker, Normal move',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 }, types: ['Fighting'] }),
+        defender: NORMAL_MON({}),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 42, max: 50 },
+      },
+      {
+        name: 'super effective 2x: Fire move on Grass defender',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        defender: NORMAL_MON({ types: ['Grass'] }),
+        move: { ...TACKLE, type: 'Fire' },
+        modifiers: {},
+        expected: { min: 84, max: 100 },
+      },
+      {
+        name: 'Tough Claws + contact move (regression: was silently broken pre-fix)',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 }, ability: 'tough-claws' }),
+        defender: NORMAL_MON({}),
+        move: FAKE_OUT,
+        modifiers: {},
+        expected: { min: 42, max: 50 },
+      },
+      {
+        name: 'Huge Power (regression: was silently broken pre-fix)',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 }, ability: 'huge-power' }),
+        defender: NORMAL_MON({}),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 126, max: 148 },
+      },
+      {
+        name: 'Multiscale defender halves damage',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        defender: NORMAL_MON({ ability: 'multiscale' }),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 31, max: 37 },
+      },
+      {
+        name: 'Ice Scales halves special damage (regression: was silently broken pre-fix)',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        defender: NORMAL_MON({ ability: 'ice-scales' }),
+        move: { ...TACKLE, category: 'special' },
+        modifiers: {},
+        expected: { min: 21, max: 24 },
+      },
+      {
+        name: 'spread move modifier (0.75x)',
+        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        defender: NORMAL_MON({}),
+        move: TACKLE,
+        modifiers: { spread: true },
+        expected: { min: 47, max: 56 },
+      },
+    ];
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let pass = 0, fail = 0, snap = 0;
+
+    for (const c of CASES) {
+      const rolls = calculateDamageRolls(c.attacker, c.defender, c.move, c.modifiers);
+      const actualMin = rolls[0];
+      const actualMax = rolls[rolls.length - 1];
+
+      const div = document.createElement('div');
+      div.className = 'case';
+
+      if (!c.expected) {
+        snap++;
+        div.classList.add('snap');
+        div.innerHTML = `
+          <div class="name">📸 ${c.name}</div>
+          <div class="detail">No baseline. Snapshot: <code>expected: { min: ${actualMin}, max: ${actualMax} }</code></div>
+        `;
+      } else if (actualMin === c.expected.min && actualMax === c.expected.max) {
+        pass++;
+        div.classList.add('pass');
+        div.innerHTML = `
+          <div class="name">✓ ${c.name}</div>
+          <div class="detail">min=${actualMin} max=${actualMax}</div>
+        `;
+      } else {
+        fail++;
+        div.classList.add('fail');
+        div.innerHTML = `
+          <div class="name">✗ ${c.name}</div>
+          <div class="detail">
+            <span class="expected">expected min=${c.expected.min} max=${c.expected.max}</span> ·
+            <span class="actual">actual min=${actualMin} max=${actualMax}</span>
+          </div>
+        `;
+      }
+      results.appendChild(div);
+    }
+
+    summary.textContent = `${pass} passed · ${fail} failed · ${snap} snapshot${snap === 1 ? '' : 's'} (of ${CASES.length})`;
+    summary.classList.add(fail === 0 ? 'pass' : 'fail');
+  </script>
+</body>
+</html>
