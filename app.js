@@ -3,6 +3,15 @@
 
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls } from './src/engine/damage.js';
+import { DOM } from './src/ui/dom.js';
+import {
+  getTypeBgClass,
+  createOptionCardHTML,
+  createImpossibleOptionCardHTML,
+  updateStatsBars,
+  updateDropdownColors,
+  updateMoveDetailsVisuals,
+} from './src/ui/render.js';
 
 // ==========================================
 // 1. STATIC DATA: NATURES & TYPES
@@ -441,109 +450,6 @@ async function fetchMoveDetails(moveApiName) {
 // 7. UI WORKFLOW & CONTROLLER BINDING
 // ==========================================
 
-const DOM = {
-  formatSelector: document.getElementById('format-selector'),
-
-  attackerSearch: document.getElementById('attacker-search'),
-  attackerResults: document.getElementById('attacker-results'),
-  attackerSpinner: document.getElementById('attacker-spinner'),
-  attackerSprite: document.getElementById('attacker-sprite'),
-  attackerName: document.getElementById('attacker-name'),
-  attackerTypes: document.getElementById('attacker-types'),
-  attackerLevel: document.getElementById('attacker-level'),
-  attackerNature: document.getElementById('attacker-nature'),
-  attackerItem: document.getElementById('attacker-item'),
-  attackerAbility: document.getElementById('attacker-ability'),
-  attackerBoostAtk: document.getElementById('attacker-boost-atk'),
-  attackerBoostSpa: document.getElementById('attacker-boost-spa'),
-  attackerBoostSpe: document.getElementById('attacker-boost-spe'),
-  attackerStatAtkVal: document.getElementById('attacker-stat-atk-val'),
-  attackerStatSpaVal: document.getElementById('attacker-stat-spa-val'),
-  attackerStatSpeVal: document.getElementById('attacker-stat-spe-val'),
-  attackerEvAtk: document.getElementById('attacker-ev-atk'),
-  attackerEvSpa: document.getElementById('attacker-ev-spa'),
-  attackerEvSpe: document.getElementById('attacker-ev-spe'),
-  attackerEvAtkVal: document.getElementById('attacker-ev-atk-val'),
-  attackerEvSpaVal: document.getElementById('attacker-ev-spa-val'),
-  attackerEvSpeVal: document.getElementById('attacker-ev-spe-val'),
-  attackerEvSum: document.getElementById('attacker-ev-sum'),
-  attackerMoveSelect: document.getElementById('attacker-move-select'),
-  attackerRegTag: document.getElementById('attacker-regulation-tag'),
-  attackerSpPresets: document.getElementById('attacker-sp-presets'),
-
-  defenderSearch: document.getElementById('defender-search'),
-  defenderResults: document.getElementById('defender-results'),
-  defenderSpinner: document.getElementById('defender-spinner'),
-  defenderSprite: document.getElementById('defender-sprite'),
-  defenderName: document.getElementById('defender-name'),
-  defenderTypes: document.getElementById('defender-types'),
-  defenderLevel: document.getElementById('defender-level'),
-  defenderNature: document.getElementById('defender-nature'),
-  defenderItem: document.getElementById('defender-item'),
-  defenderAbility: document.getElementById('defender-ability'),
-  defenderBoostDef: document.getElementById('defender-boost-def'),
-  defenderBoostSpd: document.getElementById('defender-boost-spd'),
-  defenderBoostSpe: document.getElementById('defender-boost-spe'),
-  defenderStatHpVal: document.getElementById('defender-stat-hp-val'),
-  defenderStatDefVal: document.getElementById('defender-stat-def-val'),
-  defenderStatSpdVal: document.getElementById('defender-stat-spd-val'),
-  defenderStatSpeVal: document.getElementById('defender-stat-spe-val'),
-  defenderEvHp: document.getElementById('defender-ev-hp'),
-  defenderEvDef: document.getElementById('defender-ev-def'),
-  defenderEvSpd: document.getElementById('defender-ev-spd'),
-  defenderEvSpe: document.getElementById('defender-ev-spe'),
-  defenderEvHpVal: document.getElementById('defender-ev-hp-val'),
-  defenderEvDefVal: document.getElementById('defender-ev-def-val'),
-  defenderEvSpdVal: document.getElementById('defender-ev-spd-val'),
-  defenderEvSpeVal: document.getElementById('defender-ev-spe-val'),
-  defenderEvSum: document.getElementById('defender-ev-sum'),
-  defenderRegTag: document.getElementById('defender-regulation-tag'),
-  defenderSpPresets: document.getElementById('defender-sp-presets'),
-
-  moveType: document.getElementById('move-type'),
-  movePower: document.getElementById('move-power'),
-  moveCategory: document.getElementById('move-category'),
-  moveTypeBadgeContainer: document.getElementById('move-type-badge-container'),
-  moveCategoryBadgeContainer: document.getElementById('move-category-badge-container'),
-
-  modSpread: document.getElementById('mod-spread'),
-  modWeatherSelect: document.getElementById('mod-weather-select'),
-  modCrit: document.getElementById('mod-crit'),
-  modFriendGuard: document.getElementById('mod-friend-guard'),
-  modScreens: document.getElementById('mod-screens'),
-  modTailAtk: document.getElementById('mod-tail-atk'),
-  modTailDef: document.getElementById('mod-tail-def'),
-  modTerrainSelect: document.getElementById('mod-terrain-select'),
-  modAuraSelect: document.getElementById('mod-aura-select'),
-  speedComparisonBanner: document.getElementById('speed-comparison-banner'),
-
-  tabSurvival: document.getElementById('tab-survival'),
-  tabOffensive: document.getElementById('tab-offensive'),
-  survivalResults: document.getElementById('survival-results'),
-  offensiveResults: document.getElementById('offensive-results'),
-
-  survivalNotPossible: document.getElementById('survival-not-possible'),
-  survivalPossibleData: document.getElementById('survival-possible-data'),
-  survivalOptionsContainer: document.getElementById('survival-options-container'),
-
-  offensiveNotPossible: document.getElementById('offensive-not-possible'),
-  offensivePossibleData: document.getElementById('offensive-possible-data'),
-  btnTargetOHKO: document.getElementById('btn-target-ohko'),
-  btnTarget2HKO: document.getElementById('btn-target-2hko'),
-  offensiveOptionsContainer: document.getElementById('offensive-options-container'),
-
-  damagePercentageRange: document.getElementById('damage-percentage-range'),
-  damageBarMin: document.getElementById('damage-bar-min'),
-  damageRollsCount: document.getElementById('damage-rolls-count'),
-  loadSampleBtn: document.getElementById('load-sample-btn'),
-  
-  mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
-  mobOverlayMove: document.getElementById('mob-overlay-move'),
-  mobOverlayDamage: document.getElementById('mob-overlay-damage'),
-  mobOverlayPct: document.getElementById('mob-overlay-pct'),
-  mobOverlayBadge: document.getElementById('mob-overlay-badge'),
-  mobOverlaySpeed: document.getElementById('mob-overlay-speed')
-};
 
 function populateDropdowns() {
   NATURES.forEach(n => {
@@ -673,25 +579,6 @@ function updateRegulationTag(apiName, tagEl) {
   }
 }
 
-function updateStatsBars(baseStats, prefix) {
-  const container = document.getElementById(`${prefix}-stats-bars`);
-  if (!container) return;
-
-  container.classList.remove('hidden');
-
-  const stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-  stats.forEach(stat => {
-    const valEl = document.getElementById(`${prefix}-bar-${stat}-val`);
-    const barEl = document.getElementById(`${prefix}-bar-${stat}`);
-    if (valEl && barEl) {
-      const baseVal = baseStats[stat];
-      valEl.textContent = baseVal;
-
-      const pct = Math.min(100, Math.max(5, (baseVal / 200) * 100));
-      barEl.style.width = `${pct}%`;
-    }
-  });
-}
 
 function setAttackerDetails(details) {
   STATE.attacker.name = details.name;
@@ -794,38 +681,6 @@ function setDefenderDetails(details) {
   updateLiveStats();
 }
 
-function updateDropdownColors() {
-  // 1. Weather
-  const weather = DOM.modWeatherSelect.value;
-  const weatherClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
-    sun: "bg-red-950/40 border-red-500/50 text-red-300",
-    rain: "bg-blue-950/40 border-blue-500/50 text-blue-300",
-    sandstorm: "bg-amber-950/40 border-amber-500/50 text-amber-300",
-    snow: "bg-cyan-950/40 border-cyan-500/50 text-cyan-300"
-  };
-  DOM.modWeatherSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${weatherClasses[weather] || weatherClasses.none}`;
-
-  // 2. Terrain
-  const terrain = DOM.modTerrainSelect.value;
-  const terrainClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
-    electric: "bg-yellow-950/40 border-yellow-500/50 text-yellow-300",
-    grassy: "bg-emerald-950/40 border-emerald-500/50 text-emerald-300",
-    psychic: "bg-purple-950/40 border-purple-500/50 text-purple-300",
-    misty: "bg-pink-950/40 border-pink-500/50 text-pink-300"
-  };
-  DOM.modTerrainSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${terrainClasses[terrain] || terrainClasses.none}`;
-
-  // 3. Aura
-  const aura = DOM.modAuraSelect.value;
-  const auraClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
-    fairy: "bg-pink-950/40 border-pink-500/50 text-pink-300",
-    dark: "bg-stone-950/40 border-stone-500/50 text-stone-300"
-  };
-  DOM.modAuraSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${auraClasses[aura] || auraClasses.none}`;
-}
 
 function updateLiveStats() {
   updateDropdownColors();
@@ -1010,73 +865,6 @@ function updateLiveStats() {
   runOptimizations();
 }
 
-function formatNatureDisplayName(natId) {
-  const mapping = {
-    'neutral': 'Neutral',
-    '+atk': '+Atk',
-    '+spa': '+SpAtk',
-    '+def': '+Def',
-    '+spd': '+SpDef',
-    '+spe': '+Spe'
-  };
-  return mapping[natId.toLowerCase()] || natId;
-}
-
-function createOptionCardHTML(title, nature, hpVal, defVal, statName, totalSP, themeColor) {
-  const isSurvival = themeColor === 'blue';
-  const themeText = isSurvival ? 'text-blue-400' : 'text-amber-400';
-  const themeBg = isSurvival ? 'bg-blue-950/25 border-blue-900/40 hover:border-blue-800/60' : 'bg-amber-950/25 border-amber-900/40 hover:border-amber-800/60';
-  const themeBtn = isSurvival ? 'bg-blue-600 hover:bg-blue-500 focus:ring-blue-800' : 'bg-amber-600 hover:bg-amber-500 focus:ring-amber-800';
-
-  const natureFormatted = formatNatureDisplayName(nature);
-
-  return `
-    <div class="border rounded-xl p-3 flex flex-col gap-2 transition text-left ${themeBg}">
-      <div class="flex justify-between items-start gap-3">
-        <div>
-          <div class="text-[9px] text-slate-450 uppercase font-extrabold tracking-wider">${title}</div>
-          <div class="text-xs font-black text-white mt-0.5">
-            Nature: <span class="${themeText}">${natureFormatted}</span>
-          </div>
-        </div>
-        <button class="apply-opt-btn ${themeBtn} text-white text-[9px] font-bold py-1 px-2 rounded-lg transition shrink-0"
-          data-type="${isSurvival ? 'survival' : 'offensive'}"
-          data-nature="${nature}"
-          ${isSurvival ? `data-hp="${hpVal}" data-def="${defVal}" data-stat="${statName.toLowerCase()}"` : `data-ev="${hpVal}" data-stat="${statName.toLowerCase()}"`}>
-          Apply All
-        </button>
-      </div>
-      <div class="flex justify-between items-center text-[10px] border-t border-slate-800 pt-1.5 text-slate-400 font-mono">
-        <span>Spread: <span class="font-bold text-slate-200">${isSurvival ? `${hpVal} HP / ${defVal} ${statName}` : `${hpVal} ${statName.toUpperCase()}`}</span></span>
-        <span>Total: <span class="font-bold text-slate-200">${totalSP} SP</span></span>
-      </div>
-    </div>
-  `;
-}
-
-function createImpossibleOptionCardHTML(title, nature, themeColor) {
-  const isSurvival = themeColor === 'blue';
-  const themeBg = 'bg-slate-800/10 border-slate-800/50';
-  
-  const natureFormatted = formatNatureDisplayName(nature);
-
-  return `
-    <div class="border rounded-xl p-3 flex flex-col gap-1.5 opacity-40 cursor-not-allowed text-left ${themeBg}">
-      <div class="flex justify-between items-start">
-        <div>
-          <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">${title}</div>
-          <div class="text-xs font-bold text-slate-400 mt-0.5">
-            Nature: <span>${natureFormatted}</span>
-          </div>
-        </div>
-        <span class="text-[9px] text-slate-500 font-bold border border-slate-800 px-1.5 py-0.5 rounded-lg shrink-0">
-          Impossible
-        </span>
-      </div>
-      <p class="text-[9px] text-slate-500 italic border-t border-slate-800/30 pt-1">Requires > 66 SP to achieve survival/KO</p>
-    </div>
-  `;
-}
 
 function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
@@ -1252,29 +1040,6 @@ function runOptimizations() {
   }
 }
 
-function getTypeBgClass(type) {
-  const bgClasses = {
-    Normal: 'bg-neutral-500',
-    Fire: 'bg-orange-600',
-    Water: 'bg-blue-500',
-    Grass: 'bg-green-600',
-    Electric: 'bg-yellow-500',
-    Ice: 'bg-cyan-400 text-slate-900',
-    Fighting: 'bg-red-700',
-    Poison: 'bg-purple-600',
-    Ground: 'bg-amber-600',
-    Flying: 'bg-indigo-400 text-slate-900',
-    Psychic: 'bg-pink-600',
-    Bug: 'bg-lime-600',
-    Rock: 'bg-yellow-700',
-    Ghost: 'bg-violet-700',
-    Dragon: 'bg-indigo-700',
-    Dark: 'bg-stone-800',
-    Steel: 'bg-slate-500',
-    Fairy: 'bg-pink-400 text-slate-900'
-  };
-  return bgClasses[type] || 'bg-slate-700';
-}
 
 function bindApplyButtonsListeners() {
   document.querySelectorAll('.apply-opt-btn').forEach(btn => {
@@ -1458,49 +1223,6 @@ function bindEvents() {
   });
 }
 
-function updateMoveDetailsVisuals(type, category, isCustom) {
-  if (isCustom) {
-    // Hide static badges containers
-    DOM.moveTypeBadgeContainer.innerHTML = "";
-    DOM.moveCategoryBadgeContainer.innerHTML = "";
-    
-    // Reveal customizable select elements!
-    DOM.moveType.classList.remove('hidden');
-    DOM.moveCategory.classList.remove('hidden');
-    
-    // Style active input power bubble
-    DOM.movePower.disabled = false;
-    DOM.movePower.className = "w-10 bg-slate-900 border border-slate-700 rounded-lg text-center text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-black font-mono py-0.5 focus:ring-1 focus:ring-amber-500/30";
-  } else {
-    // Hide select dropdowns
-    DOM.moveType.classList.add('hidden');
-    DOM.moveCategory.classList.add('hidden');
-    
-    // Update the hidden select elements' values so calculations parse correct data!
-    DOM.moveType.value = type;
-    DOM.moveCategory.value = category.toLowerCase();
-    
-    // Render gorgeous colored VGC Type Badge!
-    DOM.moveTypeBadgeContainer.innerHTML = `
-      <span class="text-[10px] px-2 py-0.5 font-black uppercase rounded ${getTypeBgClass(type)} text-white shadow-sm select-none">${type}</span>
-    `;
-    
-    // Render gorgeous themed Category Badge!
-    const isPhysical = category.toLowerCase() === 'physical';
-    const catColor = isPhysical ? 'bg-red-950/30 text-red-400 border border-red-900/30' : 'bg-purple-950/30 text-purple-400 border border-purple-900/30';
-    const catIcon = isPhysical ? 'fa-hand-fist' : 'fa-wand-magic-sparkles';
-    const catText = isPhysical ? 'Physical' : 'Special';
-    DOM.moveCategoryBadgeContainer.innerHTML = `
-      <span class="text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${catColor} flex items-center gap-1 shadow-sm select-none">
-        <i class="fa-solid ${catIcon} text-[9px]"></i> ${catText}
-      </span>
-    `;
-    
-    // Style locked read-only input power bubble
-    DOM.movePower.disabled = true;
-    DOM.movePower.className = "w-10 bg-transparent font-black font-mono text-sm text-right text-slate-400 cursor-not-allowed py-0";
-  }
-}
 
 async function loadSampleVGCScenario() {
   // Fetch official details in parallel!
