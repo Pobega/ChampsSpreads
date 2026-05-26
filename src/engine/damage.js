@@ -1,6 +1,7 @@
 // Damage roll calculator for Pokemon Champions rules.
 
 import { calculateStat, calculateStatBoost, getTypeEffectiveness } from './stats.js';
+import { attackerAbilityMultiplier, defenderAbilityMultiplier } from './abilities.js';
 
 export function calculateDamageRolls(attacker, defender, move, modifiers) {
   const isPhysical = move.category.toLowerCase() === 'physical';
@@ -78,54 +79,13 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 0.5;
   }
 
-  let attackerAbilityMod = 1.0;
-  const moveNameLower = move.apiName ? move.apiName.toLowerCase() : "";
-
-  if (attacker.ability === 'technician' && move.power > 0 && move.power <= 60) {
-    attackerAbilityMod *= 1.5;
-  } else if (attacker.ability === 'sharpness') {
-    const slicingMoves = ['leaf-blade', 'sacred-sword', 'kowtow-cleave', 'aqua-cutter', 'slash', 'night-slash', 'air-slash', 'psyblade', 'x-scissor', 'sasha', 'aerial-ace'];
-    if (slicingMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.5;
-    }
-  } else if (attacker.ability === 'tough-claws') {
-    const contactMoves = ['fake-out', 'close-combat', 'u-turn', 'sucker-punch', 'flare-blitz', 'wood-hammer', 'triple-axel', 'knock-off', 'high-jump-kick', 'drain-punch', 'thunder-punch', 'ice-punch', 'fire-punch', 'brave-bird', 'extreme-speed', 'bullet-punch'];
-    if (contactMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.3;
-    }
-  } else if (attacker.ability === 'strong-jaw') {
-    const bitingMoves = ['crunch', 'psychic-fangs', 'thunder-fang', 'ice-fang', 'fire-fang', 'fishious-rend', 'bite', 'hyper-fang'];
-    if (bitingMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.5;
-    }
-  } else if (attacker.ability === 'iron-fist') {
-    const punchingMoves = ['drain-punch', 'ice-punch', 'thunder-punch', 'fire-punch', 'bullet-punch', 'mach-punch', 'rage-fist', 'shadow-punch', 'focus-punch', 'meteor-mash', 'ice-hammer', 'hammer-arm'];
-    if (punchingMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.2;
-    }
-  } else if (attacker.ability === 'transistor' && move.type === 'Electric') {
-    attackerAbilityMod *= 1.3;
-  } else if (attacker.ability === 'steelworker' && move.type === 'Steel') {
-    attackerAbilityMod *= 1.5;
-  } else if (attacker.ability === 'rocky-payload' && move.type === 'Rock') {
-    attackerAbilityMod *= 1.5;
-  } else if (attacker.ability === 'supreme-overlord') {
-    attackerAbilityMod *= 1.5;
-  }
-  mod *= attackerAbilityMod;
+  const abilityCtx = { move, isPhysical, attacker, defender };
+  mod *= attackerAbilityMultiplier(attacker.ability, abilityCtx);
 
   let screenMod = modifiers.screens ? 0.66 : 1.0;
   mod *= screenMod;
 
-  let defenderAbilityMod = 1.0;
-  if (defender.ability === 'multiscale' || defender.ability === 'shadow-shield') {
-    defenderAbilityMod = 0.5;
-  } else if (defender.ability === 'fluffy' && isPhysical) {
-    defenderAbilityMod = 0.5;
-  } else if (defender.ability === 'ice-scales' && !isPhysical) {
-    defenderAbilityMod = 0.5;
-  }
-  mod *= defenderAbilityMod;
+  mod *= defenderAbilityMultiplier(defender.ability, abilityCtx);
 
   let terrainMod = 1.0;
   if (modifiers.terrain === 'electric' && move.type === 'Electric' && !attacker.types.includes('Flying')) {
