@@ -1,30 +1,21 @@
 // Pokemon Champions VGC SP Optimizer & Damage Calculator
 // Pure Client-Side JavaScript ES6+
 
-// ==========================================
-// 1. STATIC DATA: TYPE MATCHUPS & NATURES
-// ==========================================
+import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
+import { calculateDamageRolls } from './src/engine/damage.js';
+import { DOM } from './src/ui/dom.js';
+import {
+  getTypeBgClass,
+  createOptionCardHTML,
+  createImpossibleOptionCardHTML,
+  updateStatsBars,
+  updateDropdownColors,
+  updateMoveDetailsVisuals,
+} from './src/ui/render.js';
 
-const TYPE_EFFECTIVENESS = {
-  Normal: { Rock: 0.5, Ghost: 0, Steel: 0.5 },
-  Fire: { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 2, Bug: 2, Rock: 0.5, Dragon: 0.5, Steel: 2 },
-  Water: { Fire: 2, Water: 0.5, Grass: 0.5, Ground: 2, Rock: 2, Dragon: 0.5 },
-  Grass: { Fire: 0.5, Water: 2, Grass: 0.5, Poison: 0.5, Ground: 2, Flying: 0.5, Bug: 0.5, Rock: 2, Dragon: 0.5, Steel: 0.5 },
-  Electric: { Water: 2, Grass: 0.5, Electric: 0.5, Ground: 0, Flying: 2, Dragon: 0.5 },
-  Ice: { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 0.5, Ground: 2, Flying: 2, Dragon: 2, Steel: 0.5 },
-  Fighting: { Normal: 2, Ice: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Rock: 2, Ghost: 0, Dark: 2, Steel: 2, Fairy: 0.5 },
-  Poison: { Grass: 2, Poison: 0.5, Ground: 0.5, Rock: 0.5, Ghost: 0.5, Steel: 0, Fairy: 2 },
-  Ground: { Fire: 2, Grass: 0.5, Electric: 2, Poison: 2, Flying: 0, Bug: 0.5, Rock: 2, Steel: 2 },
-  Flying: { Grass: 2, Electric: 0.5, Fighting: 2, Bug: 2, Rock: 0.5, Steel: 0.5 },
-  Psychic: { Fighting: 2, Poison: 2, Psychic: 0.5, Dark: 0, Steel: 0.5 },
-  Bug: { Fire: 0.5, Grass: 2, Fighting: 0.5, Poison: 0.5, Flying: 0.5, Psychic: 2, Ghost: 0.5, Dark: 2, Steel: 0.5, Fairy: 0.5 },
-  Rock: { Fire: 2, Ice: 2, Fighting: 0.5, Ground: 0.5, Flying: 2, Bug: 2, Steel: 0.5 },
-  Ghost: { Normal: 0, Psychic: 2, Ghost: 2, Dark: 0.5 },
-  Dragon: { Dragon: 2, Steel: 0.5, Fairy: 0 },
-  Dark: { Fighting: 0.5, Psychic: 2, Ghost: 2, Dark: 0.5, Fairy: 0.5 },
-  Steel: { Fire: 0.5, Water: 0.5, Electric: 0.5, Ice: 2, Rock: 2, Steel: 0.5, Fairy: 2 },
-  Fairy: { Fire: 0.5, Fighting: 2, Poison: 0.5, Dragon: 2, Dark: 2, Steel: 0.5 }
-};
+// ==========================================
+// 1. STATIC DATA: NATURES & TYPES
+// ==========================================
 
 const NATURES = [
   { id: 'neutral', name: 'Neutral' },
@@ -135,236 +126,6 @@ const CACHE = {
   statusMoves: {},
   championsLegalList: null
 };
-
-// ==========================================
-// 3. STAT & DAMAGE FORMULA CALCULATORS (Pokemon Champions Rules)
-// ==========================================
-
-function calculateStat(statName, base, sp, natureName, isHP = false) {
-  if (isHP) {
-    if (base === 1) return 1; 
-    return base + sp + 75;
-  }
-
-  let natureMod = 1.0;
-  const natLower = natureName ? natureName.toLowerCase() : "neutral";
-
-  if (natLower === '+atk' && statName === 'atk') natureMod = 1.1;
-  else if (natLower === '+spa' && statName === 'spa') natureMod = 1.1;
-  else if (natLower === '+def' && statName === 'def') natureMod = 1.1;
-  else if (natLower === '+spd' && statName === 'spd') natureMod = 1.1;
-  else if (natLower === '+spe' && statName === 'spe') natureMod = 1.1;
-
-  // Assume standard VGC hindered offensive stat (0.9x) for unrealistic situations!
-  if (natLower === '+atk' && statName === 'spa') natureMod = 0.9;
-  else if (natLower === '+spa' && statName === 'atk') natureMod = 0.9;
-  else if (natLower === '+def' && statName === 'spa') natureMod = 0.9;
-  else if (natLower === '+spd' && statName === 'atk') natureMod = 0.9;
-  else if (natLower === '+spe' && statName === 'spa') natureMod = 0.9;
-
-  return Math.floor((base + sp + 20) * natureMod);
-}
-
-function calculateStatBoost(statValue, stage) {
-  if (stage === 0) return statValue;
-  if (stage > 0) {
-    return Math.floor(statValue * (2 + stage) / 2);
-  } else {
-    return Math.floor(statValue * 2 / (2 - stage));
-  }
-}
-
-function getTypeEffectiveness(moveType, defenderTypes) {
-  let mult = 1.0;
-  for (const defType of defenderTypes) {
-    if (defType === '???' || !defType) continue;
-    const row = TYPE_EFFECTIVENESS[moveType];
-    if (row && row[defType] !== undefined) {
-      mult *= row[defType];
-    }
-  }
-  return mult;
-}
-
-function calculateDamageRolls(attacker, defender, move, modifiers) {
-  const isPhysical = move.category.toLowerCase() === 'physical';
-  const atkStatName = isPhysical ? 'atk' : 'spa';
-  const defStatName = isPhysical ? 'def' : 'spd';
-
-  let baseAtkVal = calculateStat(atkStatName, attacker.baseStats[atkStatName], attacker.sps[atkStatName], attacker.nature, false);
-  let baseDefVal = calculateStat(defStatName, defender.baseStats[defStatName], defender.sps[defStatName], defender.nature, false);
-
-  let effectiveAtk = calculateStatBoost(baseAtkVal, attacker.boosts[atkStatName] || 0);
-  let effectiveDef = calculateStatBoost(baseDefVal, defender.boosts[defStatName] || 0);
-
-  if (attacker.item === 'choice_band' && isPhysical) {
-    effectiveAtk = Math.floor(effectiveAtk * 1.5);
-  } else if (attacker.item === 'choice_specs' && !isPhysical) {
-    effectiveAtk = Math.floor(effectiveAtk * 1.5);
-  }
-
-  if (attacker.ability === 'huge_power' && isPhysical) {
-    effectiveAtk = Math.floor(effectiveAtk * 2.0);
-  } else if (attacker.ability === 'guts' && isPhysical) {
-    effectiveAtk = Math.floor(effectiveAtk * 1.5);
-  }
-
-  if (defender.item === 'assault_vest' && !isPhysical) {
-    effectiveDef = Math.floor(effectiveDef * 1.5);
-  } else if (defender.item === 'eviolite') {
-    effectiveDef = Math.floor(effectiveDef * 1.5);
-  }
-
-  // Weather Defensive Buffs:
-  // Sandstorm boosts Rock types Sp. Def (SpD) by 1.5x
-  if (modifiers.weather === 'sandstorm' && defender.types.includes('Rock') && defStatName === 'spd') {
-    effectiveDef = Math.floor(effectiveDef * 1.5);
-  }
-  // Snow boosts Ice types Defense (Def) by 1.5x
-  if (modifiers.weather === 'snow' && defender.types.includes('Ice') && defStatName === 'def') {
-    effectiveDef = Math.floor(effectiveDef * 1.5);
-  }
-
-  const levelFactor = 22; 
-  const baseDamage = Math.floor(Math.floor((levelFactor * move.power * effectiveAtk) / 50) / effectiveDef) + 2;
-
-  let mod = 1.0;
-
-  if (modifiers.spread) {
-    mod *= 0.75;
-  }
-
-  // Weather offensive modifiers:
-  if (modifiers.weather === 'sun') {
-    if (move.type === 'Fire') {
-      mod *= 1.5;
-    } else if (move.type === 'Water') {
-      mod *= 0.5;
-    }
-  } else if (modifiers.weather === 'rain') {
-    if (move.type === 'Water') {
-      mod *= 1.5;
-    } else if (move.type === 'Fire') {
-      mod *= 0.5;
-    }
-  }
-
-  if (modifiers.crit) {
-    mod *= (attacker.ability === 'sniper' ? 2.25 : 1.5);
-  }
-
-  let stab = 1.0;
-  if (attacker.types.includes(move.type)) {
-    stab = attacker.ability === 'adaptability' ? 2.0 : 1.5;
-  }
-  mod *= stab;
-
-  const typeMult = getTypeEffectiveness(move.type, defender.types);
-  mod *= typeMult;
-
-  if (isPhysical && attacker.ability !== 'guts' && attacker.status === 'burned') {
-    mod *= 0.5;
-  }
-
-  // Attacker Offensive Abilities (Technician, Sharpness, Tough Claws, Strong Jaw, Transistor, Steelworker, Supreme Overlord)
-  let attackerAbilityMod = 1.0;
-  const moveNameLower = move.apiName ? move.apiName.toLowerCase() : "";
-
-  if (attacker.ability === 'technician' && move.power > 0 && move.power <= 60) {
-    attackerAbilityMod *= 1.5;
-  } else if (attacker.ability === 'sharpness') {
-    const slicingMoves = ['leaf-blade', 'sacred-sword', 'kowtow-cleave', 'aqua-cutter', 'slash', 'night-slash', 'air-slash', 'psyblade', 'x-scissor', 'sasha', 'aerial-ace'];
-    if (slicingMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.5;
-    }
-  } else if (attacker.ability === 'tough_claws') {
-    const contactMoves = ['fake-out', 'close-combat', 'u-turn', 'sucker-punch', 'flare-blitz', 'wood-hammer', 'triple-axel', 'knock-off', 'high-jump-kick', 'drain-punch', 'thunder-punch', 'ice-punch', 'fire-punch', 'brave-bird', 'extreme-speed', 'bullet-punch'];
-    if (contactMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.3;
-    }
-  } else if (attacker.ability === 'strong_jaw') {
-    const bitingMoves = ['crunch', 'psychic-fangs', 'thunder-fang', 'ice-fang', 'fire-fang', 'fishious-rend', 'bite', 'hyper-fang'];
-    if (bitingMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.5;
-    }
-  } else if (attacker.ability === 'iron-fist') {
-    const punchingMoves = ['drain-punch', 'ice-punch', 'thunder-punch', 'fire-punch', 'bullet-punch', 'mach-punch', 'rage-fist', 'shadow-punch', 'focus-punch', 'meteor-mash', 'ice-hammer', 'hammer-arm'];
-    if (punchingMoves.includes(moveNameLower)) {
-      attackerAbilityMod *= 1.2;
-    }
-  } else if (attacker.ability === 'transistor' && move.type === 'Electric') {
-    attackerAbilityMod *= 1.3;
-  } else if (attacker.ability === 'steelworker' && (move.type === 'Steel' || move.type === 'Rock')) {
-    attackerAbilityMod *= 1.5;
-  } else if (attacker.ability === 'supreme_overlord_5') {
-    attackerAbilityMod *= 1.5;
-  }
-  mod *= attackerAbilityMod;
-
-  // Field Screens (0.66x for all moves)
-  let screenMod = modifiers.screens ? 0.66 : 1.0;
-  mod *= screenMod;
-
-  // Defensive Abilities (Multiscale, Fluffy, Ice Scales)
-  let defenderAbilityMod = 1.0;
-  if (defender.ability === 'multiscale') {
-    defenderAbilityMod = 0.5;
-  } else if (defender.ability === 'fluffy' && isPhysical) {
-    defenderAbilityMod = 0.5;
-  } else if (defender.ability === 'ice_scales' && !isPhysical) {
-    defenderAbilityMod = 0.5;
-  }
-  mod *= defenderAbilityMod;
-
-  // Terrains (Electric, Grassy, Psychic, Misty)
-  let terrainMod = 1.0;
-  if (modifiers.terrain === 'electric' && move.type === 'Electric' && !attacker.types.includes('Flying')) {
-    terrainMod = 1.3;
-  } else if (modifiers.terrain === 'grassy' && move.type === 'Grass' && !attacker.types.includes('Flying')) {
-    terrainMod = 1.3;
-  } else if (modifiers.terrain === 'grassy' && move.type === 'Ground') {
-    terrainMod = 0.5;
-  } else if (modifiers.terrain === 'psychic' && move.type === 'Psychic' && !attacker.types.includes('Flying')) {
-    terrainMod = 1.3;
-  } else if (modifiers.terrain === 'misty' && move.type === 'Dragon' && !defender.types.includes('Flying')) {
-    terrainMod = 0.5;
-  }
-  mod *= terrainMod;
-
-  // Auras (Fairy Aura, Dark Aura)
-  let auraMod = 1.0;
-  if (modifiers.aura === 'fairy' && move.type === 'Fairy') {
-    auraMod = 1.33;
-  } else if (modifiers.aura === 'dark' && move.type === 'Dark') {
-    auraMod = 1.33;
-  }
-  mod *= auraMod;
-
-  // Friend Guard (Ally Damage Reduction)
-  let friendGuardMod = modifiers.friendGuard ? 0.75 : 1.0;
-  mod *= friendGuardMod;
-
-  if (attacker.item === 'life_orb') {
-    mod *= 1.3;
-  } else if (attacker.item === 'expert_belt' && typeMult > 1.0) {
-    mod *= 1.2;
-  } else if (attacker.item === 'black_glasses_etc') {
-    mod *= 1.2;
-  }
-
-  if (defender.item === 'berries' && typeMult > 1.0) {
-    mod *= 0.5;
-  }
-
-  const rolls = [];
-  for (let r = 85; r <= 100; r++) {
-    const rollVal = Math.floor(baseDamage * (r / 100));
-    const finalDamage = Math.floor(rollVal * mod);
-    rolls.push(finalDamage);
-  }
-
-  return rolls;
-}
 
 // ==========================================
 // 4. OPTIMIZATION ALGORITHMS
@@ -689,109 +450,6 @@ async function fetchMoveDetails(moveApiName) {
 // 7. UI WORKFLOW & CONTROLLER BINDING
 // ==========================================
 
-const DOM = {
-  formatSelector: document.getElementById('format-selector'),
-
-  attackerSearch: document.getElementById('attacker-search'),
-  attackerResults: document.getElementById('attacker-results'),
-  attackerSpinner: document.getElementById('attacker-spinner'),
-  attackerSprite: document.getElementById('attacker-sprite'),
-  attackerName: document.getElementById('attacker-name'),
-  attackerTypes: document.getElementById('attacker-types'),
-  attackerLevel: document.getElementById('attacker-level'),
-  attackerNature: document.getElementById('attacker-nature'),
-  attackerItem: document.getElementById('attacker-item'),
-  attackerAbility: document.getElementById('attacker-ability'),
-  attackerBoostAtk: document.getElementById('attacker-boost-atk'),
-  attackerBoostSpa: document.getElementById('attacker-boost-spa'),
-  attackerBoostSpe: document.getElementById('attacker-boost-spe'),
-  attackerStatAtkVal: document.getElementById('attacker-stat-atk-val'),
-  attackerStatSpaVal: document.getElementById('attacker-stat-spa-val'),
-  attackerStatSpeVal: document.getElementById('attacker-stat-spe-val'),
-  attackerEvAtk: document.getElementById('attacker-ev-atk'),
-  attackerEvSpa: document.getElementById('attacker-ev-spa'),
-  attackerEvSpe: document.getElementById('attacker-ev-spe'),
-  attackerEvAtkVal: document.getElementById('attacker-ev-atk-val'),
-  attackerEvSpaVal: document.getElementById('attacker-ev-spa-val'),
-  attackerEvSpeVal: document.getElementById('attacker-ev-spe-val'),
-  attackerEvSum: document.getElementById('attacker-ev-sum'),
-  attackerMoveSelect: document.getElementById('attacker-move-select'),
-  attackerRegTag: document.getElementById('attacker-regulation-tag'),
-  attackerSpPresets: document.getElementById('attacker-sp-presets'),
-
-  defenderSearch: document.getElementById('defender-search'),
-  defenderResults: document.getElementById('defender-results'),
-  defenderSpinner: document.getElementById('defender-spinner'),
-  defenderSprite: document.getElementById('defender-sprite'),
-  defenderName: document.getElementById('defender-name'),
-  defenderTypes: document.getElementById('defender-types'),
-  defenderLevel: document.getElementById('defender-level'),
-  defenderNature: document.getElementById('defender-nature'),
-  defenderItem: document.getElementById('defender-item'),
-  defenderAbility: document.getElementById('defender-ability'),
-  defenderBoostDef: document.getElementById('defender-boost-def'),
-  defenderBoostSpd: document.getElementById('defender-boost-spd'),
-  defenderBoostSpe: document.getElementById('defender-boost-spe'),
-  defenderStatHpVal: document.getElementById('defender-stat-hp-val'),
-  defenderStatDefVal: document.getElementById('defender-stat-def-val'),
-  defenderStatSpdVal: document.getElementById('defender-stat-spd-val'),
-  defenderStatSpeVal: document.getElementById('defender-stat-spe-val'),
-  defenderEvHp: document.getElementById('defender-ev-hp'),
-  defenderEvDef: document.getElementById('defender-ev-def'),
-  defenderEvSpd: document.getElementById('defender-ev-spd'),
-  defenderEvSpe: document.getElementById('defender-ev-spe'),
-  defenderEvHpVal: document.getElementById('defender-ev-hp-val'),
-  defenderEvDefVal: document.getElementById('defender-ev-def-val'),
-  defenderEvSpdVal: document.getElementById('defender-ev-spd-val'),
-  defenderEvSpeVal: document.getElementById('defender-ev-spe-val'),
-  defenderEvSum: document.getElementById('defender-ev-sum'),
-  defenderRegTag: document.getElementById('defender-regulation-tag'),
-  defenderSpPresets: document.getElementById('defender-sp-presets'),
-
-  moveType: document.getElementById('move-type'),
-  movePower: document.getElementById('move-power'),
-  moveCategory: document.getElementById('move-category'),
-  moveTypeBadgeContainer: document.getElementById('move-type-badge-container'),
-  moveCategoryBadgeContainer: document.getElementById('move-category-badge-container'),
-
-  modSpread: document.getElementById('mod-spread'),
-  modWeatherSelect: document.getElementById('mod-weather-select'),
-  modCrit: document.getElementById('mod-crit'),
-  modFriendGuard: document.getElementById('mod-friend-guard'),
-  modScreens: document.getElementById('mod-screens'),
-  modTailAtk: document.getElementById('mod-tail-atk'),
-  modTailDef: document.getElementById('mod-tail-def'),
-  modTerrainSelect: document.getElementById('mod-terrain-select'),
-  modAuraSelect: document.getElementById('mod-aura-select'),
-  speedComparisonBanner: document.getElementById('speed-comparison-banner'),
-
-  tabSurvival: document.getElementById('tab-survival'),
-  tabOffensive: document.getElementById('tab-offensive'),
-  survivalResults: document.getElementById('survival-results'),
-  offensiveResults: document.getElementById('offensive-results'),
-
-  survivalNotPossible: document.getElementById('survival-not-possible'),
-  survivalPossibleData: document.getElementById('survival-possible-data'),
-  survivalOptionsContainer: document.getElementById('survival-options-container'),
-
-  offensiveNotPossible: document.getElementById('offensive-not-possible'),
-  offensivePossibleData: document.getElementById('offensive-possible-data'),
-  btnTargetOHKO: document.getElementById('btn-target-ohko'),
-  btnTarget2HKO: document.getElementById('btn-target-2hko'),
-  offensiveOptionsContainer: document.getElementById('offensive-options-container'),
-
-  damagePercentageRange: document.getElementById('damage-percentage-range'),
-  damageBarMin: document.getElementById('damage-bar-min'),
-  damageRollsCount: document.getElementById('damage-rolls-count'),
-  loadSampleBtn: document.getElementById('load-sample-btn'),
-  
-  mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
-  mobOverlayMove: document.getElementById('mob-overlay-move'),
-  mobOverlayDamage: document.getElementById('mob-overlay-damage'),
-  mobOverlayPct: document.getElementById('mob-overlay-pct'),
-  mobOverlayBadge: document.getElementById('mob-overlay-badge'),
-  mobOverlaySpeed: document.getElementById('mob-overlay-speed')
-};
 
 function populateDropdowns() {
   NATURES.forEach(n => {
@@ -921,25 +579,6 @@ function updateRegulationTag(apiName, tagEl) {
   }
 }
 
-function updateStatsBars(baseStats, prefix) {
-  const container = document.getElementById(`${prefix}-stats-bars`);
-  if (!container) return;
-
-  container.classList.remove('hidden');
-
-  const stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-  stats.forEach(stat => {
-    const valEl = document.getElementById(`${prefix}-bar-${stat}-val`);
-    const barEl = document.getElementById(`${prefix}-bar-${stat}`);
-    if (valEl && barEl) {
-      const baseVal = baseStats[stat];
-      valEl.textContent = baseVal;
-
-      const pct = Math.min(100, Math.max(5, (baseVal / 200) * 100));
-      barEl.style.width = `${pct}%`;
-    }
-  });
-}
 
 function setAttackerDetails(details) {
   STATE.attacker.name = details.name;
@@ -1042,38 +681,6 @@ function setDefenderDetails(details) {
   updateLiveStats();
 }
 
-function updateDropdownColors() {
-  // 1. Weather
-  const weather = DOM.modWeatherSelect.value;
-  const weatherClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
-    sun: "bg-red-950/40 border-red-500/50 text-red-300",
-    rain: "bg-blue-950/40 border-blue-500/50 text-blue-300",
-    sandstorm: "bg-amber-950/40 border-amber-500/50 text-amber-300",
-    snow: "bg-cyan-950/40 border-cyan-500/50 text-cyan-300"
-  };
-  DOM.modWeatherSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${weatherClasses[weather] || weatherClasses.none}`;
-
-  // 2. Terrain
-  const terrain = DOM.modTerrainSelect.value;
-  const terrainClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
-    electric: "bg-yellow-950/40 border-yellow-500/50 text-yellow-300",
-    grassy: "bg-emerald-950/40 border-emerald-500/50 text-emerald-300",
-    psychic: "bg-purple-950/40 border-purple-500/50 text-purple-300",
-    misty: "bg-pink-950/40 border-pink-500/50 text-pink-300"
-  };
-  DOM.modTerrainSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${terrainClasses[terrain] || terrainClasses.none}`;
-
-  // 3. Aura
-  const aura = DOM.modAuraSelect.value;
-  const auraClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
-    fairy: "bg-pink-950/40 border-pink-500/50 text-pink-300",
-    dark: "bg-stone-950/40 border-stone-500/50 text-stone-300"
-  };
-  DOM.modAuraSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${auraClasses[aura] || auraClasses.none}`;
-}
 
 function updateLiveStats() {
   updateDropdownColors();
@@ -1258,73 +865,6 @@ function updateLiveStats() {
   runOptimizations();
 }
 
-function formatNatureDisplayName(natId) {
-  const mapping = {
-    'neutral': 'Neutral',
-    '+atk': '+Atk',
-    '+spa': '+SpAtk',
-    '+def': '+Def',
-    '+spd': '+SpDef',
-    '+spe': '+Spe'
-  };
-  return mapping[natId.toLowerCase()] || natId;
-}
-
-function createOptionCardHTML(title, nature, hpVal, defVal, statName, totalSP, themeColor) {
-  const isSurvival = themeColor === 'blue';
-  const themeText = isSurvival ? 'text-blue-400' : 'text-amber-400';
-  const themeBg = isSurvival ? 'bg-blue-950/25 border-blue-900/40 hover:border-blue-800/60' : 'bg-amber-950/25 border-amber-900/40 hover:border-amber-800/60';
-  const themeBtn = isSurvival ? 'bg-blue-600 hover:bg-blue-500 focus:ring-blue-800' : 'bg-amber-600 hover:bg-amber-500 focus:ring-amber-800';
-
-  const natureFormatted = formatNatureDisplayName(nature);
-
-  return `
-    <div class="border rounded-xl p-3 flex flex-col gap-2 transition text-left ${themeBg}">
-      <div class="flex justify-between items-start gap-3">
-        <div>
-          <div class="text-[9px] text-slate-450 uppercase font-extrabold tracking-wider">${title}</div>
-          <div class="text-xs font-black text-white mt-0.5">
-            Nature: <span class="${themeText}">${natureFormatted}</span>
-          </div>
-        </div>
-        <button class="apply-opt-btn ${themeBtn} text-white text-[9px] font-bold py-1 px-2 rounded-lg transition shrink-0"
-          data-type="${isSurvival ? 'survival' : 'offensive'}"
-          data-nature="${nature}"
-          ${isSurvival ? `data-hp="${hpVal}" data-def="${defVal}" data-stat="${statName.toLowerCase()}"` : `data-ev="${hpVal}" data-stat="${statName.toLowerCase()}"`}>
-          Apply All
-        </button>
-      </div>
-      <div class="flex justify-between items-center text-[10px] border-t border-slate-800 pt-1.5 text-slate-400 font-mono">
-        <span>Spread: <span class="font-bold text-slate-200">${isSurvival ? `${hpVal} HP / ${defVal} ${statName}` : `${hpVal} ${statName.toUpperCase()}`}</span></span>
-        <span>Total: <span class="font-bold text-slate-200">${totalSP} SP</span></span>
-      </div>
-    </div>
-  `;
-}
-
-function createImpossibleOptionCardHTML(title, nature, themeColor) {
-  const isSurvival = themeColor === 'blue';
-  const themeBg = 'bg-slate-800/10 border-slate-800/50';
-  
-  const natureFormatted = formatNatureDisplayName(nature);
-
-  return `
-    <div class="border rounded-xl p-3 flex flex-col gap-1.5 opacity-40 cursor-not-allowed text-left ${themeBg}">
-      <div class="flex justify-between items-start">
-        <div>
-          <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">${title}</div>
-          <div class="text-xs font-bold text-slate-400 mt-0.5">
-            Nature: <span>${natureFormatted}</span>
-          </div>
-        </div>
-        <span class="text-[9px] text-slate-500 font-bold border border-slate-800 px-1.5 py-0.5 rounded-lg shrink-0">
-          Impossible
-        </span>
-      </div>
-      <p class="text-[9px] text-slate-500 italic border-t border-slate-800/30 pt-1">Requires > 66 SP to achieve survival/KO</p>
-    </div>
-  `;
-}
 
 function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
@@ -1500,29 +1040,6 @@ function runOptimizations() {
   }
 }
 
-function getTypeBgClass(type) {
-  const bgClasses = {
-    Normal: 'bg-neutral-500',
-    Fire: 'bg-orange-600',
-    Water: 'bg-blue-500',
-    Grass: 'bg-green-600',
-    Electric: 'bg-yellow-500',
-    Ice: 'bg-cyan-400 text-slate-900',
-    Fighting: 'bg-red-700',
-    Poison: 'bg-purple-600',
-    Ground: 'bg-amber-600',
-    Flying: 'bg-indigo-400 text-slate-900',
-    Psychic: 'bg-pink-600',
-    Bug: 'bg-lime-600',
-    Rock: 'bg-yellow-700',
-    Ghost: 'bg-violet-700',
-    Dragon: 'bg-indigo-700',
-    Dark: 'bg-stone-800',
-    Steel: 'bg-slate-500',
-    Fairy: 'bg-pink-400 text-slate-900'
-  };
-  return bgClasses[type] || 'bg-slate-700';
-}
 
 function bindApplyButtonsListeners() {
   document.querySelectorAll('.apply-opt-btn').forEach(btn => {
@@ -1706,49 +1223,6 @@ function bindEvents() {
   });
 }
 
-function updateMoveDetailsVisuals(type, category, isCustom) {
-  if (isCustom) {
-    // Hide static badges containers
-    DOM.moveTypeBadgeContainer.innerHTML = "";
-    DOM.moveCategoryBadgeContainer.innerHTML = "";
-    
-    // Reveal customizable select elements!
-    DOM.moveType.classList.remove('hidden');
-    DOM.moveCategory.classList.remove('hidden');
-    
-    // Style active input power bubble
-    DOM.movePower.disabled = false;
-    DOM.movePower.className = "w-10 bg-slate-900 border border-slate-700 rounded-lg text-center text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-black font-mono py-0.5 focus:ring-1 focus:ring-amber-500/30";
-  } else {
-    // Hide select dropdowns
-    DOM.moveType.classList.add('hidden');
-    DOM.moveCategory.classList.add('hidden');
-    
-    // Update the hidden select elements' values so calculations parse correct data!
-    DOM.moveType.value = type;
-    DOM.moveCategory.value = category.toLowerCase();
-    
-    // Render gorgeous colored VGC Type Badge!
-    DOM.moveTypeBadgeContainer.innerHTML = `
-      <span class="text-[10px] px-2 py-0.5 font-black uppercase rounded ${getTypeBgClass(type)} text-white shadow-sm select-none">${type}</span>
-    `;
-    
-    // Render gorgeous themed Category Badge!
-    const isPhysical = category.toLowerCase() === 'physical';
-    const catColor = isPhysical ? 'bg-red-950/30 text-red-400 border border-red-900/30' : 'bg-purple-950/30 text-purple-400 border border-purple-900/30';
-    const catIcon = isPhysical ? 'fa-hand-fist' : 'fa-wand-magic-sparkles';
-    const catText = isPhysical ? 'Physical' : 'Special';
-    DOM.moveCategoryBadgeContainer.innerHTML = `
-      <span class="text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${catColor} flex items-center gap-1 shadow-sm select-none">
-        <i class="fa-solid ${catIcon} text-[9px]"></i> ${catText}
-      </span>
-    `;
-    
-    // Style locked read-only input power bubble
-    DOM.movePower.disabled = true;
-    DOM.movePower.className = "w-10 bg-transparent font-black font-mono text-sm text-right text-slate-400 cursor-not-allowed py-0";
-  }
-}
 
 async function loadSampleVGCScenario() {
   // Fetch official details in parallel!
