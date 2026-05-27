@@ -279,6 +279,40 @@
         modifiers: { spread: true },
         expected: { min: 47, max: 56 },
       },
+
+      // -------- Burn and Helping Hand --------
+      {
+        name: 'Burned attacker: physical damage halved',
+        attacker: ATTACKER({ status: 'burned' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 31, max: 37 },
+      },
+      {
+        name: 'Burned attacker: special damage NOT halved',
+        attacker: ATTACKER({ status: 'burned' }),
+        defender: DEFENDER(),
+        move: { ...TACKLE, category: 'special' },
+        modifiers: {},
+        expected: { min: 42, max: 49 },
+      },
+      {
+        name: 'Guts attacker ignores burn (no 0.5x halve)',
+        attacker: ATTACKER({ status: 'burned', ability: 'guts' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 94, max: 112 },
+      },
+      {
+        name: 'Helping Hand 1.5x',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: { helpingHand: true },
+        expected: { min: 94, max: 112 },
+      },
     ];
 
     const results = document.getElementById('results');

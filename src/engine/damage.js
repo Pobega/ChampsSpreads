@@ -112,6 +112,10 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   let friendGuardMod = modifiers.friendGuard ? 0.75 : 1.0;
   mod *= friendGuardMod;
 
+  if (modifiers.helpingHand) {
+    mod *= 1.5;
+  }
+
   if (attacker.item === 'life_orb') {
     mod *= 1.3;
   } else if (attacker.item === 'expert_belt' && typeMult > 1.0) {

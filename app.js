@@ -88,7 +88,8 @@ const STATE = {
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
     boosts: { atk: 0, spa: 0, spe: 0 },
     types: ['???'],
-    moves: []
+    moves: [],
+    status: null
   },
 
   defender: {
@@ -115,7 +116,8 @@ const STATE = {
   modifiers: {
     spread: false,
     weather: 'none', // 'none', 'sun', 'rain', 'sandstorm', 'snow'
-    crit: false
+    crit: false,
+    helpingHand: false
   }
 };
 
@@ -719,8 +721,10 @@ function updateLiveStats() {
   STATE.modifiers.crit = DOM.modCrit.checked;
   STATE.modifiers.friendGuard = DOM.modFriendGuard.checked;
   STATE.modifiers.screens = DOM.modScreens.checked;
+  STATE.modifiers.helpingHand = DOM.modHelpingHand.checked;
   STATE.modifiers.terrain = DOM.modTerrainSelect.value;
   STATE.modifiers.aura = DOM.modAuraSelect.value;
+  STATE.attacker.status = DOM.modBurned.checked ? 'burned' : null;
 
   const attackerSPSum = STATE.attacker.sps.atk + STATE.attacker.sps.spa + STATE.attacker.sps.spe;
   if (attackerSPSum > 66) {
@@ -1098,7 +1102,8 @@ function bindEvents() {
     DOM.defenderEvHp, DOM.defenderEvDef, DOM.defenderEvSpd, DOM.defenderEvSpe,
     DOM.moveType, DOM.movePower, DOM.moveCategory,
     DOM.modSpread, DOM.modWeatherSelect, DOM.modCrit,
-    DOM.modFriendGuard, DOM.modScreens, DOM.modTailAtk, DOM.modTailDef, DOM.modTerrainSelect, DOM.modAuraSelect
+    DOM.modFriendGuard, DOM.modScreens, DOM.modBurned, DOM.modHelpingHand,
+    DOM.modTailAtk, DOM.modTailDef, DOM.modTerrainSelect, DOM.modAuraSelect
   ];
 
   inputs.forEach(inp => {
@@ -1293,6 +1298,8 @@ async function loadSampleVGCScenario() {
   DOM.modSpread.checked = false;
   DOM.modWeatherSelect.value = 'none';
   DOM.modCrit.checked = false;
+  DOM.modBurned.checked = false;
+  DOM.modHelpingHand.checked = false;
   DOM.modTailAtk.checked = false;
   DOM.modTailDef.checked = false;
 
