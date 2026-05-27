@@ -72,6 +72,8 @@ export const DOM = {
   modCrit: document.getElementById('mod-crit'),
   modFriendGuard: document.getElementById('mod-friend-guard'),
   modScreens: document.getElementById('mod-screens'),
+  modBurned: document.getElementById('mod-burned'),
+  modHelpingHand: document.getElementById('mod-helping-hand'),
   modTailAtk: document.getElementById('mod-tail-atk'),
   modTailDef: document.getElementById('mod-tail-def'),
   modTerrainSelect: document.getElementById('mod-terrain-select'),
