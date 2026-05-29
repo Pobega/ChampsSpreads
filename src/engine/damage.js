@@ -126,13 +126,16 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 0.75;
   }
 
-  if (modifiers.weather === 'sun') {
+  // Mega Sol (Meganium): its moves always behave as if in harsh sunlight,
+  // overriding the actual weather for the attacker's offense.
+  const offensiveWeather = attacker.ability === 'mega-sol' ? 'sun' : modifiers.weather;
+  if (offensiveWeather === 'sun') {
     if (move.type === 'Fire') {
       mod *= 1.5;
     } else if (move.type === 'Water') {
       mod *= 0.5;
     }
-  } else if (modifiers.weather === 'rain') {
+  } else if (offensiveWeather === 'rain') {
     if (move.type === 'Water') {
       mod *= 1.5;
     } else if (move.type === 'Fire') {
