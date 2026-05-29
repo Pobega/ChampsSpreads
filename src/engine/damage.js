@@ -3,6 +3,12 @@
 import { calculateStat, calculateStatBoost, getTypeEffectiveness } from './stats.js';
 import { attackerAbilityMultiplier, defenderAbilityMultiplier } from './abilities.js';
 
+// Effective Speed including stat boosts, used to infer turn order.
+function effectiveSpeed(mon) {
+  const base = calculateStat('spe', mon.baseStats.spe, mon.sps.spe, mon.nature, false);
+  return calculateStatBoost(base, mon.boosts.spe || 0);
+}
+
 export function calculateDamageRolls(attacker, defender, move, modifiers) {
   const isPhysical = move.category.toLowerCase() === 'physical';
   const atkStatName = isPhysical ? 'atk' : 'spa';
@@ -44,6 +50,37 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     effectivePower *= 2;
   }
 
+  // Conditional power multipliers driven by battle state.
+  if (move.apiName === 'knock-off' && defender.item && defender.item !== 'none') {
+    effectivePower = Math.floor(effectivePower * 1.5);
+  }
+  if (move.apiName === 'facade' && attacker.status) {
+    effectivePower *= 2;
+  }
+  if (move.apiName === 'hex' && defender.status) {
+    effectivePower *= 2;
+  }
+  if (move.apiName === 'bolt-beak' || move.apiName === 'fishious-rend') {
+    // Doubles if the user moves first. Default to comparing effective Speed,
+    // but let an explicit modifier override it (Trick Room, Choice Scarf,
+    // switch-ins, etc.).
+    const movesFirst = modifiers.movesFirst != null
+      ? modifiers.movesFirst
+      : effectiveSpeed(attacker) > effectiveSpeed(defender);
+    if (movesFirst) {
+      effectivePower *= 2;
+    }
+  }
+  if (move.apiName === 'payback') {
+    // The inverse of Bolt Beak: doubles when the user moves last.
+    const movesSecond = modifiers.movesFirst != null
+      ? !modifiers.movesFirst
+      : effectiveSpeed(attacker) < effectiveSpeed(defender);
+    if (movesSecond) {
+      effectivePower *= 2;
+    }
+  }
+
   const levelFactor = 22;
   const baseDamage = Math.floor(Math.floor((levelFactor * effectivePower * effectiveAtk) / 50) / effectiveDef) + 2;
 
@@ -80,8 +117,12 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   const typeMult = getTypeEffectiveness(move.type, defender.types);
   mod *= typeMult;
 
-  if (isPhysical && attacker.ability !== 'guts' && attacker.status === 'burned') {
+  if (isPhysical && attacker.ability !== 'guts' && attacker.status === 'burned' && move.apiName !== 'facade') {
     mod *= 0.5;
+  }
+
+  if ((move.apiName === 'collision-course' || move.apiName === 'electro-drift') && typeMult > 1.0) {
+    mod *= 5461 / 4096;
   }
 
   const abilityCtx = { move, isPhysical, attacker, defender };
