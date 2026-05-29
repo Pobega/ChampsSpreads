@@ -612,15 +612,25 @@ function setAttackerDetails(details) {
     learnableOffensive.map(a => `<option value="${a.apiName}">${a.name}</option>`).join('');
   DOM.attackerAbility.value = "none";
 
-  // Mega Evolution Item Lock (VGC Authenticity)
+  // Mega Evolution lock (VGC authenticity): Megas have a fixed item and a
+  // single ability, so lock both. Auto-select the ability when we model it.
   const isMega = details.apiName.includes('-mega');
   if (isMega) {
     DOM.attackerItem.value = "mega_stone";
     DOM.attackerItem.disabled = true;
     DOM.attackerItem.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-400 cursor-not-allowed";
+
+    if (learnableOffensive.length > 0) {
+      DOM.attackerAbility.value = learnableOffensive[0].apiName;
+    }
+    DOM.attackerAbility.disabled = true;
+    DOM.attackerAbility.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-slate-400 cursor-not-allowed";
   } else {
     DOM.attackerItem.disabled = false;
     DOM.attackerItem.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
+
+    DOM.attackerAbility.disabled = false;
+    DOM.attackerAbility.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
   }
 
   // Auto Pre-Selection of the very first valid damaging move from the new learnset!
@@ -673,15 +683,24 @@ function setDefenderDetails(details) {
     learnableDefensive.map(a => `<option value="${a.apiName}">${a.name}</option>`).join('');
   DOM.defenderAbility.value = "none";
 
-  // Symmetrical Defender Mega Item Lock
+  // Symmetrical Defender Mega lock: fixed item + single ability.
   const isMega = details.apiName.includes('-mega');
   if (isMega) {
     DOM.defenderItem.value = "mega_stone";
     DOM.defenderItem.disabled = true;
     DOM.defenderItem.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-400 cursor-not-allowed";
+
+    if (learnableDefensive.length > 0) {
+      DOM.defenderAbility.value = learnableDefensive[0].apiName;
+    }
+    DOM.defenderAbility.disabled = true;
+    DOM.defenderAbility.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-slate-400 cursor-not-allowed";
   } else {
     DOM.defenderItem.disabled = false;
     DOM.defenderItem.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer";
+
+    DOM.defenderAbility.disabled = false;
+    DOM.defenderAbility.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer";
   }
 
   updateLiveStats();
