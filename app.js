@@ -1235,68 +1235,70 @@ function bindEvents() {
 
 async function loadSampleVGCScenario() {
   // Fetch official details in parallel!
-  let attackerDetails, incineroarDetails;
+  let attackerDetails, defenderDetails;
   try {
-    const [atk, inc] = await Promise.all([
-      fetchPokemonDetails('crabominable-mega'),
-      fetchPokemonDetails('incineroar')
+    const [atk, def] = await Promise.all([
+      fetchPokemonDetails('talonflame'),
+      fetchPokemonDetails('whimsicott')
     ]);
     attackerDetails = atk;
-    incineroarDetails = inc;
+    defenderDetails = def;
   } catch (err) {
     console.error("Error fetching details in sample loader", err);
     // Fallbacks
     attackerDetails = {
-      name: "Crabominable Mega",
-      apiName: "crabominable-mega",
-      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10315.png",
-      types: ["Fighting", "Ice"],
-      baseStats: { hp: 97, atk: 162, def: 127, spa: 62, spd: 87, spe: 43 },
-      moves: [{ name: "Drain Punch", apiName: "drain-punch" }],
-      abilities: [{ name: "Iron Fist", apiName: "iron-fist" }]
+      name: "Talonflame",
+      apiName: "talonflame",
+      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/663.png",
+      types: ["Fire", "Flying"],
+      baseStats: { hp: 78, atk: 81, def: 71, spa: 74, spd: 69, spe: 126 },
+      moves: [{ name: "Acrobatics", apiName: "acrobatics" }],
+      abilities: [{ name: "Gale Wings", apiName: "gale-wings" }]
     };
-    incineroarDetails = {
-      name: "Incineroar",
-      apiName: "incineroar",
-      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/727.png",
-      types: ["Fire", "Dark"],
-      baseStats: { hp: 95, atk: 115, def: 90, spa: 80, spd: 90, spe: 60 },
-      abilities: [{ name: "Blaze", apiName: "blaze" }, { name: "Intimidate", apiName: "intimidate" }]
+    defenderDetails = {
+      name: "Whimsicott",
+      apiName: "whimsicott",
+      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/547.png",
+      types: ["Grass", "Fairy"],
+      baseStats: { hp: 60, atk: 67, def: 85, spa: 77, spd: 75, spe: 116 },
+      abilities: [{ name: "Prankster", apiName: "prankster" }]
     };
   }
 
-  // Run standard detail setters to load stats, profiles, auto-lock Mega Stone items, and filter abilities!
+  // Run standard detail setters to load stats, profiles, and filter abilities!
   setAttackerDetails(attackerDetails);
-  setDefenderDetails(incineroarDetails);
+  setDefenderDetails(defenderDetails);
 
   // Populate search input fields
-  DOM.attackerSearch.value = "Crabominable Mega";
-  DOM.defenderSearch.value = "Incineroar";
+  DOM.attackerSearch.value = "Talonflame";
+  DOM.defenderSearch.value = "Whimsicott";
 
   // Override specific sample scenario parameters!
   DOM.attackerNature.value = "+atk";
+  DOM.attackerItem.value = "none"; // no held item -> Acrobatics doubles
   DOM.attackerEvAtk.value = 32;
   DOM.attackerEvSpa.value = 0;
   DOM.attackerEvSpe.value = 32;
-  DOM.attackerAbility.value = "iron-fist";
+  DOM.attackerAbility.value = "none";
 
+  // Max physical bulk Whimsicott
   DOM.defenderNature.value = "+def";
   DOM.defenderItem.value = "none";
   DOM.defenderEvHp.value = 32;
-  DOM.defenderEvDef.value = 2;
+  DOM.defenderEvDef.value = 32;
   DOM.defenderEvSpd.value = 0;
-  DOM.defenderEvSpe.value = 32;
+  DOM.defenderEvSpe.value = 0;
 
-  // Pre-select Fighting-type Drain Punch move
-  DOM.attackerMoveSelect.value = "drain-punch";
-  
+  // Pre-select Flying-type Acrobatics move
+  DOM.attackerMoveSelect.value = "acrobatics";
+
   try {
-    const move = await fetchMoveDetails("drain-punch");
+    const move = await fetchMoveDetails("acrobatics");
     DOM.movePower.value = move.power;
     STATE.move.apiName = move.apiName;
     updateMoveDetailsVisuals(move.type, move.category, false);
   } catch (err) {
-    console.error("Failed to load preloaded Drain Punch move info", err);
+    console.error("Failed to load preloaded Acrobatics move info", err);
   }
 
   DOM.modSpread.checked = false;
