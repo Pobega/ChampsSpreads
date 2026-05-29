@@ -45,6 +45,7 @@
     const FAKE_OUT = { apiName: 'fake-out', type: 'Normal',   power: 40, category: 'physical' };
     const CRUNCH   = { apiName: 'crunch',   type: 'Dark',     power: 80, category: 'physical' };
     const EMBER    = { apiName: 'ember',    type: 'Fire',     power: 80, category: 'physical' };
+    const WATER_HIT = { apiName: 'water-hit', type: 'Water', power: 80, category: 'physical' };
     const ROCK_SLIDE = { apiName: 'rock-slide', type: 'Rock', power: 80, category: 'physical' };
     const ICE_HIT  = { apiName: 'ice-hit',  type: 'Ice',      power: 80, category: 'physical' };
     const ELEC_HIT = { apiName: 'elec-hit', type: 'Electric', power: 80, category: 'physical' };
@@ -475,6 +476,38 @@
         move: EMBER,
         modifiers: { weather: 'sun' },
         expected: { min: 94, max: 112 },
+      },
+      {
+        name: 'Mega Sol boosts Fire moves 1.5x like sun (no weather)',
+        attacker: ATTACKER({ ability: 'mega-sol' }),
+        defender: DEFENDER(),
+        move: EMBER,
+        modifiers: {},
+        expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'Fire move without Mega Sol or sun is unboosted',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: EMBER,
+        modifiers: {},
+        expected: { min: 42, max: 50 },
+      },
+      {
+        name: 'Mega Sol weakens Water moves 0.5x like sun',
+        attacker: ATTACKER({ ability: 'mega-sol' }),
+        defender: DEFENDER(),
+        move: WATER_HIT,
+        modifiers: {},
+        expected: { min: 21, max: 25 },
+      },
+      {
+        name: 'Mega Sol overrides rain: Fire move still boosted',
+        attacker: ATTACKER({ ability: 'mega-sol' }),
+        defender: DEFENDER(),
+        move: EMBER,
+        modifiers: { weather: 'rain' },
+        expected: { min: 63, max: 75 },
       },
       {
         name: 'Electric terrain boosts Electric move 1.3x (grounded attacker)',

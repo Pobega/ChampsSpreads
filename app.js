@@ -45,7 +45,8 @@ const OFFENSIVE_VGC_ABILITIES = [
   { apiName: 'steelworker', name: 'Steelworker (1.5x Steel moves)' },
   { apiName: 'rocky-payload', name: 'Rocky Payload (1.5x Rock moves)' },
   { apiName: 'supreme-overlord', name: 'Supreme Overlord (1.5x damage)' },
-  { apiName: 'iron-fist', name: 'Iron Fist (1.2x Punching moves)' }
+  { apiName: 'iron-fist', name: 'Iron Fist (1.2x Punching moves)' },
+  { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' }
 ];
 
 const DEFENSIVE_VGC_ABILITIES = [
