@@ -39,8 +39,13 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     effectiveDef = Math.floor(effectiveDef * 1.5);
   }
 
+  let effectivePower = move.power;
+  if (move.apiName === 'acrobatics' && (!attacker.item || attacker.item === 'none')) {
+    effectivePower *= 2;
+  }
+
   const levelFactor = 22;
-  const baseDamage = Math.floor(Math.floor((levelFactor * move.power * effectiveAtk) / 50) / effectiveDef) + 2;
+  const baseDamage = Math.floor(Math.floor((levelFactor * effectivePower * effectiveAtk) / 50) / effectiveDef) + 2;
 
   let mod = 1.0;
 
