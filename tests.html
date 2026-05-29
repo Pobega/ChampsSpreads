@@ -49,6 +49,12 @@
     const ICE_HIT  = { apiName: 'ice-hit',  type: 'Ice',      power: 80, category: 'physical' };
     const ELEC_HIT = { apiName: 'elec-hit', type: 'Electric', power: 80, category: 'physical' };
     const ACROBATICS = { apiName: 'acrobatics', type: 'Flying', power: 55, category: 'physical' };
+    const KNOCK_OFF = { apiName: 'knock-off', type: 'Dark', power: 65, category: 'physical' };
+    const FACADE = { apiName: 'facade', type: 'Normal', power: 70, category: 'physical' };
+    const HEX = { apiName: 'hex', type: 'Ghost', power: 65, category: 'special' };
+    const BOLT_BEAK = { apiName: 'bolt-beak', type: 'Electric', power: 85, category: 'physical' };
+    const COLLISION_COURSE = { apiName: 'collision-course', type: 'Fighting', power: 100, category: 'physical' };
+    const PAYBACK = { apiName: 'payback', type: 'Dark', power: 50, category: 'physical' };
 
     // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
     const ATTACKER = (overrides = {}) => NORMAL_MON({
@@ -230,6 +236,121 @@
         modifiers: {},
         expected: { min: 37, max: 45 },
       },
+
+      // -------- Group A: conditional power multipliers --------
+      {
+        name: 'Knock Off 1.5x when target holds an item',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ item: 'leftovers' }),
+        move: KNOCK_OFF,
+        modifiers: {},
+        expected: { min: 51, max: 61 },
+      },
+      {
+        name: 'Knock Off base power when target has no item',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ item: 'none' }),
+        move: KNOCK_OFF,
+        modifiers: {},
+        expected: { min: 34, max: 41 },
+      },
+      {
+        name: 'Facade 2x when user is statused, and ignores the burn drop',
+        attacker: ATTACKER({ status: 'burned' }),
+        defender: DEFENDER(),
+        move: FACADE,
+        modifiers: {},
+        expected: { min: 109, max: 130 },
+      },
+      {
+        name: 'Facade base power with no status',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: FACADE,
+        modifiers: {},
+        expected: { min: 55, max: 66 },
+      },
+      {
+        name: 'Hex 2x when target is statused',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Water'], status: 'poisoned' }),
+        move: HEX,
+        modifiers: {},
+        expected: { min: 45, max: 53 },
+      },
+      {
+        name: 'Hex base power when target has no status',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Water'] }),
+        move: HEX,
+        modifiers: {},
+        expected: { min: 22, max: 27 },
+      },
+      {
+        name: 'Bolt Beak 2x when moving first',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: BOLT_BEAK,
+        modifiers: { movesFirst: true },
+        expected: { min: 90, max: 106 },
+      },
+      {
+        name: 'Bolt Beak base power at equal Speed (not moving first)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: BOLT_BEAK,
+        modifiers: {},
+        expected: { min: 45, max: 54 },
+      },
+      {
+        name: 'Bolt Beak 2x inferred from Speed when faster',
+        attacker: ATTACKER({ boosts: { atk: 0, spa: 0, def: 0, spd: 0, spe: 2 } }),
+        defender: DEFENDER(),
+        move: BOLT_BEAK,
+        modifiers: {},
+        expected: { min: 90, max: 106 },
+      },
+      {
+        name: 'Collision Course ~1.333x on a super-effective hit',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Normal'] }),
+        move: COLLISION_COURSE,
+        modifiers: {},
+        expected: { min: 141, max: 167 },
+      },
+      {
+        name: 'Collision Course no bonus on a neutral hit',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Water'] }),
+        move: COLLISION_COURSE,
+        modifiers: {},
+        expected: { min: 53, max: 63 },
+      },
+      {
+        name: 'Payback 2x inferred from Speed when slower',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 0, spa: 0, def: 0, spd: 0, spe: 2 } }),
+        move: PAYBACK,
+        modifiers: {},
+        expected: { min: 53, max: 63 },
+      },
+      {
+        name: 'Payback base power when faster',
+        attacker: ATTACKER({ boosts: { atk: 0, spa: 0, def: 0, spd: 0, spe: 2 } }),
+        defender: DEFENDER(),
+        move: PAYBACK,
+        modifiers: {},
+        expected: { min: 27, max: 32 },
+      },
+      {
+        name: 'Payback 2x via explicit move-last override',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: PAYBACK,
+        modifiers: { movesFirst: false },
+        expected: { min: 53, max: 63 },
+      },
+
       {
         name: 'Eviolite defender 1.5x Def',
         attacker: ATTACKER(),

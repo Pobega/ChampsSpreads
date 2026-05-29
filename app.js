@@ -118,6 +118,8 @@ const STATE = {
     weather: 'none', // 'none', 'sun', 'rain', 'sandstorm', 'snow'
     crit: false,
     helpingHand: false
+    // movesFirst (Bolt Beak / Fishious Rend) is left unset so the engine
+    // infers turn order from effective Speed; set it to override that.
   }
 };
 
