@@ -48,6 +48,7 @@
     const ROCK_SLIDE = { apiName: 'rock-slide', type: 'Rock', power: 80, category: 'physical' };
     const ICE_HIT  = { apiName: 'ice-hit',  type: 'Ice',      power: 80, category: 'physical' };
     const ELEC_HIT = { apiName: 'elec-hit', type: 'Electric', power: 80, category: 'physical' };
+    const ACROBATICS = { apiName: 'acrobatics', type: 'Flying', power: 55, category: 'physical' };
 
     // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
     const ATTACKER = (overrides = {}) => NORMAL_MON({
@@ -212,6 +213,22 @@
         move: { ...TACKLE, type: 'Fire' },
         modifiers: {},
         expected: { min: 100, max: 120 },
+      },
+      {
+        name: 'Acrobatics doubles power with no held item',
+        attacker: ATTACKER({ item: 'none' }),
+        defender: DEFENDER(),
+        move: ACROBATICS,
+        modifiers: {},
+        expected: { min: 58, max: 69 },
+      },
+      {
+        name: 'Acrobatics keeps base power when holding an item',
+        attacker: ATTACKER({ item: 'life_orb' }),
+        defender: DEFENDER(),
+        move: ACROBATICS,
+        modifiers: {},
+        expected: { min: 37, max: 45 },
       },
       {
         name: 'Eviolite defender 1.5x Def',
