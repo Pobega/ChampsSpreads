@@ -261,7 +261,10 @@ function isRegulationMALegal(apiName) {
   if (name.includes('-totem') || name.includes('-cap') || name.includes('-battle-bond')) return false;
 
   // Split Mega forms and specific battle forms (e.g. urshifu-rapid-strike -> urshifu)
-  const baseName = name.split('-mega')[0].split('-rapid')[0].split('-single')[0].split('-bloodmoon')[0].split('-hearthflame')[0];
+  // Regional variants (alola/galar/hisui/paldea) inherit their base species' legality.
+  const baseName = name
+    .split('-mega')[0].split('-rapid')[0].split('-single')[0].split('-bloodmoon')[0].split('-hearthflame')[0]
+    .split('-alola')[0].split('-galar')[0].split('-hisui')[0].split('-paldea')[0];
 
   if (CACHE.championsLegalList && CACHE.championsLegalList.has(baseName)) {
     return true;
