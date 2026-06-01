@@ -99,6 +99,13 @@ export const DOM = {
   damageBarMin: document.getElementById('damage-bar-min'),
   damageRollsCount: document.getElementById('damage-rolls-count'),
   loadSampleBtn: document.getElementById('load-sample-btn'),
+  exportImportBtn: document.getElementById('export-import-btn'),
+  eiModal: document.getElementById('ei-modal'),
+  eiTextarea: document.getElementById('ei-textarea'),
+  eiCopyBtn: document.getElementById('ei-copy-btn'),
+  eiImportBtn: document.getElementById('ei-import-btn'),
+  eiCloseBtn: document.getElementById('ei-close-btn'),
+  eiStatus: document.getElementById('ei-status'),
 
   mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
   mobOverlayMove: document.getElementById('mob-overlay-move'),

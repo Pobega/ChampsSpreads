@@ -4,6 +4,7 @@
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls } from './src/engine/damage.js';
 import { bst, sortDex, filterDex, isHiddenForm } from './src/data/dex.js';
+import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
 import { DOM } from './src/ui/dom.js';
 import {
   getTypeBgClass,
@@ -127,12 +128,31 @@ const STATE = {
 };
 
 const CACHE = {
-  pokemonList: [], 
-  pokemonDetails: {}, 
+  pokemonList: [],
+  pokemonDetails: {},
   movesDetails: {},
   statusMoves: {},
   championsLegalList: null
 };
+
+// While applying an imported matchup we set many DOM inputs in sequence and
+// own the move selection, so suppress setAttackerDetails' async move auto-pick
+// (its late updateLiveStats would otherwise clobber the imported move).
+let isApplyingMatchup = false;
+
+// burn lives on attacker.status and the tailwind flags are read straight off
+// the DOM in updateLiveStats, so fold them into the modifiers slice for export.
+function augmentedState() {
+  return {
+    ...STATE,
+    modifiers: {
+      ...STATE.modifiers,
+      burn: STATE.attacker.status === 'burned',
+      tailAtk: DOM.modTailAtk.checked,
+      tailDef: DOM.modTailDef.checked
+    }
+  };
+}
 
 // ==========================================
 // 4. OPTIMIZATION ALGORITHMS
@@ -660,7 +680,9 @@ function setAttackerDetails(details) {
   }
 
   // Auto Pre-Selection of the very first valid damaging move from the new learnset!
-  if (damagingMoves.length > 0) {
+  // While importing a matchup, applyMatchup owns the move selection, so skip the
+  // async auto-pick here — its late updateLiveStats() would clobber the import.
+  if (damagingMoves.length > 0 && !isApplyingMatchup) {
     const firstMove = damagingMoves[0];
     DOM.attackerMoveSelect.value = firstMove.apiName;
     STATE.move.apiName = firstMove.apiName;
@@ -1288,6 +1310,56 @@ function bindEvents() {
   DOM.loadSampleBtn.addEventListener('click', () => {
     loadSampleVGCScenario();
   });
+
+  bindExportImportModal();
+}
+
+// Export/import the current matchup as a human-readable text block.
+function bindExportImportModal() {
+  const setStatus = (msg) => { DOM.eiStatus.textContent = msg || ''; };
+  const openModal = () => {
+    DOM.eiTextarea.value = exportMatchup(augmentedState());
+    setStatus('');
+    DOM.eiModal.classList.remove('hidden');
+    DOM.eiTextarea.focus();
+    DOM.eiTextarea.select();
+  };
+  const closeModal = () => DOM.eiModal.classList.add('hidden');
+
+  DOM.exportImportBtn.addEventListener('click', openModal);
+  DOM.eiCloseBtn.addEventListener('click', closeModal);
+  // Click on the dimmed backdrop (but not the dialog itself) closes the modal.
+  DOM.eiModal.addEventListener('click', (e) => {
+    if (e.target === DOM.eiModal) closeModal();
+  });
+
+  DOM.eiCopyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(DOM.eiTextarea.value);
+      setStatus('Copied to clipboard!');
+    } catch (err) {
+      // Clipboard API may be blocked; fall back to selecting the text.
+      DOM.eiTextarea.select();
+      setStatus('Press Ctrl/Cmd+C to copy.');
+    }
+  });
+
+  DOM.eiImportBtn.addEventListener('click', async () => {
+    const parsed = importMatchup(DOM.eiTextarea.value);
+    if (!parsed) {
+      setStatus("Couldn't read that — expected an \"Attacker:\" / \"Defender:\" block.");
+      return;
+    }
+    setStatus('Loading…');
+    DOM.eiImportBtn.disabled = true;
+    const ok = await applyMatchup(parsed);
+    DOM.eiImportBtn.disabled = false;
+    if (ok) {
+      closeModal();
+    } else {
+      setStatus('Failed to load — check the Pokémon names are spelled correctly.');
+    }
+  });
 }
 
 
@@ -1368,6 +1440,99 @@ async function loadSampleVGCScenario() {
   DOM.modTailDef.checked = false;
 
   updateLiveStats();
+}
+
+// Rebuild a matchup from an imported text block (see src/data/matchup-text.js).
+// Mirrors loadSampleVGCScenario: fetch both Pokémon by the apiName derived from
+// their names, run the detail setters to populate option lists, then write every
+// input. Returns true on success, false if a Pokémon couldn't be fetched.
+async function applyMatchup(parsed) {
+  isApplyingMatchup = true;
+  try {
+    const [aDetails, dDetails] = await Promise.all([
+      fetchPokemonDetails(parsed.attacker.apiName),
+      fetchPokemonDetails(parsed.defender.apiName)
+    ]);
+
+    setAttackerDetails(aDetails);
+    setDefenderDetails(dDetails);
+    DOM.attackerSearch.value = aDetails.name;
+    DOM.defenderSearch.value = dDetails.name;
+
+    // Attacker inputs. Setting a <select>.value to an option that doesn't exist
+    // (e.g. an ability this Pokémon can't learn) silently no-ops.
+    DOM.attackerNature.value = parsed.attacker.nature;
+    DOM.attackerItem.value = parsed.attacker.item;
+    DOM.attackerAbility.value = parsed.attacker.ability;
+    DOM.attackerEvAtk.value = parsed.attacker.sps.atk;
+    DOM.attackerEvSpa.value = parsed.attacker.sps.spa;
+    DOM.attackerEvSpe.value = parsed.attacker.sps.spe;
+    DOM.attackerBoostAtk.value = parsed.attacker.boosts.atk;
+    DOM.attackerBoostSpa.value = parsed.attacker.boosts.spa;
+    DOM.attackerBoostSpe.value = parsed.attacker.boosts.spe;
+
+    // Defender inputs.
+    DOM.defenderNature.value = parsed.defender.nature;
+    DOM.defenderItem.value = parsed.defender.item;
+    DOM.defenderAbility.value = parsed.defender.ability;
+    DOM.defenderEvHp.value = parsed.defender.sps.hp;
+    DOM.defenderEvDef.value = parsed.defender.sps.def;
+    DOM.defenderEvSpd.value = parsed.defender.sps.spd;
+    DOM.defenderEvSpe.value = parsed.defender.sps.spe;
+    DOM.defenderBoostDef.value = parsed.defender.boosts.def;
+    DOM.defenderBoostSpd.value = parsed.defender.boosts.spd;
+    DOM.defenderBoostSpe.value = parsed.defender.boosts.spe;
+
+    // Modifiers.
+    const mod = parsed.modifiers;
+    DOM.modSpread.checked = mod.spread;
+    DOM.modCrit.checked = mod.crit;
+    DOM.modScreens.checked = mod.screens;
+    DOM.modFriendGuard.checked = mod.friendGuard;
+    DOM.modHelpingHand.checked = mod.helpingHand;
+    DOM.modBurned.checked = mod.burn;
+    DOM.modTailAtk.checked = mod.tailAtk;
+    DOM.modTailDef.checked = mod.tailDef;
+    DOM.modWeatherSelect.value = mod.weather;
+    DOM.modTerrainSelect.value = mod.terrain;
+    DOM.modAuraSelect.value = mod.aura;
+
+    // Move: a named move re-fetches its power/type/category; a custom move
+    // carries those explicitly. The dropdown options are keyed by apiName.
+    if (parsed.move.apiName) {
+      try {
+        const mv = await fetchMoveDetails(parsed.move.apiName);
+        DOM.attackerMoveSelect.value = mv.apiName;
+        DOM.movePower.value = mv.power;
+        STATE.move.apiName = mv.apiName;
+        updateMoveDetailsVisuals(mv.type, mv.category, false);
+      } catch (err) {
+        console.error("Imported move not found, falling back to custom:", err);
+        DOM.attackerMoveSelect.value = "custom";
+        STATE.move.apiName = "";
+      }
+    } else {
+      DOM.attackerMoveSelect.value = "custom";
+      STATE.move.apiName = "";
+      DOM.moveType.value = parsed.move.type;
+      DOM.moveCategory.value = parsed.move.category;
+      DOM.movePower.value = parsed.move.power;
+      updateMoveDetailsVisuals(parsed.move.type, parsed.move.category, true);
+    }
+
+    // Panel state. The tab/target buttons own their active-class styling, so
+    // reuse their click handlers.
+    (parsed.mode === 'survival' ? DOM.tabSurvival : DOM.tabOffensive).click();
+    (parsed.ko === '2hko' ? DOM.btnTarget2HKO : DOM.btnTargetOHKO).click();
+
+    isApplyingMatchup = false;
+    updateLiveStats();
+    return true;
+  } catch (err) {
+    console.error("Failed to apply imported matchup:", err);
+    isApplyingMatchup = false;
+    return false;
+  }
 }
 
 function initMobileTabbing() {
