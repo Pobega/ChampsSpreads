@@ -80,8 +80,6 @@ export function exportMatchup(state) {
   const mod = state.modifiers || {};
   const lines = [];
 
-  lines.push('=== ChampsSpreads Matchup ===', '');
-
   lines.push(`Attacker: ${a.name || 'Unknown'} @ ${ITEM_LABELS[a.item] || 'None'}`);
   lines.push(`Ability: ${a.ability && a.ability !== 'none' ? titleCase(a.ability) : 'None'} | Nature: ${NATURE_LABELS[a.nature] || 'Neutral'}`);
   lines.push(`EVs: ${evString(a.sps)}`);
