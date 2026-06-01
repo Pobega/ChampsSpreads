@@ -813,5 +813,102 @@
       summary.classList.add('fail');
     }
   </script>
+
+  <!-- Matchup export/import text round-trip tests -->
+  <script type="module">
+    import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+    const fullState = {
+      attacker: {
+        name: 'Incineroar', apiName: 'incineroar', nature: '+atk', item: 'choice_band', ability: 'guts',
+        sps: { hp: 0, atk: 60, def: 0, spa: 0, spd: 0, spe: 2 }, boosts: { atk: 1, spa: 0, spe: -1 }, status: null,
+      },
+      defender: {
+        name: 'Amoonguss', apiName: 'amoonguss', nature: '+def', item: 'eviolite', ability: 'multiscale',
+        sps: { hp: 60, atk: 0, def: 60, spa: 0, spd: 4, spe: 0 }, boosts: { def: 0, spd: 2, spe: 0 },
+      },
+      move: { name: 'Fake Out', apiName: 'fake-out', type: 'Normal', power: 40, category: 'physical' },
+      modifiers: {
+        spread: true, weather: 'sun', crit: false, friendGuard: false, screens: true,
+        helpingHand: false, terrain: 'grassy', aura: 'none', burn: true, tailAtk: false, tailDef: true,
+      },
+      mode: 'survival', targetKO: '2hko',
+    };
+
+    const TEXT_CASES = [
+      {
+        name: 'round-trips a full matchup through export -> import',
+        run: () => {
+          const p = importMatchup(exportMatchup(fullState));
+          return p.attacker.apiName === 'incineroar' && p.attacker.nature === '+atk'
+            && p.attacker.item === 'choice_band' && p.attacker.ability === 'guts'
+            && eq(p.attacker.sps, fullState.attacker.sps) && eq(p.attacker.boosts, fullState.attacker.boosts)
+            && p.defender.apiName === 'amoonguss' && p.defender.nature === '+def'
+            && p.defender.item === 'eviolite' && p.defender.ability === 'multiscale'
+            && eq(p.defender.sps, fullState.defender.sps) && eq(p.defender.boosts, fullState.defender.boosts)
+            && p.move.apiName === 'fake-out'
+            && p.modifiers.spread && p.modifiers.screens && p.modifiers.burn && p.modifiers.tailDef
+            && !p.modifiers.tailAtk && p.modifiers.weather === 'sun' && p.modifiers.terrain === 'grassy'
+            && p.mode === 'survival' && p.ko === '2hko';
+        },
+      },
+      {
+        name: 'round-trips a custom move (type / power / category)',
+        run: () => {
+          const s = { ...fullState, move: { name: 'Custom Move', apiName: '', type: 'Fire', power: 120, category: 'special' } };
+          const p = importMatchup(exportMatchup(s));
+          return p.move.apiName === null && p.move.type === 'Fire' && p.move.power === 120 && p.move.category === 'special';
+        },
+      },
+      {
+        name: 'derives apiName from multi-word names (Flutter Mane -> flutter-mane)',
+        run: () => {
+          const s = { ...fullState, attacker: { ...fullState.attacker, name: 'Flutter Mane', apiName: 'flutter-mane' } };
+          return importMatchup(exportMatchup(s)).attacker.apiName === 'flutter-mane';
+        },
+      },
+      {
+        name: 'tolerant parser: extra whitespace, lowercase labels, reordered lines',
+        run: () => {
+          const text = `attacker:  Talonflame  @  None\n  nature: +Atk  | ability: None\nevs:  32 Atk / 32 Spe\nmove: Acrobatics\n\nDEFENDER: Whimsicott @ None\nEVs: 32 HP / 32 Def\nNature: +Def\n\nfield: spread, sun`;
+          const p = importMatchup(text);
+          return p && p.attacker.apiName === 'talonflame' && p.attacker.nature === '+atk'
+            && eq(p.attacker.sps, { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 })
+            && p.move.apiName === 'acrobatics' && p.defender.apiName === 'whimsicott'
+            && p.defender.nature === '+def' && p.modifiers.spread && p.modifiers.weather === 'sun';
+        },
+      },
+      {
+        name: 'returns null for junk / empty text (no Attacker or Defender line)',
+        run: () => importMatchup('') === null && importMatchup('just some chat text') === null
+          && importMatchup('Field: Spread') === null,
+      },
+    ];
+
+    let textFail = 0;
+    for (const c of TEXT_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [text] ${c.name}</div>`
+        : `<div class="name">✗ [text] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) textFail++;
+    }
+
+    // Keep the overall summary honest if an export/import test regressed.
+    if (textFail > 0) {
+      summary.textContent = `${summary.textContent} · ${textFail} text failure${textFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
 </body>
 </html>
