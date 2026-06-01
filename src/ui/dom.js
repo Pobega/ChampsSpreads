@@ -99,6 +99,9 @@ export const DOM = {
   damageBarMin: document.getElementById('damage-bar-min'),
   damageRollsCount: document.getElementById('damage-rolls-count'),
   loadSampleBtn: document.getElementById('load-sample-btn'),
+  copyLinkBtn: document.getElementById('copy-link-btn'),
+  copyToast: document.getElementById('copy-toast'),
+  matchupLoadingOverlay: document.getElementById('matchup-loading-overlay'),
 
   mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
   mobOverlayMove: document.getElementById('mob-overlay-move'),

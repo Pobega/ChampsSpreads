@@ -80,6 +80,12 @@
           <i class="fa-solid fa-wand-magic-sparkles"></i>
           <span class="hidden md:inline">Load Sample</span>
         </button>
+
+        <!-- Copy Link Button: copies the current shareable matchup URL -->
+        <button id="copy-link-btn" class="bg-cyan-700 hover:bg-cyan-600 border border-cyan-500/30 text-white text-[10px] font-extrabold py-1.5 px-2.5 rounded-lg transition flex items-center gap-1.5 shadow" title="Copy shareable matchup link">
+          <i class="fa-solid fa-link"></i>
+          <span class="hidden md:inline">Copy Link</span>
+        </button>
       </div>
       
     </div>
@@ -917,6 +923,17 @@
         Awaiting
       </div>
     </div>
+  </div>
+
+  <!-- "Copied!" toast for the shareable-link button (hidden until clicked) -->
+  <div id="copy-toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] bg-cyan-600 text-white text-xs font-extrabold px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 pointer-events-none">
+    <i class="fa-solid fa-check"></i> Copied!
+  </div>
+
+  <!-- Full-screen overlay shown while restoring a shared matchup from the URL -->
+  <div id="matchup-loading-overlay" class="hidden fixed inset-0 z-[300] flex flex-col items-center justify-center gap-3 bg-slate-950/80 backdrop-blur-sm">
+    <i class="fa-solid fa-meteor fa-spin text-3xl text-amber-400"></i>
+    <span class="text-sm font-extrabold text-slate-200 uppercase tracking-wider">Loading matchup…</span>
   </div>
 
   <!-- Script imports -->

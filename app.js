@@ -4,6 +4,7 @@
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls } from './src/engine/damage.js';
 import { bst, sortDex, filterDex, isHiddenForm } from './src/data/dex.js';
+import { encodeMatchup, decodeMatchup } from './src/data/url-state.js';
 import { DOM } from './src/ui/dom.js';
 import {
   getTypeBgClass,
@@ -133,6 +134,31 @@ const CACHE = {
   statusMoves: {},
   championsLegalList: null
 };
+
+// While restoring a matchup from the URL we set many DOM inputs in sequence,
+// each of which would otherwise rewrite the URL mid-load. This flag suppresses
+// that until the restore finishes and runs one clean updateLiveStats().
+let isDeserializing = false;
+
+// Mirror the current matchup into the URL query string in place. replaceState
+// (not pushState) keeps the back button from filling up with every slider tick.
+function syncUrlFromState() {
+  if (isDeserializing) return;
+  // burn lives on attacker.status and the tailwind flags are read straight off
+  // the DOM in updateLiveStats, so fold them into the modifiers slice here.
+  const augmented = {
+    ...STATE,
+    modifiers: {
+      ...STATE.modifiers,
+      burn: STATE.attacker.status === 'burned',
+      tailAtk: DOM.modTailAtk.checked,
+      tailDef: DOM.modTailDef.checked
+    }
+  };
+  const query = encodeMatchup(augmented);
+  const url = query ? `?${query}` : window.location.pathname;
+  history.replaceState(null, '', url);
+}
 
 // ==========================================
 // 4. OPTIMIZATION ALGORITHMS
@@ -660,11 +686,14 @@ function setAttackerDetails(details) {
   }
 
   // Auto Pre-Selection of the very first valid damaging move from the new learnset!
-  if (damagingMoves.length > 0) {
+  // While restoring from a URL, loadMatchupFromUrl owns the move selection, so
+  // skip the async auto-pick here — otherwise its late updateLiveStats() would
+  // clobber the shared move and rewrite the URL with the wrong one.
+  if (damagingMoves.length > 0 && !isDeserializing) {
     const firstMove = damagingMoves[0];
     DOM.attackerMoveSelect.value = firstMove.apiName;
     STATE.move.apiName = firstMove.apiName;
-    
+
     fetchMoveDetails(firstMove.apiName).then(move => {
       DOM.movePower.value = move.power;
       updateMoveDetailsVisuals(move.type, move.category, false);
@@ -928,6 +957,7 @@ function updateLiveStats() {
   DOM.defenderSpPresets.value = matchedDefPreset;
 
   runOptimizations();
+  syncUrlFromState();
 }
 
 
@@ -1288,6 +1318,19 @@ function bindEvents() {
   DOM.loadSampleBtn.addEventListener('click', () => {
     loadSampleVGCScenario();
   });
+
+  DOM.copyLinkBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      DOM.copyToast.classList.remove('hidden');
+      clearTimeout(DOM.copyToast._hideTimer);
+      DOM.copyToast._hideTimer = setTimeout(() => {
+        DOM.copyToast.classList.add('hidden');
+      }, 1000);
+    } catch (err) {
+      console.error("Copy link failed:", err);
+    }
+  });
 }
 
 
@@ -1367,6 +1410,105 @@ async function loadSampleVGCScenario() {
   DOM.modTailAtk.checked = false;
   DOM.modTailDef.checked = false;
 
+  updateLiveStats();
+}
+
+// Rebuild a full matchup from a decoded URL object (see src/data/url-state.js).
+// Mirrors loadSampleVGCScenario: fetch both Pokémon, run the detail setters to
+// populate option lists, then write every input from the decoded values.
+async function loadMatchupFromUrl(decoded) {
+  isDeserializing = true;
+  DOM.matchupLoadingOverlay.classList.remove('hidden');
+
+  try {
+    const [attackerDetails, defenderDetails] = await Promise.all([
+      fetchPokemonDetails(decoded.attacker.apiName),
+      fetchPokemonDetails(decoded.defender.apiName)
+    ]);
+
+    // Populate stat bars, type badges, and (crucially) the ability/move option
+    // lists so the values we set below have something to select against.
+    setAttackerDetails(attackerDetails);
+    setDefenderDetails(defenderDetails);
+    DOM.attackerSearch.value = attackerDetails.name;
+    DOM.defenderSearch.value = defenderDetails.name;
+
+    // Attacker inputs. Setting a <select>.value to an option that doesn't exist
+    // (e.g. an ability this Pokémon can't learn) silently no-ops, which is the
+    // desired "invalid params ignored" behavior.
+    DOM.attackerNature.value = decoded.attacker.nature;
+    DOM.attackerItem.value = decoded.attacker.item;
+    DOM.attackerAbility.value = decoded.attacker.ability;
+    DOM.attackerEvAtk.value = decoded.attacker.sps.atk;
+    DOM.attackerEvSpa.value = decoded.attacker.sps.spa;
+    DOM.attackerEvSpe.value = decoded.attacker.sps.spe;
+    DOM.attackerBoostAtk.value = decoded.attacker.boosts.atk;
+    DOM.attackerBoostSpa.value = decoded.attacker.boosts.spa;
+    DOM.attackerBoostSpe.value = decoded.attacker.boosts.spe;
+
+    // Defender inputs.
+    DOM.defenderNature.value = decoded.defender.nature;
+    DOM.defenderItem.value = decoded.defender.item;
+    DOM.defenderAbility.value = decoded.defender.ability;
+    DOM.defenderEvHp.value = decoded.defender.sps.hp;
+    DOM.defenderEvDef.value = decoded.defender.sps.def;
+    DOM.defenderEvSpd.value = decoded.defender.sps.spd;
+    DOM.defenderEvSpe.value = decoded.defender.sps.spe;
+    DOM.defenderBoostDef.value = decoded.defender.boosts.def;
+    DOM.defenderBoostSpd.value = decoded.defender.boosts.spd;
+    DOM.defenderBoostSpe.value = decoded.defender.boosts.spe;
+
+    // Modifiers.
+    const mod = decoded.modifiers;
+    DOM.modSpread.checked = mod.spread;
+    DOM.modCrit.checked = mod.crit;
+    DOM.modScreens.checked = mod.screens;
+    DOM.modFriendGuard.checked = mod.friendGuard;
+    DOM.modHelpingHand.checked = mod.helpingHand;
+    DOM.modBurned.checked = mod.burn;
+    DOM.modTailAtk.checked = mod.tailAtk;
+    DOM.modTailDef.checked = mod.tailDef;
+    DOM.modWeatherSelect.value = mod.weather;
+    DOM.modTerrainSelect.value = mod.terrain;
+    DOM.modAuraSelect.value = mod.aura;
+
+    // Move: a real move re-fetches its power/type/category; a custom move
+    // carries those explicitly in the URL.
+    if (decoded.move.apiName) {
+      try {
+        const move = await fetchMoveDetails(decoded.move.apiName);
+        DOM.attackerMoveSelect.value = decoded.move.apiName;
+        DOM.movePower.value = move.power;
+        STATE.move.apiName = move.apiName;
+        updateMoveDetailsVisuals(move.type, move.category, false);
+      } catch (err) {
+        console.error("Failed to load shared move, falling back to custom:", err);
+        DOM.attackerMoveSelect.value = "custom";
+        STATE.move.apiName = "";
+      }
+    } else {
+      DOM.attackerMoveSelect.value = "custom";
+      STATE.move.apiName = "";
+      DOM.moveType.value = decoded.move.type;
+      DOM.moveCategory.value = decoded.move.category;
+      DOM.movePower.value = decoded.move.power;
+      updateMoveDetailsVisuals(decoded.move.type, decoded.move.category, true);
+    }
+
+    // Panel state. The tab/target buttons own their own active-class styling,
+    // so reuse their click handlers (URL writes are still suppressed here).
+    if (decoded.mode === 'survival') DOM.tabSurvival.click();
+    if (decoded.ko === '2hko') DOM.btnTarget2HKO.click();
+  } catch (err) {
+    console.error("Failed to load matchup from URL, falling back to sample:", err);
+    isDeserializing = false;
+    DOM.matchupLoadingOverlay.classList.add('hidden');
+    loadSampleVGCScenario();
+    return;
+  }
+
+  isDeserializing = false;
+  DOM.matchupLoadingOverlay.classList.add('hidden');
   updateLiveStats();
 }
 
@@ -1759,9 +1901,14 @@ async function init() {
   // built, otherwise non-damaging moves leak through unfiltered.
   await initStatusMovesList();
 
-  // Fire preloaded sample scenario instantly on startup!
+  // A shareable URL takes precedence over the sample matchup on startup.
   try {
-    loadSampleVGCScenario();
+    const decoded = decodeMatchup(window.location.search);
+    if (decoded) {
+      await loadMatchupFromUrl(decoded);
+    } else {
+      loadSampleVGCScenario();
+    }
   } catch (err) {
     console.error("Preloader error:", err);
   }

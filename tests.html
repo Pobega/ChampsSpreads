@@ -813,5 +813,114 @@
       summary.classList.add('fail');
     }
   </script>
+
+  <!-- Shareable-URL serialization tests (encodeMatchup / decodeMatchup) -->
+  <script type="module">
+    import { encodeMatchup, decodeMatchup } from './src/data/url-state.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+    const fullState = {
+      attacker: {
+        apiName: 'incineroar', nature: '+atk', item: 'choice_band', ability: 'intimidate',
+        sps: { hp: 0, atk: 252, def: 0, spa: 0, spd: 0, spe: 4 },
+        boosts: { atk: 1, spa: 0, spe: 0 }, status: null,
+      },
+      defender: {
+        apiName: 'amoonguss', nature: '+def', item: 'eviolite', ability: 'regenerator',
+        sps: { hp: 252, atk: 0, def: 252, spa: 0, spd: 4, spe: 0 },
+        boosts: { def: 0, spd: 2, spe: 0 },
+      },
+      move: { apiName: 'fake-out', type: 'Normal', power: 40, category: 'physical' },
+      modifiers: {
+        spread: true, weather: 'sun', crit: false, friendGuard: false, screens: true,
+        helpingHand: false, terrain: 'grassy', aura: 'none', burn: true, tailAtk: false, tailDef: true,
+      },
+      mode: 'survival', targetKO: '2hko',
+    };
+
+    const URL_CASES = [
+      {
+        name: 'round-trips a full matchup (real move re-fetches power/type/category)',
+        run: () => {
+          const d = decodeMatchup(encodeMatchup(fullState));
+          return d.attacker.apiName === 'incineroar' && d.attacker.nature === '+atk'
+            && d.attacker.item === 'choice_band' && d.attacker.ability === 'intimidate'
+            && eq(d.attacker.sps, fullState.attacker.sps) && eq(d.attacker.boosts, fullState.attacker.boosts)
+            && d.defender.apiName === 'amoonguss' && d.defender.nature === '+def'
+            && d.defender.item === 'eviolite' && d.defender.ability === 'regenerator'
+            && eq(d.defender.sps, fullState.defender.sps) && eq(d.defender.boosts, fullState.defender.boosts)
+            && d.move.apiName === 'fake-out'
+            && d.modifiers.spread === true && d.modifiers.screens === true
+            && d.modifiers.burn === true && d.modifiers.tailDef === true && d.modifiers.tailAtk === false
+            && d.modifiers.weather === 'sun' && d.modifiers.terrain === 'grassy' && d.modifiers.aura === 'none'
+            && d.mode === 'survival' && d.ko === '2hko';
+        },
+      },
+      {
+        name: 'round-trips a custom move (type/power/category preserved)',
+        run: () => {
+          const s = { ...fullState, move: { apiName: null, type: 'Fire', power: 120, category: 'special' } };
+          const d = decodeMatchup(encodeMatchup(s));
+          return d.move.apiName === null && d.move.type === 'Fire'
+            && d.move.power === 120 && d.move.category === 'special';
+        },
+      },
+      {
+        name: 'omits default keys (item/ability/boosts/mod/mode/ko) to keep URLs short',
+        run: () => {
+          const s = {
+            attacker: { apiName: 'pikachu', nature: '+spe', item: 'none', ability: 'none',
+              sps: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, boosts: { atk: 0, spa: 0, spe: 0 }, status: null },
+            defender: { apiName: 'snorlax', nature: 'neutral', item: 'none', ability: 'none',
+              sps: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, boosts: { def: 0, spd: 0, spe: 0 } },
+            move: { apiName: 'thunderbolt' },
+            modifiers: { spread: false, weather: 'none', crit: false, friendGuard: false, screens: false,
+              helpingHand: false, terrain: 'none', aura: 'none', burn: false, tailAtk: false, tailDef: false },
+            mode: 'offensive', targetKO: 'ohko',
+          };
+          const q = encodeMatchup(s);
+          return !q.includes('aI=') && !q.includes('aA=') && !q.includes('aB=')
+            && !q.includes('dB=') && !q.includes('mod=') && !q.includes('mode=') && !q.includes('ko=');
+        },
+      },
+      {
+        name: 'coerces invalid params to safe defaults without throwing',
+        run: () => {
+          const d = decodeMatchup('?a=foo&aN=garbage&aS=x.y');
+          return d.attacker.apiName === 'foo' && d.attacker.nature === 'neutral'
+            && d.attacker.sps.hp === 0 && d.attacker.sps.atk === 0
+            && d.move.apiName === null && d.move.power === 80;
+        },
+      },
+      {
+        name: 'returns null when no Pokémon param is present',
+        run: () => decodeMatchup('') === null && decodeMatchup('?') === null && decodeMatchup('?mod=spread') === null,
+      },
+    ];
+
+    let urlFail = 0;
+    for (const c of URL_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [url] ${c.name}</div>`
+        : `<div class="name">✗ [url] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) urlFail++;
+    }
+
+    // Keep the overall summary honest if a url-state test regressed.
+    if (urlFail > 0) {
+      summary.textContent = `${summary.textContent} · ${urlFail} url failure${urlFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
 </body>
 </html>
