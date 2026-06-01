@@ -670,5 +670,128 @@
     summary.textContent = `${pass} passed · ${fail} failed · ${snap} snapshot${snap === 1 ? '' : 's'} (of ${CASES.length})`;
     summary.classList.add(fail === 0 ? 'pass' : 'fail');
   </script>
+
+  <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
+  <script type="module">
+    import { bst, sortDex, filterDex, STAT_KEYS } from './src/data/dex.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    // Row factory: details=null means "not yet loaded".
+    const stats = (hp, atk, def, spa, spd, spe) => ({ hp, atk, def, spa, spd, spe });
+    const row = (name, baseStats, abilities) => ({
+      apiName: name.toLowerCase(),
+      name,
+      details: baseStats ? { name, baseStats, abilities: (abilities || []).map(n => ({ name: n, apiName: n.toLowerCase() })) } : null,
+    });
+
+    const names = (rows) => rows.map(r => r.name);
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+    const DEX_CASES = [
+      {
+        name: 'bst sums the six base stats',
+        run: () => bst(stats(1, 2, 3, 4, 5, 6)) === 21 && STAT_KEYS.length === 6,
+      },
+      {
+        name: 'sortDex by atk desc, then asc reverses order',
+        run: () => {
+          const rows = [
+            row('Alpha', stats(100, 50, 100, 100, 100, 100)),
+            row('Bravo', stats(100, 130, 100, 100, 100, 100)),
+            row('Charlie', stats(100, 90, 100, 100, 100, 100)),
+          ];
+          const desc = names(sortDex(rows, 'atk', 'desc'));
+          const asc = names(sortDex(rows, 'atk', 'asc'));
+          return eq(desc, ['Bravo', 'Charlie', 'Alpha']) && eq(asc, ['Alpha', 'Charlie', 'Bravo']);
+        },
+      },
+      {
+        name: 'sortDex is stable on ties',
+        run: () => {
+          const rows = [
+            row('First', stats(100, 80, 100, 100, 100, 100)),
+            row('Second', stats(100, 80, 100, 100, 100, 100)),
+            row('Third', stats(100, 80, 100, 100, 100, 100)),
+          ];
+          return eq(names(sortDex(rows, 'atk', 'desc')), ['First', 'Second', 'Third']);
+        },
+      },
+      {
+        name: 'sortDex sinks null-detail rows to the end (both directions)',
+        run: () => {
+          const rows = [
+            row('Loaded', stats(100, 90, 100, 100, 100, 100)),
+            row('Pending', null),
+            row('Other', stats(100, 60, 100, 100, 100, 100)),
+          ];
+          const desc = names(sortDex(rows, 'atk', 'desc'));
+          const asc = names(sortDex(rows, 'atk', 'asc'));
+          return desc[desc.length - 1] === 'Pending' && asc[asc.length - 1] === 'Pending';
+        },
+      },
+      {
+        name: 'sortDex by bst uses the stat total',
+        run: () => {
+          const rows = [
+            row('Low', stats(50, 50, 50, 50, 50, 50)),   // 300
+            row('High', stats(100, 100, 100, 100, 100, 100)), // 600
+          ];
+          return eq(names(sortDex(rows, 'bst', 'desc')), ['High', 'Low']);
+        },
+      },
+      {
+        name: 'filterDex matches by name',
+        run: () => {
+          const rows = [row('Charizard', stats(78, 84, 78, 109, 85, 100), ['Blaze']), row('Garchomp', stats(108, 130, 95, 80, 85, 102), ['Rough Skin'])];
+          return eq(names(filterDex(rows, 'char')), ['Charizard']);
+        },
+      },
+      {
+        name: 'filterDex matches by ability name',
+        run: () => {
+          const rows = [row('Gyarados', stats(95, 125, 79, 60, 100, 81), ['Intimidate']), row('Magikarp', stats(20, 10, 55, 15, 20, 80), ['Swift Swim'])];
+          return eq(names(filterDex(rows, 'intimidate')), ['Gyarados']);
+        },
+      },
+      {
+        name: 'filterDex falls back to name-only when details absent',
+        run: () => {
+          const rows = [row('Pending', null), row('Other', null)];
+          // ability query should match nothing (no details), name query still works
+          return filterDex(rows, 'intimidate').length === 0 && eq(names(filterDex(rows, 'pend')), ['Pending']);
+        },
+      },
+      {
+        name: 'filterDex returns all rows for empty query',
+        run: () => {
+          const rows = [row('A', stats(1, 1, 1, 1, 1, 1)), row('B', null)];
+          return filterDex(rows, '   ').length === 2;
+        },
+      },
+    ];
+
+    let dexFail = 0;
+    for (const c of DEX_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [dex] ${c.name}</div>`
+        : `<div class="name">✗ [dex] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) dexFail++;
+    }
+
+    // Keep the overall summary honest if a dex test regressed.
+    if (dexFail > 0) {
+      summary.textContent = `${summary.textContent} · ${dexFail} dex failure${dexFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
 </body>
 </html>

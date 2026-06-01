@@ -3,6 +3,7 @@
 
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls } from './src/engine/damage.js';
+import { bst, sortDex, filterDex } from './src/data/dex.js';
 import { DOM } from './src/ui/dom.js';
 import {
   getTypeBgClass,
@@ -1155,6 +1156,7 @@ function bindEvents() {
     updateRegulationTag(STATE.attacker.apiName, DOM.attackerRegTag);
     updateRegulationTag(STATE.defender.apiName, DOM.defenderRegTag);
     updateLiveStats();
+    onDexFormatChange();
   });
 
   DOM.attackerSpPresets.addEventListener('change', (e) => {
@@ -1396,10 +1398,370 @@ function initMobileTabbing() {
   switchTab('results');
 }
 
+// ==========================================
+//  POKÉDEX STATS-BROWSER PAGE
+// ==========================================
+
+const DexPage = {
+  roster: [],          // [{ apiName, name, details|null }]
+  byName: {},          // apiName -> row (same object refs as roster)
+  sortKey: 'bst',
+  sortDir: 'desc',
+  query: '',
+  builtForFormat: null,
+  allLoaded: false,    // every roster row has details loaded
+  loading: false,
+  observer: null,
+  dom: null
+};
+
+function dexDom() {
+  if (DexPage.dom) return DexPage.dom;
+  DexPage.dom = {
+    pageCalculator: document.getElementById('page-calculator'),
+    pagePokedex: document.getElementById('page-pokedex'),
+    navCalculator: document.getElementById('nav-calculator'),
+    navPokedex: document.getElementById('nav-pokedex'),
+    search: document.getElementById('dex-search'),
+    rows: document.getElementById('dex-rows'),
+    status: document.getElementById('dex-status'),
+    header: document.getElementById('dex-header')
+  };
+  return DexPage.dom;
+}
+
+// Mega and regional-variant form suffixes. champions_dex.json only lists base
+// species, so these alternate forms must be pulled in from the full variety list.
+const DEX_MEGA_RE = /-mega(-[xy])?$/;
+const DEX_REGIONAL_RE = /-(alola|galar|hisui|paldea)(-|$)/;
+// Cosmetic / gimmick forms that aren't Megas or true regional variants (e.g.
+// "pikachu-alola-cap", Gigantamax, Totem) — mirrors isRegulationMALegal's bans.
+const DEX_FORM_BLOCKLIST_RE = /-(cap|gmax|eternamax|totem|starter|battle-bond)/;
+
+// Is `apiName` a form of any legal base species? The hyphen guard keeps a base
+// like "mew" from matching "mewtwo" while still matching "mew-…" forms, and
+// handles hyphenated base names (kommo-o, ho-oh, tapu-koko) correctly.
+function dexFormOfLegalSpecies(apiName) {
+  if (!CACHE.championsLegalList) return false;
+  for (const b of CACHE.championsLegalList) {
+    if (apiName === b || apiName.startsWith(b + '-')) return true;
+  }
+  return false;
+}
+
+// Build the roster for the current STATE.format from the already-loaded caches.
+function buildDexRoster() {
+  let entries;
+  if (STATE.format === 'regulation_ma' && CACHE.championsLegalList) {
+    // Base form per legal species…
+    entries = Array.from(CACHE.championsLegalList)
+      .map(slug => ({ apiName: slug, name: formatDisplayName(slug.replace(/\./g, '-')) }));
+    // …plus Mega and regional variants of those species from the full list.
+    const seen = new Set(entries.map(e => e.apiName));
+    (CACHE.pokemonList || []).forEach(p => {
+      const v = p.apiName.toLowerCase();
+      if (seen.has(v) || DEX_FORM_BLOCKLIST_RE.test(v)) return;
+      if ((DEX_MEGA_RE.test(v) || DEX_REGIONAL_RE.test(v)) && dexFormOfLegalSpecies(v)) {
+        seen.add(v);
+        entries.push({ apiName: p.apiName, name: p.name });
+      }
+    });
+  } else {
+    entries = (CACHE.pokemonList || []).map(p => ({ apiName: p.apiName, name: p.name }));
+  }
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+
+  DexPage.roster = entries.map(e => ({ apiName: e.apiName, name: e.name, details: null }));
+  DexPage.byName = {};
+  DexPage.roster.forEach(r => { DexPage.byName[r.apiName] = r; });
+  DexPage.builtForFormat = STATE.format;
+  DexPage.allLoaded = false;
+}
+
+// champions_dex.json stores base-species slugs (e.g. "aegislash", "mr.rime"),
+// but PokéAPI's /pokemon endpoint only resolves concrete varieties
+// ("aegislash-shield", "mr-rime"). Resolve a fetchable default variety via the
+// species endpoint, returning the original slug when no remap is needed.
+async function resolveDefaultVariety(slug) {
+  const norm = slug.replace(/\./g, '-');
+  try {
+    const res = await fetch(`${API_BASE}/pokemon-species/${norm}`);
+    if (!res.ok) return norm !== slug ? norm : null;
+    const data = await res.json();
+    const def = data.varieties.find(v => v.is_default) || data.varieties[0];
+    return def ? def.pokemon.name : (norm !== slug ? norm : null);
+  } catch (err) {
+    return norm !== slug ? norm : null;
+  }
+}
+
+// Like fetchPokemonDetails but tolerant of base-species slugs: on a failed
+// direct fetch it resolves the default variety and caches the result under the
+// original slug so later loads short-circuit.
+async function fetchDexDetails(apiName) {
+  const cacheKey = `poke_details_v6_${apiName}`;
+  const cached = Storage.get(cacheKey);
+  if (cached) return cached;
+  try {
+    return await fetchPokemonDetails(apiName);
+  } catch (err) {
+    const variety = await resolveDefaultVariety(apiName);
+    if (variety && variety !== apiName) {
+      const details = await fetchPokemonDetails(variety);
+      Storage.set(cacheKey, details);
+      return details;
+    }
+    throw err;
+  }
+}
+
+function dexStatusText() {
+  const total = DexPage.roster.length;
+  const loaded = DexPage.roster.filter(r => r.details).length;
+  if (loaded < total) return `${total} species · loaded ${loaded}/${total}…`;
+  return `${total} species`;
+}
+
+// Concurrency-limited loader. Resolves once every requested name is fetched.
+async function loadDexDetails(apiNames, { rerenderEachBatch = true } = {}) {
+  const queue = apiNames.filter(n => DexPage.byName[n] && !DexPage.byName[n].details);
+  if (queue.length === 0) return;
+  DexPage.loading = true;
+
+  const CONCURRENCY = 8;
+  const RENDER_EVERY = 24; // rebuild the table periodically, not on every fetch
+  let cursor = 0;
+  let sinceRender = 0;
+
+  async function worker() {
+    while (cursor < queue.length) {
+      const apiName = queue[cursor++];
+      try {
+        const details = await fetchDexDetails(apiName);
+        const row = DexPage.byName[apiName];
+        if (row) row.details = details;
+      } catch (err) {
+        console.error(`Pokédex: failed to load ${apiName}`, err);
+      }
+      if (rerenderEachBatch && ++sinceRender >= RENDER_EVERY) {
+        sinceRender = 0;
+        renderDex();
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  DexPage.loading = false;
+  DexPage.allLoaded = DexPage.roster.every(r => r.details);
+  renderDex();
+}
+
+// Ensure every roster row has details (used before stat-sort / ability-search in
+// the National Dex where rows are otherwise lazy-loaded).
+async function ensureDexFullyLoaded() {
+  if (DexPage.allLoaded || DexPage.loading) return;
+  await loadDexDetails(DexPage.roster.map(r => r.apiName));
+}
+
+const TYPE_SHORT = {
+  Normal: 'NOR', Fire: 'FIR', Water: 'WAT', Grass: 'GRA', Electric: 'ELE',
+  Ice: 'ICE', Fighting: 'FIG', Poison: 'POI', Ground: 'GRD', Flying: 'FLY',
+  Psychic: 'PSY', Bug: 'BUG', Rock: 'ROC', Ghost: 'GHO', Dragon: 'DRA',
+  Dark: 'DRK', Steel: 'STE', Fairy: 'FAI'
+};
+
+function dexRowHTML(row) {
+  const d = row.details;
+  if (!d) {
+    // Lazy placeholder; carries data-api so the observer knows what to fetch.
+    return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs" data-api="${row.apiName}">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div>
+        <span class="font-bold text-slate-300 truncate">${row.name}</span>
+      </div>
+      <span class="text-slate-600 text-[10px]">…</span>
+      <span class="text-slate-600 text-[10px]">loading…</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+      <span class="text-right font-mono text-slate-600">–</span>
+    </div>`;
+  }
+
+  const types = d.types.map(t =>
+    `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white" title="${t}">${TYPE_SHORT[t] || t}</span>`
+  ).join(' ');
+  const abilities = d.abilities.map(a => a.name).join(', ');
+  const s = d.baseStats;
+  const total = bst(s);
+  const cell = (v) => `<span class="text-right font-mono text-slate-300">${v}</span>`;
+
+  return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs hover:bg-slate-800/40 transition" data-api="${row.apiName}">
+    <div class="flex items-center gap-2 min-w-0">
+      <img src="${d.sprite || ''}" alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0">
+      <span class="font-bold text-slate-100 truncate">${row.name}</span>
+    </div>
+    <div class="flex flex-wrap gap-1">${types}</div>
+    <span class="text-slate-400 text-[10px] leading-tight">${abilities}</span>
+    ${cell(s.hp)}${cell(s.atk)}${cell(s.def)}${cell(s.spa)}${cell(s.spd)}${cell(s.spe)}
+    <span class="text-right font-mono font-bold text-amber-400">${total}</span>
+  </div>`;
+}
+
+function updateDexSortIndicators() {
+  const { header } = dexDom();
+  if (!header) return;
+  header.querySelectorAll('.dex-sort').forEach(btn => {
+    const arrow = btn.querySelector('.dex-arrow');
+    const active = btn.dataset.sortKey === DexPage.sortKey;
+    btn.classList.toggle('text-amber-400', active);
+    if (arrow) arrow.textContent = active ? (DexPage.sortDir === 'desc' ? '▼' : '▲') : '';
+  });
+}
+
+function renderDex() {
+  const { rows, status } = dexDom();
+  if (!rows) return;
+
+  const filtered = filterDex(DexPage.roster, DexPage.query);
+  const sorted = sortDex(filtered, DexPage.sortKey, DexPage.sortDir);
+
+  rows.innerHTML = sorted.length
+    ? sorted.map(dexRowHTML).join('')
+    : `<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match “${DexPage.query}”.</div>`;
+
+  if (status) status.textContent = dexStatusText();
+  updateDexSortIndicators();
+  observeLazyDexRows();
+}
+
+// In National Dex mode, fetch details for placeholder rows as they scroll in.
+function observeLazyDexRows() {
+  const { rows } = dexDom();
+  if (!rows) return;
+  if (DexPage.observer) DexPage.observer.disconnect();
+  if (DexPage.allLoaded) return;
+
+  DexPage.observer = new IntersectionObserver((entries) => {
+    const toLoad = [];
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const apiName = entry.target.getAttribute('data-api');
+      const row = DexPage.byName[apiName];
+      if (row && !row.details) toLoad.push(apiName);
+      DexPage.observer.unobserve(entry.target);
+    });
+    if (toLoad.length) loadDexDetails(toLoad, { rerenderEachBatch: true });
+  }, { rootMargin: '200px' });
+
+  rows.querySelectorAll('.dex-row[data-api]').forEach(el => {
+    const apiName = el.getAttribute('data-api');
+    const row = DexPage.byName[apiName];
+    if (row && !row.details) DexPage.observer.observe(el);
+  });
+}
+
+function showPage(page) {
+  const dom = dexDom();
+  const activeCls = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow";
+  const idleCls = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white";
+
+  if (page === 'pokedex') {
+    dom.pageCalculator.classList.add('hidden');
+    dom.pagePokedex.classList.remove('hidden');
+    dom.navPokedex.className = activeCls;
+    dom.navCalculator.className = idleCls;
+    openDexPage();
+  } else {
+    dom.pagePokedex.classList.add('hidden');
+    dom.pageCalculator.classList.remove('hidden');
+    dom.navCalculator.className = activeCls;
+    dom.navPokedex.className = idleCls;
+  }
+}
+
+// Build + render the dex the first time it's shown (or after a format change).
+async function openDexPage() {
+  if (DexPage.builtForFormat === STATE.format && DexPage.roster.length > 0) {
+    renderDex();
+    return;
+  }
+
+  // The roster is sourced from the background caches — make sure they're ready.
+  // Both caches are needed even for M-A: the legal list seeds base species while
+  // the full variety list supplies their Mega and regional forms.
+  const { status } = dexDom();
+  if (status) status.textContent = 'loading roster…';
+  const pending = [];
+  if (STATE.format === 'regulation_ma') pending.push(initChampionsLegalList());
+  if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) pending.push(initPokemonList());
+  if (pending.length) await Promise.all(pending);
+
+  buildDexRoster();
+  renderDex();
+  // M-A is bounded — eager-load everything so sort/search work instantly.
+  if (STATE.format === 'regulation_ma') {
+    loadDexDetails(DexPage.roster.map(r => r.apiName));
+  }
+}
+
+function onDexFormatChange() {
+  const dom = dexDom();
+  if (!dom.pagePokedex) return;
+  DexPage.builtForFormat = null; // force rebuild on next open
+  if (!dom.pagePokedex.classList.contains('hidden')) {
+    openDexPage();
+  }
+}
+
+function initDexPage() {
+  const dom = dexDom();
+  if (!dom.navPokedex) return;
+
+  dom.navPokedex.addEventListener('click', () => showPage('pokedex'));
+  dom.navCalculator.addEventListener('click', () => showPage('calculator'));
+
+  let searchTimer = null;
+  dom.search.addEventListener('input', (e) => {
+    DexPage.query = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      // Ability search needs every row's details; in the lazy National Dex,
+      // load them all the first time the user types a non-empty query.
+      if (DexPage.query.trim() && !DexPage.allLoaded) {
+        await ensureDexFullyLoaded();
+      }
+      renderDex();
+    }, 180);
+  });
+
+  dom.header.querySelectorAll('.dex-sort').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const key = btn.dataset.sortKey;
+      if (DexPage.sortKey === key) {
+        DexPage.sortDir = DexPage.sortDir === 'desc' ? 'asc' : 'desc';
+      } else {
+        DexPage.sortKey = key;
+        DexPage.sortDir = key === 'name' ? 'asc' : 'desc';
+      }
+      // Stat sorting needs every row's stats loaded.
+      if (key !== 'name' && !DexPage.allLoaded) {
+        renderDex(); // reflect arrow immediately
+        await ensureDexFullyLoaded();
+      }
+      renderDex();
+    });
+  });
+}
+
 async function init() {
   populateDropdowns();
   bindEvents();
   initMobileTabbing();
+  initDexPage();
 
   bindAutocomplete(
     DOM.attackerSearch,
