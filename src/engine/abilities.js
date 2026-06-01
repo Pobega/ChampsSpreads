@@ -24,7 +24,7 @@ export const ATTACKER_DAMAGE_ABILITIES = {
 export const DEFENDER_DAMAGE_ABILITIES = {
   'multiscale':    () => 0.5,
   'shadow-shield': () => 0.5,
-  'fluffy':        ({ move, isPhysical }) => (isPhysical ? 0.5 : 1) * (move.type === 'Fire' ? 2 : 1),
+  'fluffy':        ({ move }) => (CONTACT_MOVES.has(move.apiName) ? 0.5 : 1) * (move.type === 'Fire' ? 2 : 1),
   'ice-scales':    ({ isPhysical }) => !isPhysical ? 0.5 : 1,
   'water-bubble':   ({ move }) => move.type === 'Fire' ? 0.5 : 1,
   'thick-fat':      ({ move }) => (move.type === 'Fire' || move.type === 'Ice') ? 0.5 : 1,
