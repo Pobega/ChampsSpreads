@@ -2,10 +2,15 @@
 // PokeAPI does not expose these flags directly, so we maintain them by hand.
 // Add new moves as users hit them.
 
+// Slicing moves boosted by Sharpness, per Bulbapedia
+// (https://bulbapedia.bulbagarden.net/wiki/Sharpness_(Ability)).
 export const SLICING_MOVES = new Set([
-  'leaf-blade', 'sacred-sword', 'kowtow-cleave', 'aqua-cutter',
-  'slash', 'night-slash', 'air-slash', 'psyblade', 'x-scissor',
-  'aerial-ace',
+  'aerial-ace', 'air-cutter', 'air-slash', 'aqua-cutter', 'behemoth-blade', 'bitter-blade',
+  'ceaseless-edge', 'cross-poison', 'crush-claw', 'cut', 'dire-claw', 'dragon-claw',
+  'fury-cutter', 'kowtow-cleave', 'leaf-blade', 'metal-claw', 'mighty-cleave', 'night-slash',
+  'population-bomb', 'psyblade', 'psycho-cut', 'razor-leaf', 'razor-shell', 'sacred-sword',
+  'secret-sword', 'shadow-claw', 'slash', 'solar-blade', 'stone-axe', 'tachyon-cutter',
+  'x-scissor',
 ]);
 
 // Full set of contact moves per Bulbapedia (https://bulbapedia.bulbagarden.net/wiki/Contact),
