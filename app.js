@@ -1445,7 +1445,8 @@ function dexDom() {
     search: document.getElementById('dex-search'),
     rows: document.getElementById('dex-rows'),
     status: document.getElementById('dex-status'),
-    header: document.getElementById('dex-header')
+    header: document.getElementById('dex-header'),
+    regBadge: document.getElementById('dex-regulation-badge')
   };
   return DexPage.dom;
 }
@@ -1469,6 +1470,20 @@ function buildDexRoster() {
   DexPage.roster.forEach(r => { DexPage.byName[r.apiName] = r; });
   DexPage.builtForFormat = STATE.format;
   DexPage.allLoaded = false;
+}
+
+// Badge next to the "Pokédex" title showing the active regulation, styled to
+// match the per-Pokémon legality tags (green for M-A, slate for National Dex).
+function updateDexRegulationBadge() {
+  const { regBadge } = dexDom();
+  if (!regBadge) return;
+  if (STATE.format === 'regulation_ma') {
+    regBadge.textContent = 'Regulation M-A';
+    regBadge.className = 'text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50';
+  } else {
+    regBadge.textContent = 'National Dex';
+    regBadge.className = 'text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30';
+  }
 }
 
 function dexStatusText() {
@@ -1590,6 +1605,7 @@ function renderDex() {
     : `<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match “${DexPage.query}”.</div>`;
 
   if (status) status.textContent = dexStatusText();
+  updateDexRegulationBadge();
   updateDexSortIndicators();
   observeLazyDexRows();
 }
