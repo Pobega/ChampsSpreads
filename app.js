@@ -83,6 +83,7 @@ const STATE = {
   attacker: {
     name: '',
     apiName: '',
+    id: null,
     baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
     level: 50,
     nature: '+atk',
@@ -99,6 +100,7 @@ const STATE = {
   defender: {
     name: '',
     apiName: '',
+    id: null,
     baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
     level: 50,
     nature: '+def',
@@ -114,7 +116,8 @@ const STATE = {
     name: 'Custom Move',
     type: 'Normal',
     power: 80,
-    category: 'physical'
+    category: 'physical',
+    id: null
   },
 
   modifiers: {
@@ -140,13 +143,16 @@ const CACHE = {
 // that until the restore finishes and runs one clean updateLiveStats().
 let isDeserializing = false;
 
-// Mirror the current matchup into the URL query string in place. replaceState
-// (not pushState) keeps the back button from filling up with every slider tick.
-function syncUrlFromState() {
-  if (isDeserializing) return;
-  // burn lives on attacker.status and the tailwind flags are read straight off
-  // the DOM in updateLiveStats, so fold them into the modifiers slice here.
-  const augmented = {
+// The URL stays clean on load (showing whatever the page was opened with, or
+// nothing for the default sample) until the user actually interacts. The first
+// real edit flips this on; from then on every recalc mirrors into the URL.
+let urlSyncEnabled = false;
+function enableUrlSync() { urlSyncEnabled = true; }
+
+// burn lives on attacker.status and the tailwind flags are read straight off
+// the DOM in updateLiveStats, so fold them into the modifiers slice here.
+function augmentedState() {
+  return {
     ...STATE,
     modifiers: {
       ...STATE.modifiers,
@@ -155,9 +161,19 @@ function syncUrlFromState() {
       tailDef: DOM.modTailDef.checked
     }
   };
-  const query = encodeMatchup(augmented);
-  const url = query ? `?${query}` : window.location.pathname;
-  history.replaceState(null, '', url);
+}
+
+// '?s=<token>' for the current matchup (see src/data/url-state.js).
+function matchupSearchString() {
+  const token = encodeMatchup(augmentedState());
+  return token ? `?s=${token}` : window.location.pathname;
+}
+
+// Mirror the current matchup into the URL in place. replaceState (not
+// pushState) keeps the back button from filling up with every slider tick.
+function syncUrlFromState() {
+  if (!urlSyncEnabled || isDeserializing) return;
+  history.replaceState(null, '', matchupSearchString());
 }
 
 // ==========================================
@@ -429,7 +445,8 @@ function formatDisplayName(apiName) {
 }
 
 async function fetchPokemonDetails(apiName) {
-  const cacheKey = `poke_details_v6_${apiName}`;
+  // v7 adds the numeric `id` (used to build compact shareable-URL tokens).
+  const cacheKey = `poke_details_v7_${apiName}`;
   const cached = Storage.get(cacheKey);
   if (cached) return cached;
 
@@ -457,6 +474,7 @@ async function fetchPokemonDetails(apiName) {
   }
 
   const details = {
+    id: data.id,
     name: formatDisplayName(data.name),
     apiName: data.name,
     sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
@@ -481,7 +499,8 @@ async function fetchPokemonDetails(apiName) {
 }
 
 async function fetchMoveDetails(moveApiName) {
-  const cacheKey = `move_details_${moveApiName}`;
+  // v2 adds the numeric `id` (used to build compact shareable-URL tokens).
+  const cacheKey = `move_details_v2_${moveApiName}`;
   const cached = Storage.get(cacheKey);
   if (cached) return cached;
 
@@ -489,6 +508,7 @@ async function fetchMoveDetails(moveApiName) {
   const data = await res.json();
 
   const details = {
+    id: data.id,
     name: formatDisplayName(data.name),
     apiName: data.name,
     power: data.power || 0,
@@ -639,6 +659,7 @@ function updateRegulationTag(apiName, tagEl) {
 function setAttackerDetails(details) {
   STATE.attacker.name = details.name;
   STATE.attacker.apiName = details.apiName;
+  STATE.attacker.id = details.id;
   STATE.attacker.baseStats = details.baseStats;
   STATE.attacker.types = details.types;
   STATE.attacker.moves = details.moves;
@@ -695,6 +716,7 @@ function setAttackerDetails(details) {
     STATE.move.apiName = firstMove.apiName;
 
     fetchMoveDetails(firstMove.apiName).then(move => {
+      STATE.move.id = move.id;
       DOM.movePower.value = move.power;
       updateMoveDetailsVisuals(move.type, move.category, false);
       updateLiveStats();
@@ -702,6 +724,7 @@ function setAttackerDetails(details) {
       console.error("Error auto pre-selecting first VGC move:", err);
       DOM.attackerMoveSelect.value = "custom";
       STATE.move.apiName = "";
+      STATE.move.id = null;
       DOM.movePower.value = 80;
       updateMoveDetailsVisuals("Normal", "physical", true);
       updateLiveStats();
@@ -709,6 +732,7 @@ function setAttackerDetails(details) {
   } else {
     DOM.attackerMoveSelect.value = "custom";
     STATE.move.apiName = "";
+    STATE.move.id = null;
     DOM.movePower.value = 80;
     updateMoveDetailsVisuals("Normal", "physical", true);
     updateLiveStats();
@@ -720,6 +744,7 @@ function setAttackerDetails(details) {
 function setDefenderDetails(details) {
   STATE.defender.name = details.name;
   STATE.defender.apiName = details.apiName;
+  STATE.defender.id = details.id;
   STATE.defender.baseStats = details.baseStats;
   STATE.defender.types = details.types;
 
@@ -1184,6 +1209,16 @@ function bindApplyButtonsListeners() {
 }
 
 function bindEvents() {
+  // Start mirroring the matchup into the URL on the first real edit. Form
+  // interactions (sliders, dropdowns, checkboxes, move/preset selects, typing
+  // in search) fire input/change here; programmatic .value sets during boot do
+  // not, so the URL stays clean until the user actually touches something.
+  const calcPage = document.getElementById('page-calculator');
+  if (calcPage) {
+    calcPage.addEventListener('input', enableUrlSync, { capture: true });
+    calcPage.addEventListener('change', enableUrlSync, { capture: true });
+  }
+
   const inputs = [
     DOM.attackerNature, DOM.attackerItem, DOM.attackerAbility,
     DOM.attackerBoostAtk, DOM.attackerBoostSpa, DOM.attackerBoostSpe,
@@ -1263,6 +1298,7 @@ function bindEvents() {
   });
 
   DOM.tabSurvival.addEventListener('click', () => {
+    enableUrlSync();
     STATE.mode = 'survival';
     DOM.tabSurvival.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md";
     DOM.tabOffensive.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
@@ -1272,6 +1308,7 @@ function bindEvents() {
   });
 
   DOM.tabOffensive.addEventListener('click', () => {
+    enableUrlSync();
     STATE.mode = 'offensive';
     DOM.tabOffensive.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 bg-amber-600 text-white shadow-md";
     DOM.tabSurvival.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
@@ -1281,6 +1318,7 @@ function bindEvents() {
   });
 
   DOM.btnTargetOHKO.addEventListener('click', () => {
+    enableUrlSync();
     STATE.targetKO = 'ohko';
     DOM.btnTargetOHKO.className = "bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition";
     DOM.btnTarget2HKO.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl border border-slate-700 transition";
@@ -1288,6 +1326,7 @@ function bindEvents() {
   });
 
   DOM.btnTarget2HKO.addEventListener('click', () => {
+    enableUrlSync();
     STATE.targetKO = '2hko';
     DOM.btnTarget2HKO.className = "bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition";
     DOM.btnTargetOHKO.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl border border-slate-700 transition";
@@ -1299,6 +1338,7 @@ function bindEvents() {
     
     if (val === 'custom') {
       STATE.move.apiName = "";
+      STATE.move.id = null;
       updateMoveDetailsVisuals("Normal", "physical", true);
       updateLiveStats();
       return;
@@ -1308,6 +1348,7 @@ function bindEvents() {
       const move = await fetchMoveDetails(val);
       DOM.movePower.value = move.power;
       STATE.move.apiName = move.apiName;
+      STATE.move.id = move.id;
       updateMoveDetailsVisuals(move.type, move.category, false);
       updateLiveStats();
     } catch (err) {
@@ -1321,6 +1362,10 @@ function bindEvents() {
 
   DOM.copyLinkBtn.addEventListener('click', async () => {
     try {
+      // Build the link on demand (the bar may still be clean) and reflect it,
+      // then keep the bar in sync for any further edits.
+      history.replaceState(null, '', matchupSearchString());
+      enableUrlSync();
       await navigator.clipboard.writeText(window.location.href);
       DOM.copyToast.classList.remove('hidden');
       clearTimeout(DOM.copyToast._hideTimer);
@@ -1348,6 +1393,7 @@ async function loadSampleVGCScenario() {
     console.error("Error fetching details in sample loader", err);
     // Fallbacks
     attackerDetails = {
+      id: 663,
       name: "Talonflame",
       apiName: "talonflame",
       sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/663.png",
@@ -1357,6 +1403,7 @@ async function loadSampleVGCScenario() {
       abilities: [{ name: "Gale Wings", apiName: "gale-wings" }]
     };
     defenderDetails = {
+      id: 547,
       name: "Whimsicott",
       apiName: "whimsicott",
       sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/547.png",
@@ -1397,6 +1444,7 @@ async function loadSampleVGCScenario() {
     const move = await fetchMoveDetails("acrobatics");
     DOM.movePower.value = move.power;
     STATE.move.apiName = move.apiName;
+    STATE.move.id = move.id;
     updateMoveDetailsVisuals(move.type, move.category, false);
   } catch (err) {
     console.error("Failed to load preloaded Acrobatics move info", err);
@@ -1422,8 +1470,8 @@ async function loadMatchupFromUrl(decoded) {
 
   try {
     const [attackerDetails, defenderDetails] = await Promise.all([
-      fetchPokemonDetails(decoded.attacker.apiName),
-      fetchPokemonDetails(decoded.defender.apiName)
+      fetchPokemonDetails(decoded.attacker.id),
+      fetchPokemonDetails(decoded.defender.id)
     ]);
 
     // Populate stat bars, type badges, and (crucially) the ability/move option
@@ -1472,23 +1520,27 @@ async function loadMatchupFromUrl(decoded) {
     DOM.modTerrainSelect.value = mod.terrain;
     DOM.modAuraSelect.value = mod.aura;
 
-    // Move: a real move re-fetches its power/type/category; a custom move
-    // carries those explicitly in the URL.
-    if (decoded.move.apiName) {
+    // Move: a real move re-fetches its power/type/category by id (the dropdown
+    // options are keyed by apiName, so use the fetched name to select it); a
+    // custom move carries its type/power/category explicitly in the token.
+    if (decoded.move.id) {
       try {
-        const move = await fetchMoveDetails(decoded.move.apiName);
-        DOM.attackerMoveSelect.value = decoded.move.apiName;
+        const move = await fetchMoveDetails(decoded.move.id);
+        DOM.attackerMoveSelect.value = move.apiName;
         DOM.movePower.value = move.power;
         STATE.move.apiName = move.apiName;
+        STATE.move.id = move.id;
         updateMoveDetailsVisuals(move.type, move.category, false);
       } catch (err) {
         console.error("Failed to load shared move, falling back to custom:", err);
         DOM.attackerMoveSelect.value = "custom";
         STATE.move.apiName = "";
+        STATE.move.id = null;
       }
     } else {
       DOM.attackerMoveSelect.value = "custom";
       STATE.move.apiName = "";
+      STATE.move.id = null;
       DOM.moveType.value = decoded.move.type;
       DOM.moveCategory.value = decoded.move.category;
       DOM.movePower.value = decoded.move.power;
@@ -1897,9 +1949,11 @@ async function init() {
     setDefenderDetails
   );
 
-  // The status-move filter list must be ready before any move dropdown is
-  // built, otherwise non-damaging moves leak through unfiltered.
-  await initStatusMovesList();
+  // Two lists must be ready before we build the matchup:
+  //  - the status-move filter, or non-damaging moves leak into the dropdowns;
+  //  - the Champions legal list, or updateRegulationTag resolves every legal
+  //    Pokémon as banned (isRegulationMALegal returns false on a null list).
+  await Promise.all([initStatusMovesList(), initChampionsLegalList()]);
 
   // A shareable URL takes precedence over the sample matchup on startup.
   try {
@@ -1913,9 +1967,9 @@ async function init() {
     console.error("Preloader error:", err);
   }
 
-  // Fetch massive search databases quietly in the background without blocking!
+  // Fetch the massive search database quietly in the background without
+  // blocking. (The Champions legal list is already loaded above.)
   initPokemonList();
-  initChampionsLegalList();
 }
 
 document.addEventListener('DOMContentLoaded', init);

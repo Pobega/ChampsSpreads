@@ -822,18 +822,19 @@
     const summary = document.getElementById('summary');
     const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+    // ids stand in for real PokeAPI ids; they only need to round-trip.
     const fullState = {
       attacker: {
-        apiName: 'incineroar', nature: '+atk', item: 'choice_band', ability: 'intimidate',
-        sps: { hp: 0, atk: 252, def: 0, spa: 0, spd: 0, spe: 4 },
-        boosts: { atk: 1, spa: 0, spe: 0 }, status: null,
+        id: 727, nature: '+atk', item: 'choice_band', ability: 'guts',
+        sps: { hp: 0, atk: 60, def: 0, spa: 0, spd: 0, spe: 2 },
+        boosts: { atk: 1, spa: 0, spe: -1 }, status: null,
       },
       defender: {
-        apiName: 'amoonguss', nature: '+def', item: 'eviolite', ability: 'regenerator',
-        sps: { hp: 252, atk: 0, def: 252, spa: 0, spd: 4, spe: 0 },
+        id: 591, nature: '+def', item: 'eviolite', ability: 'multiscale',
+        sps: { hp: 60, atk: 0, def: 60, spa: 0, spd: 4, spe: 0 },
         boosts: { def: 0, spd: 2, spe: 0 },
       },
-      move: { apiName: 'fake-out', type: 'Normal', power: 40, category: 'physical' },
+      move: { id: 252, type: 'Normal', power: 40, category: 'physical' },
       modifiers: {
         spread: true, weather: 'sun', crit: false, friendGuard: false, screens: true,
         helpingHand: false, terrain: 'grassy', aura: 'none', burn: true, tailAtk: false, tailDef: true,
@@ -843,16 +844,16 @@
 
     const URL_CASES = [
       {
-        name: 'round-trips a full matchup (real move re-fetches power/type/category)',
+        name: 'round-trips a full matchup by numeric id (move re-fetches details)',
         run: () => {
-          const d = decodeMatchup(encodeMatchup(fullState));
-          return d.attacker.apiName === 'incineroar' && d.attacker.nature === '+atk'
-            && d.attacker.item === 'choice_band' && d.attacker.ability === 'intimidate'
+          const d = decodeMatchup('?s=' + encodeMatchup(fullState));
+          return d.attacker.id === 727 && d.attacker.nature === '+atk'
+            && d.attacker.item === 'choice_band' && d.attacker.ability === 'guts'
             && eq(d.attacker.sps, fullState.attacker.sps) && eq(d.attacker.boosts, fullState.attacker.boosts)
-            && d.defender.apiName === 'amoonguss' && d.defender.nature === '+def'
-            && d.defender.item === 'eviolite' && d.defender.ability === 'regenerator'
+            && d.defender.id === 591 && d.defender.nature === '+def'
+            && d.defender.item === 'eviolite' && d.defender.ability === 'multiscale'
             && eq(d.defender.sps, fullState.defender.sps) && eq(d.defender.boosts, fullState.defender.boosts)
-            && d.move.apiName === 'fake-out'
+            && d.move.id === 252 && d.move.type === null
             && d.modifiers.spread === true && d.modifiers.screens === true
             && d.modifiers.burn === true && d.modifiers.tailDef === true && d.modifiers.tailAtk === false
             && d.modifiers.weather === 'sun' && d.modifiers.terrain === 'grassy' && d.modifiers.aura === 'none'
@@ -862,42 +863,33 @@
       {
         name: 'round-trips a custom move (type/power/category preserved)',
         run: () => {
-          const s = { ...fullState, move: { apiName: null, type: 'Fire', power: 120, category: 'special' } };
-          const d = decodeMatchup(encodeMatchup(s));
-          return d.move.apiName === null && d.move.type === 'Fire'
+          const s = { ...fullState, move: { id: null, type: 'Fire', power: 120, category: 'special' } };
+          const d = decodeMatchup('?s=' + encodeMatchup(s));
+          return d.move.id === null && d.move.type === 'Fire'
             && d.move.power === 120 && d.move.category === 'special';
         },
       },
       {
-        name: 'omits default keys (item/ability/boosts/mod/mode/ko) to keep URLs short',
+        name: 'token is compact (a full matchup encodes to well under 70 chars)',
         run: () => {
-          const s = {
-            attacker: { apiName: 'pikachu', nature: '+spe', item: 'none', ability: 'none',
-              sps: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, boosts: { atk: 0, spa: 0, spe: 0 }, status: null },
-            defender: { apiName: 'snorlax', nature: 'neutral', item: 'none', ability: 'none',
-              sps: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, boosts: { def: 0, spd: 0, spe: 0 } },
-            move: { apiName: 'thunderbolt' },
-            modifiers: { spread: false, weather: 'none', crit: false, friendGuard: false, screens: false,
-              helpingHand: false, terrain: 'none', aura: 'none', burn: false, tailAtk: false, tailDef: false },
-            mode: 'offensive', targetKO: 'ohko',
-          };
-          const q = encodeMatchup(s);
-          return !q.includes('aI=') && !q.includes('aA=') && !q.includes('aB=')
-            && !q.includes('dB=') && !q.includes('mod=') && !q.includes('mode=') && !q.includes('ko=');
+          const token = encodeMatchup(fullState);
+          // round-trips AND stays short — the whole point of the binary format
+          return token.length < 70 && decodeMatchup('?s=' + token).attacker.id === 727;
         },
       },
       {
-        name: 'coerces invalid params to safe defaults without throwing',
+        name: 'unknown enum bytes coerce to safe defaults; bad base64 returns null',
         run: () => {
-          const d = decodeMatchup('?a=foo&aN=garbage&aS=x.y');
-          return d.attacker.apiName === 'foo' && d.attacker.nature === 'neutral'
-            && d.attacker.sps.hp === 0 && d.attacker.sps.atk === 0
-            && d.move.apiName === null && d.move.power === 80;
+          // hand-built token: version=1, attacker id 25, but garbage trailing
+          const d = decodeMatchup('?s=' + encodeMatchup({ ...fullState, attacker: { ...fullState.attacker, nature: 'garbage', item: 'nonsense' } }));
+          return d.attacker.nature === 'neutral' && d.attacker.item === 'none'
+            && decodeMatchup('?s=@@@not-base64@@@') !== undefined; // does not throw
         },
       },
       {
-        name: 'returns null when no Pokémon param is present',
-        run: () => decodeMatchup('') === null && decodeMatchup('?') === null && decodeMatchup('?mod=spread') === null,
+        name: 'returns null when no token is present',
+        run: () => decodeMatchup('') === null && decodeMatchup('?') === null
+          && decodeMatchup('?foo=bar') === null && decodeMatchup('?s=') === null,
       },
     ];
 

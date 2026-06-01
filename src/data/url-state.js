@@ -1,171 +1,193 @@
-// Shareable matchup URLs: serialize the calc-relevant slices of STATE into a
-// compact query string, and parse one back into a normalized plain object.
+// Shareable matchup URLs: pack the calc-relevant slices of STATE into a compact
+// binary buffer and base64url-encode it into a single `s` query param. Numeric
+// PokeAPI IDs (not names) make the token tiny — a full matchup fits in ~35
+// bytes, i.e. a ~47-char token, versus ~190 chars for a readable query string.
 //
-// Both functions are pure (no DOM, no window) so they unit-test cleanly. The
-// app layer in app.js is responsible for reading the augmented state in (burn
-// lives on attacker.status and the tailwind flags live straight on the DOM,
-// so app.js folds them into the `modifiers` object it passes here) and for
-// applying a decoded object back onto the DOM inputs.
+// Both functions are pure (no DOM, no window). The app layer (app.js) feeds in
+// an augmented STATE (burn lives on attacker.status and the tailwind flags live
+// on the DOM, so it folds them into `modifiers`) and applies a decoded object
+// back onto the DOM, fetching Pokémon/moves by their numeric id.
 //
-// Schema (short keys, defaults omitted to keep URLs under Discord's truncation
-// limit):
-//   a/d   = attacker/defender apiName
-//   aN/dN = nature, '+' stripped ('atk','spa','def','spd','spe','neutral')
-//   aI/dI = item key (omitted when 'none')
-//   aA/dA = ability apiName (omitted when 'none')
-//   aS/dS = sps as hp.atk.def.spa.spd.spe
-//   aB    = attacker boosts atk.spa.spe (omitted when 0.0.0)
-//   dB    = defender boosts def.spd.spe (omitted when 0.0.0)
-//   m     = move apiName, or 'custom'; when custom, mt/mp/mc = type/power/category
-//   mod   = dot-joined flags {spread,crit,screens,friendGuard,helpingHand,
-//           burn,tailAtk,tailDef} plus weather:<v>/terrain:<v>/aura:<v>
-//   mode  = 'survival' (omitted when offensive); ko = '2hko' (omitted when ohko)
+// The token is opaque and not hand-editable — that's the deliberate trade for
+// a much shorter URL. A version byte leads the buffer so the format can evolve.
 
+const VERSION = 1;
 const STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-const NATURE_STATS = ['atk', 'spa', 'def', 'spd', 'spe'];
-const MOD_FLAGS = ['spread', 'crit', 'screens', 'friendGuard', 'helpingHand', 'burn', 'tailAtk', 'tailDef'];
 
-function natureShort(nature) {
-  if (!nature || nature === 'neutral') return 'neutral';
-  return String(nature).replace('+', '');
+// Stable enum tables — order is append-only; never reorder or the meaning of
+// existing tokens shifts. These mirror the option values used in index.html /
+// app.js (natures, items, ability lists, move types/categories, field state).
+const NATURES = ['neutral', '+atk', '+spa', '+def', '+spd', '+spe'];
+// Attacker and defender expose different held-item menus (see index.html), so
+// each side gets its own table — sharing one would drop the other's items.
+const ATK_ITEMS = ['none', 'choice_band', 'choice_specs', 'choice_scarf', 'life_orb', 'expert_belt', 'black_glasses_etc', 'mega_stone'];
+const DEF_ITEMS = ['none', 'assault_vest', 'eviolite', 'berries', 'choice_scarf', 'mega_stone'];
+const OFF_ABILITIES = ['none', 'huge-power', 'guts', 'adaptability', 'technician', 'sharpness', 'tough-claws', 'strong-jaw', 'sniper', 'transistor', 'steelworker', 'rocky-payload', 'supreme-overlord', 'iron-fist', 'mega-sol', 'fairy-aura'];
+const DEF_ABILITIES = ['none', 'multiscale', 'shadow-shield', 'fluffy', 'ice-scales'];
+const TYPES = ['Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy'];
+const CATEGORIES = ['physical', 'special', 'status'];
+const WEATHERS = ['none', 'sun', 'rain', 'sandstorm', 'snow'];
+const TERRAINS = ['none', 'electric', 'grassy', 'psychic', 'misty'];
+const AURAS = ['none', 'fairy', 'dark'];
+
+function idxOf(list, value) {
+  const i = list.indexOf(value);
+  return i < 0 ? 0 : i;
 }
 
-function natureLong(short) {
-  return NATURE_STATS.includes(short) ? '+' + short : 'neutral';
+function clampByte(v) {
+  v = Math.round(Number(v) || 0);
+  return v < 0 ? 0 : v > 255 ? 255 : v;
 }
 
-function intOr(value, fallback) {
-  const n = parseInt(value, 10);
-  return Number.isFinite(n) ? n : fallback;
+function bytesToBase64Url(bytes) {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function spsToStr(sps) {
-  const s = sps || {};
-  return STAT_ORDER.map(k => intOr(s[k], 0)).join('.');
+function base64UrlToBytes(str) {
+  let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
 }
 
-function spsFromStr(str) {
-  const parts = String(str || '').split('.');
-  const out = {};
-  STAT_ORDER.forEach((k, i) => { out[k] = Math.max(0, intOr(parts[i], 0)); });
-  return out;
-}
-
-function boostsToStr(boosts, keys) {
-  const b = boosts || {};
-  return keys.map(k => intOr(b[k], 0)).join('.');
-}
-
-function boostsFromStr(str, keys) {
-  const parts = String(str || '').split('.');
-  const out = {};
-  keys.forEach((k, i) => { out[k] = intOr(parts[i], 0); });
-  return out;
-}
-
+// Returns the base64url token (the value of the `s` param, no key/leading '?').
 export function encodeMatchup(state) {
   const a = state.attacker || {};
   const d = state.defender || {};
   const m = state.move || {};
   const mod = state.modifiers || {};
-  const parts = [];
-  const add = (k, v) => parts.push(`${k}=${v}`);
+  const bytes = [];
 
-  if (a.apiName) add('a', a.apiName);
-  if (a.nature) add('aN', natureShort(a.nature));
-  if (a.item && a.item !== 'none') add('aI', a.item);
-  if (a.ability && a.ability !== 'none') add('aA', a.ability);
-  if (a.sps) add('aS', spsToStr(a.sps));
-  const aB = boostsToStr(a.boosts, ['atk', 'spa', 'spe']);
-  if (aB !== '0.0.0') add('aB', aB);
+  const u8 = v => bytes.push(clampByte(v));
+  const u16 = v => { const n = (Number(v) || 0) & 0xFFFF; bytes.push((n >> 8) & 0xFF, n & 0xFF); };
+  const i8 = v => bytes.push(((Math.round(Number(v) || 0)) + 256) & 0xFF);
 
-  if (d.apiName) add('d', d.apiName);
-  if (d.nature) add('dN', natureShort(d.nature));
-  if (d.item && d.item !== 'none') add('dI', d.item);
-  if (d.ability && d.ability !== 'none') add('dA', d.ability);
-  if (d.sps) add('dS', spsToStr(d.sps));
-  const dB = boostsToStr(d.boosts, ['def', 'spd', 'spe']);
-  if (dB !== '0.0.0') add('dB', dB);
+  u8(VERSION);
 
-  if (m.apiName) {
-    add('m', m.apiName);
+  u16(a.id || 0);
+  u8(idxOf(NATURES, a.nature));
+  u8(idxOf(ATK_ITEMS, a.item));
+  u8(idxOf(OFF_ABILITIES, a.ability));
+  STAT_ORDER.forEach(k => u8((a.sps && a.sps[k]) || 0));
+  i8((a.boosts && a.boosts.atk) || 0);
+  i8((a.boosts && a.boosts.spa) || 0);
+  i8((a.boosts && a.boosts.spe) || 0);
+
+  u16(d.id || 0);
+  u8(idxOf(NATURES, d.nature));
+  u8(idxOf(DEF_ITEMS, d.item));
+  u8(idxOf(DEF_ABILITIES, d.ability));
+  STAT_ORDER.forEach(k => u8((d.sps && d.sps[k]) || 0));
+  i8((d.boosts && d.boosts.def) || 0);
+  i8((d.boosts && d.boosts.spd) || 0);
+  i8((d.boosts && d.boosts.spe) || 0);
+
+  if (m.id) {
+    u8(0); // move identified by numeric id
+    u16(m.id);
   } else {
-    add('m', 'custom');
-    if (m.type) add('mt', m.type);
-    if (m.power != null) add('mp', String(m.power));
-    if (m.category) add('mc', m.category);
+    u8(1); // custom move carries its own type/category/power
+    u8(idxOf(TYPES, m.type));
+    u8(idxOf(CATEGORIES, m.category));
+    u8(m.power || 0);
   }
 
-  const flags = MOD_FLAGS.filter(f => mod[f]);
-  if (mod.weather && mod.weather !== 'none') flags.push('weather:' + mod.weather);
-  if (mod.terrain && mod.terrain !== 'none') flags.push('terrain:' + mod.terrain);
-  if (mod.aura && mod.aura !== 'none') flags.push('aura:' + mod.aura);
-  if (flags.length) add('mod', flags.join('.'));
+  let flags = 0;
+  if (mod.spread) flags |= 1;
+  if (mod.crit) flags |= 2;
+  if (mod.screens) flags |= 4;
+  if (mod.friendGuard) flags |= 8;
+  if (mod.helpingHand) flags |= 16;
+  if (mod.burn) flags |= 32;
+  if (mod.tailAtk) flags |= 64;
+  if (mod.tailDef) flags |= 128;
+  u8(flags);
 
-  if (state.mode === 'survival') add('mode', 'survival');
-  if (state.targetKO === '2hko') add('ko', '2hko');
+  u8((idxOf(WEATHERS, mod.weather) << 5) | (idxOf(TERRAINS, mod.terrain) << 2) | idxOf(AURAS, mod.aura));
+  u8(((state.mode === 'survival' ? 1 : 0) << 1) | (state.targetKO === '2hko' ? 1 : 0));
 
-  return parts.join('&');
+  return bytesToBase64Url(bytes);
 }
 
+// Accepts a query string (with or without a leading '?'). Returns a normalized
+// matchup object, or null when there's no usable `s` token. Never throws.
 export function decodeMatchup(search) {
   let raw = String(search || '');
   if (raw[0] === '?') raw = raw.slice(1);
-  const params = new URLSearchParams(raw);
+  const token = new URLSearchParams(raw).get('s');
+  if (!token) return null;
 
-  // Nothing to restore unless at least one Pokémon is named.
-  if (!params.has('a') && !params.has('d')) return null;
+  let bytes;
+  try {
+    bytes = base64UrlToBytes(token);
+  } catch (err) {
+    return null;
+  }
+  if (bytes.length < 5) return null;
 
-  const modStr = params.get('mod') || '';
-  const modTokens = modStr ? modStr.split('.') : [];
-  const modifiers = {
-    spread: false, crit: false, screens: false, friendGuard: false,
-    helpingHand: false, burn: false, tailAtk: false, tailDef: false,
-    weather: 'none', terrain: 'none', aura: 'none'
-  };
-  for (const token of modTokens) {
-    const colon = token.indexOf(':');
-    if (colon === -1) {
-      if (MOD_FLAGS.includes(token)) modifiers[token] = true;
-    } else {
-      const prefix = token.slice(0, colon);
-      const value = token.slice(colon + 1);
-      if (prefix === 'weather' || prefix === 'terrain' || prefix === 'aura') {
-        modifiers[prefix] = value;
-      }
-    }
+  let p = 0;
+  const u8 = () => bytes[p++] ?? 0;
+  const u16 = () => { const v = ((bytes[p] ?? 0) << 8) | (bytes[p + 1] ?? 0); p += 2; return v; };
+  const i8 = () => { const v = bytes[p++] ?? 0; return v > 127 ? v - 256 : v; };
+  const sps = () => { const o = {}; STAT_ORDER.forEach(k => { o[k] = u8(); }); return o; };
+
+  u8(); // version (only v1 today; reserved for future branching)
+
+  const aId = u16();
+  const aNature = NATURES[u8()] || 'neutral';
+  const aItem = ATK_ITEMS[u8()] || 'none';
+  const aAbility = OFF_ABILITIES[u8()] || 'none';
+  const aSps = sps();
+  const aBoosts = { atk: i8(), spa: i8(), spe: i8() };
+
+  const dId = u16();
+  const dNature = NATURES[u8()] || 'neutral';
+  const dItem = DEF_ITEMS[u8()] || 'none';
+  const dAbility = DEF_ABILITIES[u8()] || 'none';
+  const dSps = sps();
+  const dBoosts = { def: i8(), spd: i8(), spe: i8() };
+
+  const moveCustom = u8() === 1;
+  let move;
+  if (moveCustom) {
+    move = {
+      id: null,
+      apiName: null,
+      type: TYPES[u8()] || 'Normal',
+      category: CATEGORIES[u8()] || 'physical',
+      power: u8(),
+    };
+  } else {
+    move = { id: u16(), apiName: null, type: null, category: null, power: null };
   }
 
-  const moveKey = params.get('m');
-  const move = (!moveKey || moveKey === 'custom')
-    ? {
-        apiName: null,
-        type: params.get('mt') || 'Normal',
-        power: Math.max(0, intOr(params.get('mp'), 80)),
-        category: params.get('mc') || 'physical'
-      }
-    : { apiName: moveKey, type: null, power: null, category: null };
+  const flags = u8();
+  const env = u8();
+  const panel = u8();
 
   return {
-    attacker: {
-      apiName: params.get('a') || '',
-      nature: natureLong(params.get('aN')),
-      item: params.get('aI') || 'none',
-      ability: params.get('aA') || 'none',
-      sps: spsFromStr(params.get('aS')),
-      boosts: boostsFromStr(params.get('aB'), ['atk', 'spa', 'spe'])
-    },
-    defender: {
-      apiName: params.get('d') || '',
-      nature: natureLong(params.get('dN')),
-      item: params.get('dI') || 'none',
-      ability: params.get('dA') || 'none',
-      sps: spsFromStr(params.get('dS')),
-      boosts: boostsFromStr(params.get('dB'), ['def', 'spd', 'spe'])
-    },
+    attacker: { id: aId, nature: aNature, item: aItem, ability: aAbility, sps: aSps, boosts: aBoosts },
+    defender: { id: dId, nature: dNature, item: dItem, ability: dAbility, sps: dSps, boosts: dBoosts },
     move,
-    modifiers,
-    mode: params.get('mode') === 'survival' ? 'survival' : 'offensive',
-    ko: params.get('ko') === '2hko' ? '2hko' : 'ohko'
+    modifiers: {
+      spread: !!(flags & 1),
+      crit: !!(flags & 2),
+      screens: !!(flags & 4),
+      friendGuard: !!(flags & 8),
+      helpingHand: !!(flags & 16),
+      burn: !!(flags & 32),
+      tailAtk: !!(flags & 64),
+      tailDef: !!(flags & 128),
+      weather: WEATHERS[(env >> 5) & 0x07] || 'none',
+      terrain: TERRAINS[(env >> 2) & 0x07] || 'none',
+      aura: AURAS[env & 0x03] || 'none',
+    },
+    mode: (panel >> 1) & 1 ? 'survival' : 'offensive',
+    ko: panel & 1 ? '2hko' : 'ohko',
   };
 }
