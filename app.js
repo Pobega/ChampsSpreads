@@ -325,7 +325,7 @@ const Storage = {
 };
 
 async function initPokemonList() {
-  const cached = Storage.get('vgc_opt_pokemon_list_v2');
+  const cached = Storage.get('vgc_opt_pokemon_list_v3');
   if (cached && cached.length > 0) {
     CACHE.pokemonList = cached;
     DOM.attackerSearch.placeholder = "Search Attacker (" + CACHE.pokemonList.length + " loaded)...";
@@ -343,7 +343,7 @@ async function initPokemonList() {
       url: p.url
     }));
 
-    Storage.set('vgc_opt_pokemon_list_v2', CACHE.pokemonList);
+    Storage.set('vgc_opt_pokemon_list_v3', CACHE.pokemonList);
     DOM.attackerSearch.placeholder = "Search Attacker (" + CACHE.pokemonList.length + " loaded)...";
     DOM.defenderSearch.placeholder = "Search Defender (" + CACHE.pokemonList.length + " loaded)...";
   } catch (e) {
@@ -386,7 +386,16 @@ async function initStatusMovesList() {
   CACHE.statusMoves = statusMoves;
 }
 
+// Friendlier labels for forms whose PokéAPI name reads awkwardly. The kept Minior
+// forms differ only by stat profile, so drop the (cosmetic) color and label them
+// by profile instead of "Minior Red" / "Minior Red Meteor".
+const DISPLAY_NAME_OVERRIDES = {
+  'minior-red': 'Minior Core',
+  'minior-red-meteor': 'Minior Meteor',
+};
+
 function formatDisplayName(apiName) {
+  if (DISPLAY_NAME_OVERRIDES[apiName]) return DISPLAY_NAME_OVERRIDES[apiName];
   return apiName
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
