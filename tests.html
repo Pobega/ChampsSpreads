@@ -253,12 +253,20 @@
         expected: { min: 63, max: 75 },
       },
       {
-        name: 'Fluffy still halves physical damage (regression)',
+        name: 'Fluffy halves contact damage',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'fluffy' }),
+        move: FAKE_OUT,
+        modifiers: {},
+        expected: { min: 16, max: 19 },
+      },
+      {
+        name: 'Fluffy does not affect non-contact physical damage',
         attacker: ATTACKER(),
         defender: DEFENDER({ ability: 'fluffy' }),
         move: TACKLE,
         modifiers: {},
-        expected: { min: 31, max: 37 },
+        expected: { min: 63, max: 75 },
       },
       {
         name: 'Fluffy doubles Fire damage taken',
@@ -267,6 +275,14 @@
         move: { ...TACKLE, type: 'Fire', category: 'special' },
         modifiers: {},
         expected: { min: 56, max: 66 },
+      },
+      {
+        name: 'Fluffy: Fire + contact cancels to 1x',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'fluffy' }),
+        move: { apiName: 'fire-punch', type: 'Fire', power: 75, category: 'physical' },
+        modifiers: {},
+        expected: { min: 39, max: 47 },
       },
       {
         name: 'Dry Skin increases Fire damage to 1.25x',

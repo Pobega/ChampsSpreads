@@ -55,7 +55,7 @@ const OFFENSIVE_VGC_ABILITIES = [
 const DEFENSIVE_VGC_ABILITIES = [
   { apiName: 'multiscale', name: 'Multiscale (0.5x full HP)' },
   { apiName: 'shadow-shield', name: 'Shadow Shield (0.5x full HP)' },
-  { apiName: 'fluffy', name: 'Fluffy (0.5x Contact Physical, 2x Fire)' },
+  { apiName: 'fluffy', name: 'Fluffy (0.5x Contact, 2x Fire)' },
   { apiName: 'ice-scales', name: 'Ice Scales (0.5x Special)' },
   { apiName: 'water-bubble', name: 'Water Bubble (0.5x Fire)' },
   { apiName: 'thick-fat', name: 'Thick Fat (0.5x Fire & Ice)' },
