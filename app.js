@@ -1430,38 +1430,23 @@ function dexDom() {
   return DexPage.dom;
 }
 
-// Mega and regional-variant form suffixes. champions_dex.json only lists base
-// species, so these alternate forms must be pulled in from the full variety list.
-const DEX_MEGA_RE = /-mega(-[xy])?$/;
-const DEX_REGIONAL_RE = /-(alola|galar|hisui|paldea)(-|$)/;
-// Cosmetic / gimmick forms that aren't Megas or true regional variants (e.g.
-// "pikachu-alola-cap", Gigantamax, Totem) — mirrors isRegulationMALegal's bans.
-const DEX_FORM_BLOCKLIST_RE = /-(cap|gmax|eternamax|totem|starter|battle-bond)/;
-
-// Is `apiName` a form of any legal base species? The hyphen guard keeps a base
-// like "mew" from matching "mewtwo" while still matching "mew-…" forms, and
-// handles hyphenated base names (kommo-o, ho-oh, tapu-koko) correctly.
-function dexFormOfLegalSpecies(apiName) {
-  if (!CACHE.championsLegalList) return false;
-  for (const b of CACHE.championsLegalList) {
-    if (apiName === b || apiName.startsWith(b + '-')) return true;
-  }
-  return false;
-}
-
 // Build the roster for the current STATE.format from the already-loaded caches.
 function buildDexRoster() {
   let entries;
   if (STATE.format === 'regulation_ma' && CACHE.championsLegalList) {
-    // Base form per legal species…
+    // Seed the base form of every legal species. This is needed because some
+    // species' default variety carries a suffix isRegulationMALegal doesn't
+    // recognize (aegislash-shield, gourgeist-average, mr.rime, …), so they
+    // wouldn't be picked up by the variety pass below.
     entries = Array.from(CACHE.championsLegalList)
       .map(slug => ({ apiName: slug, name: formatDisplayName(slug.replace(/\./g, '-')) }));
-    // …plus Mega and regional variants of those species from the full list.
+    // Then add every other legal variety (Megas, regional + battle forms) using
+    // the same predicate the calculator's search uses, so the two stay in sync.
     const seen = new Set(entries.map(e => e.apiName));
     (CACHE.pokemonList || []).forEach(p => {
       const v = p.apiName.toLowerCase();
-      if (seen.has(v) || DEX_FORM_BLOCKLIST_RE.test(v)) return;
-      if ((DEX_MEGA_RE.test(v) || DEX_REGIONAL_RE.test(v)) && dexFormOfLegalSpecies(v)) {
+      if (seen.has(v)) return;
+      if (isRegulationMALegal(v)) {
         seen.add(v);
         entries.push({ apiName: p.apiName, name: p.name });
       }
