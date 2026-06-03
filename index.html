@@ -98,9 +98,6 @@
   <div id="results-hud" class="hidden lg:block sticky top-3 lg:top-4 z-40 mt-5 lg:mt-6">
     <div id="results-hud-inner" class="max-w-[1440px] mx-auto px-5 lg:px-6">
       <div id="desktop-results-bar" class="rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
-        <!-- top accent line -->
-        <div class="h-[3px] w-full bg-gradient-to-r from-red-500 via-amber-500 to-rose-500"></div>
-
     <div class="max-w-[1440px] mx-auto px-6 py-3 flex items-center justify-between gap-6">
 
       <!-- Left: matchup / move / speed -->
@@ -132,8 +129,7 @@
     <!-- Damage-roll range gauge. Track = defender's full HP; the right edge is a KO.
          Solid floor = guaranteed (min roll); the faded extension shows how far the
          high roll can reach. Two tones make the roll spread legible at a glance. -->
-    <div class="max-w-[1440px] mx-auto px-6 pb-2.5 flex items-center gap-3">
-      <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-[0.18em] shrink-0 leading-none">% of HP</span>
+    <div class="max-w-[1440px] mx-auto px-6 pb-2.5 flex items-center">
       <div class="relative flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden ring-1 ring-slate-700/50">
         <!-- max-roll reach (faded) -->
         <div id="res-bar-max" class="absolute inset-y-0 left-0 opacity-40 transition-all duration-300" style="width:0%"></div>
@@ -955,8 +951,7 @@
 
     <!-- Damage-roll range gauge (mirrors the desktop HUD): solid floor = guaranteed
          (min roll), faded extension = up to the high roll. -->
-    <div class="flex items-center gap-2.5">
-      <span class="text-[8px] font-extrabold text-slate-500 uppercase tracking-[0.18em] shrink-0 leading-none">% of HP</span>
+    <div class="flex items-center">
       <div class="relative flex-1 h-1.5 rounded-full bg-slate-800/80 overflow-hidden ring-1 ring-slate-700/50">
         <div id="mob-res-bar-max" class="absolute inset-y-0 left-0 opacity-40 transition-all duration-300" style="width:0%"></div>
         <div id="mob-res-bar-min" class="absolute inset-y-0 left-0 transition-all duration-300" style="width:0%"></div>
