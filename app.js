@@ -967,6 +967,7 @@ function updateLiveStats() {
 const RESULT_TONES = {
   emerald: 'bg-emerald-950/60 text-emerald-400 border-emerald-900/30',
   amber: 'bg-amber-950/60 text-amber-400 border-amber-900/30',
+  sky: 'bg-sky-950/60 text-sky-400 border-sky-900/30',
   red: 'bg-red-950/60 text-red-400 border-red-900/30',
   slate: 'bg-slate-800 text-slate-400 border-slate-700',
 };
@@ -1011,14 +1012,16 @@ function setSpeedChips(label, tone) {
 // Map raw damage vs effective HP to a KO/survival verdict for the active mode.
 function computeVerdict(mode, minDamage, maxDamage, finalHp) {
   if (mode === 'survival') {
-    if (minDamage >= finalHp) return { label: 'Faints', tone: 'red', roll: false, pulse: true };
+    if (minDamage >= finalHp) return { label: 'Faints', tone: 'red', roll: false };
     if (maxDamage >= finalHp) return { label: 'Survives', tone: 'amber', roll: true };
     return { label: 'Survives', tone: 'emerald', roll: false };
   }
+  // Green is reserved for a guaranteed OHKO; the 2HKO tier reads sky (a clear step
+  // below) so it's never mistaken for a kill-this-turn result.
   if (minDamage >= finalHp) return { label: 'OHKO', tone: 'emerald', roll: false };
   if (maxDamage >= finalHp) return { label: 'OHKO', tone: 'amber', roll: true };
-  if (minDamage >= finalHp / 2) return { label: '2HKO', tone: 'emerald', roll: false };
-  if (maxDamage >= finalHp / 2) return { label: '2HKO', tone: 'amber', roll: true };
+  if (minDamage >= finalHp / 2) return { label: '2HKO', tone: 'sky', roll: false };
+  if (maxDamage >= finalHp / 2) return { label: '2HKO', tone: 'sky', roll: true };
   return { label: 'No KO', tone: 'red', roll: false };
 }
 
@@ -1075,7 +1078,7 @@ function updateResultSummary(minDamage, maxDamage) {
     v.pct.textContent = model.pct;
     v.dmg.textContent = model.dmg;
     v.badge.innerHTML = verdictBadgeHTML(model.verdict);
-    v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}${model.verdict.pulse ? ' animate-pulse' : ''}`;
+    v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}`;
 
     if (v.icon && v.iconWrap) {
       v.icon.className = `${v.iconBase} ${iconGlyph}`;
