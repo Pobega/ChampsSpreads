@@ -82,7 +82,6 @@ export const DOM = {
   modTailDef: document.getElementById('mod-tail-def'),
   modTerrainSelect: document.getElementById('mod-terrain-select'),
   modAuraSelect: document.getElementById('mod-aura-select'),
-  speedComparisonBanner: document.getElementById('speed-comparison-banner'),
 
   tabSurvival: document.getElementById('tab-survival'),
   tabOffensive: document.getElementById('tab-offensive'),

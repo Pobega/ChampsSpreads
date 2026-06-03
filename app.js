@@ -911,27 +911,14 @@ function updateLiveStats() {
   DOM.defenderEvSpeVal.textContent = STATE.defender.sps.spe;
   DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
 
-  // Dynamic Turn-Order Comparison Banner Generation (Desktop & Mobile Sync!)
+  // Turn-order chips (the full banner was removed; the HUD/mobile chips carry speed now).
   if (!STATE.attacker.name || !STATE.defender.name) {
-    DOM.speedComparisonBanner.innerHTML = `<span class="text-slate-555 italic flex items-center justify-center gap-1"><i class="fa-solid fa-hourglass-half mr-1 text-[10px]"></i> Awaiting Pokemon Search...</span>`;
     setSpeedChips("Awaiting Speed", "slate");
   } else if (finalAttackerSpe > finalDefenderSpe) {
-    DOM.speedComparisonBanner.innerHTML = `
-      <span class="text-green-400 flex items-center gap-1">
-        <i class="fa-solid fa-bolt"></i> ${STATE.attacker.name} (${finalAttackerSpe} Spe) outspeeds ${STATE.defender.name} (${finalDefenderSpe} Spe) — Attacker goes first!
-      </span>`;
     setSpeedChips("Attacker Moves 1st", "emerald");
   } else if (finalDefenderSpe > finalAttackerSpe) {
-    DOM.speedComparisonBanner.innerHTML = `
-      <span class="text-orange-400 flex items-center gap-1">
-        <i class="fa-solid fa-bolt"></i> ${STATE.defender.name} (${finalDefenderSpe} Spe) outspeeds ${STATE.attacker.name} (${finalAttackerSpe} Spe) — Defender goes first!
-      </span>`;
     setSpeedChips("Attacker Moves 2nd", "red");
   } else {
-    DOM.speedComparisonBanner.innerHTML = `
-      <span class="text-yellow-450 flex items-center gap-1">
-        <i class="fa-solid fa-arrows-left-right"></i> Speed Tie (${finalAttackerSpe} Spe) — 50% chance to attack first!
-      </span>`;
     setSpeedChips("Speed Tie", "amber");
   }
 
@@ -1296,8 +1283,8 @@ function bindEvents() {
 
   DOM.tabSurvival.addEventListener('click', () => {
     STATE.mode = 'survival';
-    DOM.tabSurvival.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md";
-    DOM.tabOffensive.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+    DOM.tabSurvival.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow";
+    DOM.tabOffensive.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
     DOM.survivalResults.classList.remove('hidden');
     DOM.offensiveResults.classList.add('hidden');
     updateLiveStats();
@@ -1305,8 +1292,8 @@ function bindEvents() {
 
   DOM.tabOffensive.addEventListener('click', () => {
     STATE.mode = 'offensive';
-    DOM.tabOffensive.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 bg-amber-600 text-white shadow-md";
-    DOM.tabSurvival.className = "flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+    DOM.tabOffensive.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow";
+    DOM.tabSurvival.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
     DOM.offensiveResults.classList.remove('hidden');
     DOM.survivalResults.classList.add('hidden');
     updateLiveStats();
