@@ -6,6 +6,8 @@ export const DOM = {
   formatSelector: document.getElementById('format-selector'),
 
   attackerSearch: document.getElementById('attacker-search'),
+  attackerSearchWrap: document.getElementById('attacker-search-wrap'),
+  attackerSearchToggle: document.getElementById('attacker-search-toggle'),
   attackerResults: document.getElementById('attacker-results'),
   attackerSpinner: document.getElementById('attacker-spinner'),
   attackerSprite: document.getElementById('attacker-sprite'),
@@ -33,6 +35,8 @@ export const DOM = {
   attackerSpPresets: document.getElementById('attacker-sp-presets'),
 
   defenderSearch: document.getElementById('defender-search'),
+  defenderSearchWrap: document.getElementById('defender-search-wrap'),
+  defenderSearchToggle: document.getElementById('defender-search-toggle'),
   defenderResults: document.getElementById('defender-results'),
   defenderSpinner: document.getElementById('defender-spinner'),
   defenderSprite: document.getElementById('defender-sprite'),

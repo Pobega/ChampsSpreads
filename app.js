@@ -613,6 +613,25 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
   });
 }
 
+// The search field is hidden behind a magnifier in the card header to save
+// vertical space. Clicking the magnifier reveals + focuses it; picking a
+// Pokémon collapses it again (see collapseSearch in the detail setters).
+function bindSearchToggle(toggleBtn, wrapEl, inputEl) {
+  if (!toggleBtn || !wrapEl) return;
+  toggleBtn.addEventListener('click', () => {
+    const willOpen = wrapEl.classList.contains('hidden');
+    wrapEl.classList.toggle('hidden', !willOpen);
+    toggleBtn.classList.toggle('bg-slate-700/60', willOpen);
+    toggleBtn.classList.toggle('text-white', willOpen);
+    if (willOpen) { inputEl.focus(); inputEl.select(); }
+  });
+}
+
+function collapseSearch(wrapEl, toggleBtn) {
+  wrapEl?.classList.add('hidden');
+  toggleBtn?.classList.remove('bg-slate-700/60', 'text-white');
+}
+
 function updateRegulationTag(apiName, tagEl) {
   if (!apiName) {
     tagEl.classList.add('hidden');
@@ -653,6 +672,7 @@ function setAttackerDetails(details) {
 
   updateRegulationTag(details.apiName, DOM.attackerRegTag);
   updateStatsBars(details.baseStats, 'attacker');
+  collapseSearch(DOM.attackerSearchWrap, DOM.attackerSearchToggle);
 
   const damagingMoves = details.moves
     .filter(m => !CACHE.statusMoves[m.apiName])
@@ -732,6 +752,7 @@ function setDefenderDetails(details) {
 
   updateRegulationTag(details.apiName, DOM.defenderRegTag);
   updateStatsBars(details.baseStats, 'defender');
+  collapseSearch(DOM.defenderSearchWrap, DOM.defenderSearchToggle);
 
   // Filter custom VGC defensive abilities to ONLY those this Pokemon learns!
   const learnableDefensive = DEF_VGC_ABILITIES_HELPER(details.abilities);
@@ -1942,6 +1963,9 @@ async function init() {
     DOM.defenderSpinner,
     setDefenderDetails
   );
+
+  bindSearchToggle(DOM.attackerSearchToggle, DOM.attackerSearchWrap, DOM.attackerSearch);
+  bindSearchToggle(DOM.defenderSearchToggle, DOM.defenderSearchWrap, DOM.defenderSearch);
 
   // The status-move filter list must be ready before any move dropdown is
   // built, otherwise non-damaging moves leak through unfiltered.
