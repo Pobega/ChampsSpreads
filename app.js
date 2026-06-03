@@ -1032,7 +1032,7 @@ function updateResultSummary(minDamage, maxDamage) {
     model = {
       matchup: 'Awaiting Selection...', move: 'Select both slots to calculate',
       pct: '0.0% - 0.0%', dmg: '0 - 0 Dmg',
-      verdict: { label: 'Awaiting', tone: 'slate', roll: false }, fill: 0,
+      verdict: { label: 'Awaiting', tone: 'slate', roll: false }, minFill: 0, maxFill: 0,
     };
   } else {
     const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
@@ -1044,7 +1044,8 @@ function updateResultSummary(minDamage, maxDamage) {
       pct: `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`,
       dmg: `${minDamage} - ${maxDamage} Dmg`,
       verdict: computeVerdict(STATE.mode, minDamage, maxDamage, finalHp),
-      fill: Math.min(100, maxPct),
+      minFill: Math.min(100, minPct),
+      maxFill: Math.min(100, maxPct),
     };
   }
 
@@ -1058,13 +1059,26 @@ function updateResultSummary(minDamage, maxDamage) {
     v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}${model.verdict.pulse ? ' animate-pulse' : ''}`;
   }
 
-  // Desktop HUD roll bar: width = max roll %, color tiered by lethality.
-  if (DOM.resBar) {
-    DOM.resBar.style.width = `${model.fill}%`;
-    DOM.resBar.className = 'h-full rounded-full transition-all duration-300 ' + (
-      model.fill >= 100 ? 'bg-gradient-to-r from-red-600 to-rose-600'
-      : model.fill >= 50 ? 'bg-gradient-to-r from-amber-500 to-yellow-500'
-      : 'bg-gradient-to-r from-green-500 to-emerald-500');
+  // HUD identity icon tracks the active mode: a shield when sizing defensive bulk,
+  // an impact burst when sizing offense. Container accent matches the mode's tab.
+  if (DOM.resModeIcon && DOM.resModeIconWrap) {
+    const survival = STATE.mode === 'survival';
+    DOM.resModeIcon.className = `fa-solid ${survival ? 'fa-shield-halved' : 'fa-hand-fist'}`;
+    DOM.resModeIconWrap.className = 'flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-inner border ' + (
+      survival ? 'bg-blue-950/40 border-blue-900/40 text-blue-400'
+      : 'bg-amber-950/40 border-amber-900/40 text-amber-400');
+  }
+
+  // Desktop HUD roll gauge: solid floor = guaranteed (min roll), faded extension =
+  // up to the max roll. Both share a lethality tier keyed off the high roll.
+  if (DOM.resBarMin && DOM.resBarMax) {
+    const tier = model.maxFill >= 100 ? 'bg-gradient-to-r from-red-600 to-rose-600'
+      : model.maxFill >= 50 ? 'bg-gradient-to-r from-amber-500 to-yellow-500'
+      : 'bg-gradient-to-r from-green-500 to-emerald-500';
+    DOM.resBarMax.style.width = `${model.maxFill}%`;
+    DOM.resBarMax.className = `absolute inset-y-0 left-0 opacity-40 transition-all duration-300 ${tier}`;
+    DOM.resBarMin.style.width = `${model.minFill}%`;
+    DOM.resBarMin.className = `absolute inset-y-0 left-0 transition-all duration-300 ${tier}`;
   }
 }
 

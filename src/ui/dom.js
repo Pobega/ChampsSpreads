@@ -121,5 +121,8 @@ export const DOM = {
   resDmg: document.getElementById('res-dmg'),
   resBadge: document.getElementById('res-badge'),
   resSpeed: document.getElementById('res-speed'),
-  resBar: document.getElementById('res-bar'),
+  resBarMin: document.getElementById('res-bar-min'),
+  resBarMax: document.getElementById('res-bar-max'),
+  resModeIcon: document.getElementById('res-mode-icon'),
+  resModeIconWrap: document.getElementById('res-mode-icon-wrap'),
 };
