@@ -893,37 +893,25 @@ function updateLiveStats() {
   // Dynamic Turn-Order Comparison Banner Generation (Desktop & Mobile Sync!)
   if (!STATE.attacker.name || !STATE.defender.name) {
     DOM.speedComparisonBanner.innerHTML = `<span class="text-slate-555 italic flex items-center justify-center gap-1"><i class="fa-solid fa-hourglass-half mr-1 text-[10px]"></i> Awaiting Pokemon Search...</span>`;
-    if (DOM.mobOverlaySpeed) {
-      DOM.mobOverlaySpeed.textContent = "Awaiting Speed";
-      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-slate-850 text-slate-450 border border-slate-750 border";
-    }
+    setSpeedChips("Awaiting Speed", "slate");
   } else if (finalAttackerSpe > finalDefenderSpe) {
     DOM.speedComparisonBanner.innerHTML = `
       <span class="text-green-400 flex items-center gap-1">
         <i class="fa-solid fa-bolt"></i> ${STATE.attacker.name} (${finalAttackerSpe} Spe) outspeeds ${STATE.defender.name} (${finalDefenderSpe} Spe) — Attacker goes first!
       </span>`;
-    if (DOM.mobOverlaySpeed) {
-      DOM.mobOverlaySpeed.textContent = "Attacker Moves 1st";
-      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 border";
-    }
+    setSpeedChips("Attacker Moves 1st", "emerald");
   } else if (finalDefenderSpe > finalAttackerSpe) {
     DOM.speedComparisonBanner.innerHTML = `
       <span class="text-orange-400 flex items-center gap-1">
         <i class="fa-solid fa-bolt"></i> ${STATE.defender.name} (${finalDefenderSpe} Spe) outspeeds ${STATE.attacker.name} (${finalAttackerSpe} Spe) — Defender goes first!
       </span>`;
-    if (DOM.mobOverlaySpeed) {
-      DOM.mobOverlaySpeed.textContent = "Attacker Moves 2nd";
-      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-red-950/60 text-red-400 border border-red-900/30 border";
-    }
+    setSpeedChips("Attacker Moves 2nd", "red");
   } else {
     DOM.speedComparisonBanner.innerHTML = `
       <span class="text-yellow-450 flex items-center gap-1">
         <i class="fa-solid fa-arrows-left-right"></i> Speed Tie (${finalAttackerSpe} Spe) — 50% chance to attack first!
       </span>`;
-    if (DOM.mobOverlaySpeed) {
-      DOM.mobOverlaySpeed.textContent = "Speed Tie";
-      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-amber-950/60 text-amber-400 border border-amber-900/30 border";
-    }
+    setSpeedChips("Speed Tie", "amber");
   }
 
   // Dynamic Presets Dropdowns Synchronization
@@ -961,28 +949,122 @@ function updateLiveStats() {
 }
 
 
+// ==========================================
+// SHARED RESULT-SUMMARY RENDERING
+// One computation feeds every "view" (the mobile bottom overlay + the desktop
+// pinned HUD), so verdict/speed/percentages never drift between layouts.
+// ==========================================
+
+// Tone -> shared color palette (bg / text / border). Views differ only in size.
+const RESULT_TONES = {
+  emerald: 'bg-emerald-950/60 text-emerald-400 border-emerald-900/30',
+  amber: 'bg-amber-950/60 text-amber-400 border-amber-900/30',
+  red: 'bg-red-950/60 text-red-400 border-red-900/30',
+  slate: 'bg-slate-800 text-slate-400 border-slate-700',
+};
+
+// The result summary is mirrored across these element groups. Each view supplies
+// its own size base for the verdict badge; colors come from RESULT_TONES.
+const RESULT_VIEWS = [
+  {
+    matchup: DOM.mobOverlayMatchup, move: DOM.mobOverlayMove, pct: DOM.mobOverlayPct,
+    dmg: DOM.mobOverlayDamage, badge: DOM.mobOverlayBadge,
+    badgeBase: 'h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase select-none tracking-wider border',
+  },
+  {
+    matchup: DOM.resMatchup, move: DOM.resMove, pct: DOM.resPct,
+    dmg: DOM.resDmg, badge: DOM.resBadge,
+    badgeBase: 'h-10 px-4 rounded-lg flex items-center justify-center text-sm font-black uppercase select-none tracking-wider border',
+  },
+];
+
+// Speed chips live in a different function (speed is known earlier than damage),
+// so updating them is split out. Drives every view's chip + keeps tones in sync.
+function setSpeedChips(label, tone) {
+  const toneCls = RESULT_TONES[tone] || RESULT_TONES.slate;
+  if (DOM.mobOverlaySpeed) {
+    DOM.mobOverlaySpeed.textContent = label;
+    DOM.mobOverlaySpeed.className = `text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider border ${toneCls}`;
+  }
+  if (DOM.resSpeed) {
+    DOM.resSpeed.textContent = label;
+    DOM.resSpeed.className = `text-[10px] font-black px-2 py-0.5 rounded uppercase font-mono select-none tracking-wider border ${toneCls}`;
+  }
+}
+
+// Map raw damage vs effective HP to a KO/survival verdict for the active mode.
+function computeVerdict(mode, minDamage, maxDamage, finalHp) {
+  if (mode === 'survival') {
+    if (minDamage >= finalHp) return { label: 'Faints', tone: 'red', roll: false, pulse: true };
+    if (maxDamage >= finalHp) return { label: 'Survives', tone: 'amber', roll: true };
+    return { label: 'Survives', tone: 'emerald', roll: false };
+  }
+  if (minDamage >= finalHp) return { label: 'OHKO', tone: 'emerald', roll: false };
+  if (maxDamage >= finalHp) return { label: 'OHKO', tone: 'amber', roll: true };
+  if (minDamage >= finalHp / 2) return { label: '2HKO', tone: 'emerald', roll: false };
+  if (maxDamage >= finalHp / 2) return { label: '2HKO', tone: 'amber', roll: true };
+  return { label: 'No KO', tone: 'red', roll: false };
+}
+
+function verdictBadgeHTML(v) {
+  if (v.roll) {
+    return `
+      <div class="flex flex-col items-center justify-center leading-none gap-0.5">
+        <span>${v.label}</span>
+        <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
+      </div>`;
+  }
+  return `<span class="leading-none">${v.label}</span>`;
+}
+
+// Build the summary model once, then mirror it into every result view.
+function updateResultSummary(minDamage, maxDamage) {
+  let model;
+  if (!STATE.attacker.name || !STATE.defender.name) {
+    model = {
+      matchup: 'Awaiting Selection...', move: 'Select both slots to calculate',
+      pct: '0.0% - 0.0%', dmg: '0 - 0 Dmg',
+      verdict: { label: 'Awaiting', tone: 'slate', roll: false }, fill: 0,
+    };
+  } else {
+    const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
+    const minPct = (minDamage / finalHp) * 100;
+    const maxPct = (maxDamage / finalHp) * 100;
+    model = {
+      matchup: `${STATE.attacker.name} vs ${STATE.defender.name}`,
+      move: `${STATE.move.name} (${STATE.move.power} BP)`,
+      pct: `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`,
+      dmg: `${minDamage} - ${maxDamage} Dmg`,
+      verdict: computeVerdict(STATE.mode, minDamage, maxDamage, finalHp),
+      fill: Math.min(100, maxPct),
+    };
+  }
+
+  for (const v of RESULT_VIEWS) {
+    if (!v.matchup) continue;
+    v.matchup.textContent = model.matchup;
+    v.move.textContent = model.move;
+    v.pct.textContent = model.pct;
+    v.dmg.textContent = model.dmg;
+    v.badge.innerHTML = verdictBadgeHTML(model.verdict);
+    v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}${model.verdict.pulse ? ' animate-pulse' : ''}`;
+  }
+
+  // Desktop HUD roll bar: width = max roll %, color tiered by lethality.
+  if (DOM.resBar) {
+    DOM.resBar.style.width = `${model.fill}%`;
+    DOM.resBar.className = 'h-full rounded-full transition-all duration-300 ' + (
+      model.fill >= 100 ? 'bg-gradient-to-r from-red-600 to-rose-600'
+      : model.fill >= 50 ? 'bg-gradient-to-r from-amber-500 to-yellow-500'
+      : 'bg-gradient-to-r from-green-500 to-emerald-500');
+  }
+}
+
+
 function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
   const minDamage = rolls[0];
   const maxDamage = rolls[rolls.length - 1];
-
-  const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
-  
-  const minPct = ((minDamage / finalHp) * 100).toFixed(1);
-  const maxPct = ((maxDamage / finalHp) * 100).toFixed(1);
-
-  DOM.damagePercentageRange.textContent = `${minPct}% - ${maxPct}%`;
-  DOM.damageRollsCount.textContent = `Rolls: ${minDamage} to ${maxDamage} hp`;
-
-  const fillVal = Math.min(100, parseFloat(maxPct));
-  DOM.damageBarMin.style.width = `${fillVal}%`;
-  if (fillVal >= 100) {
-    DOM.damageBarMin.className = "h-full bg-gradient-to-r from-red-600 to-rose-600 rounded-full transition-all duration-300";
-  } else if (fillVal >= 50) {
-    DOM.damageBarMin.className = "h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full transition-all duration-300";
-  } else {
-    DOM.damageBarMin.className = "h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-300";
-  }
 
   if (STATE.mode === 'survival') {
     const cheapest = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, null);
@@ -1060,79 +1142,8 @@ function runOptimizations() {
     }
   }
 
-  // Update Premium Mobile Sticky Floating Overlay in real-time!
-  if (DOM.mobOverlayMatchup) {
-    if (!STATE.attacker.name || !STATE.defender.name) {
-      DOM.mobOverlayMatchup.textContent = "Awaiting Pokemon Selection...";
-      DOM.mobOverlayMove.textContent = "Select both slots to calculate";
-      DOM.mobOverlayDamage.textContent = "0 - 0 Dmg";
-      DOM.mobOverlayPct.textContent = "0.0% Damage";
-      DOM.mobOverlayBadge.textContent = "Awaiting";
-      DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-slate-850 text-slate-450 border border-slate-750 select-none tracking-wider";
-    } else {
-      DOM.mobOverlayMatchup.textContent = `${STATE.attacker.name} vs ${STATE.defender.name}`;
-      DOM.mobOverlayMove.textContent = `${STATE.move.name} (${STATE.move.power} BP)`;
-      DOM.mobOverlayDamage.textContent = `${minDamage} - ${maxDamage} Dmg`;
-      
-      const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
-      const minPct = (minDamage / finalHp) * 100;
-      const maxPct = (maxDamage / finalHp) * 100;
-      
-      DOM.mobOverlayPct.textContent = `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`;
-      
-      // Glowing verdict badges matching top layouts (Correct VGC Survival/Offensive Chance logic!)
-      if (STATE.mode === 'survival') {
-        const isOHKO = minDamage >= finalHp;
-        const isChance = minDamage < finalHp && maxDamage >= finalHp;
-        
-        if (isOHKO) {
-          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">Faints</span>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider animate-pulse";
-        } else if (isChance) {
-          DOM.mobOverlayBadge.innerHTML = `
-            <div class="flex flex-col items-center justify-center leading-none gap-0.5">
-              <span>Survives</span>
-              <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
-            </div>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
-        } else {
-          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">Survives</span>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
-        }
-      } else {
-        // Dynamic Multi-Tier Offensive VGC calculations solver!
-        const isGuaranteedOHKO = minDamage >= finalHp;
-        const isPossibleOHKO = minDamage < finalHp && maxDamage >= finalHp;
-        const isGuaranteed2HKO = minDamage >= (finalHp / 2);
-        const isPossible2HKO = minDamage < (finalHp / 2) && maxDamage >= (finalHp / 2);
-        
-        if (isGuaranteedOHKO) {
-          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">OHKO</span>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
-        } else if (isPossibleOHKO) {
-          DOM.mobOverlayBadge.innerHTML = `
-            <div class="flex flex-col items-center justify-center leading-none gap-0.5">
-              <span>OHKO</span>
-              <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
-            </div>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
-        } else if (isGuaranteed2HKO) {
-          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">2HKO</span>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
-        } else if (isPossible2HKO) {
-          DOM.mobOverlayBadge.innerHTML = `
-            <div class="flex flex-col items-center justify-center leading-none gap-0.5">
-              <span>2HKO</span>
-              <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
-            </div>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
-        } else {
-          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">No KO</span>`;
-          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider";
-        }
-      }
-    }
-  }
+  // Mirror the headline result into every view (mobile overlay + desktop HUD).
+  updateResultSummary(minDamage, maxDamage);
 }
 
 
@@ -1620,7 +1631,8 @@ function dexDom() {
     status: document.getElementById('dex-status'),
     header: document.getElementById('dex-header'),
     regBadge: document.getElementById('dex-regulation-badge'),
-    mobileOverlay: document.getElementById('mobile-floating-overlay')
+    mobileOverlay: document.getElementById('mobile-floating-overlay'),
+    desktopResultsBar: document.getElementById('desktop-results-bar')
   };
   return DexPage.dom;
 }
@@ -1820,10 +1832,12 @@ function showPage(page) {
     dom.pagePokedex.classList.remove('hidden');
     dom.navPokedex.className = activeCls;
     dom.navCalculator.className = idleCls;
-    // The mobile damage-results overlay belongs to the calculator; hide it here
-    // so it doesn't float over the Pokédex on small screens (no-op on desktop,
-    // where it's already lg:hidden).
+    // The damage-results views (mobile bottom overlay + desktop pinned HUD)
+    // belong to the calculator; hide them so they don't float over the Pokédex.
     if (dom.mobileOverlay) dom.mobileOverlay.classList.add('hidden');
+    // Bar's base is `hidden lg:block`; use important `!hidden` so removing it
+    // later restores the responsive default instead of revealing it on mobile.
+    if (dom.desktopResultsBar) dom.desktopResultsBar.classList.add('!hidden');
     openDexPage();
   } else {
     dom.pagePokedex.classList.add('hidden');
@@ -1831,6 +1845,7 @@ function showPage(page) {
     dom.navCalculator.className = activeCls;
     dom.navPokedex.className = idleCls;
     if (dom.mobileOverlay) dom.mobileOverlay.classList.remove('hidden');
+    if (dom.desktopResultsBar) dom.desktopResultsBar.classList.remove('!hidden');
   }
 }
 
