@@ -157,13 +157,16 @@
           <h2 class="text-sm font-black text-red-400 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-hand-fist text-xs"></i> Attacker Selection
           </h2>
+          <button id="attacker-search-toggle" type="button" aria-label="Search Pokémon" title="Search Pokémon"
+            class="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white hover:bg-slate-700/60 border border-slate-700 transition">
+            Search <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+          </button>
         </div>
 
-        <!-- Pokemon Search & Selection -->
-        <div class="relative">
-          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Search Pokemon</label>
+        <!-- Pokemon Search (revealed via the header magnifier; collapsed once a Pokémon is set) -->
+        <div id="attacker-search-wrap" class="relative hidden">
           <div class="relative">
-            <input type="text" id="attacker-search" placeholder="Search (e.g. Lopunny, Incineroar...)" 
+            <input type="text" id="attacker-search" placeholder="Search (e.g. Lopunny, Incineroar...)"
               class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
             <div id="attacker-spinner" class="absolute right-3 top-2.5 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
@@ -647,13 +650,16 @@
           <h2 class="text-sm font-black text-blue-400 uppercase tracking-wider flex items-center gap-2">
             <i class="fa-solid fa-shield text-xs"></i> Defender Selection
           </h2>
+          <button id="defender-search-toggle" type="button" aria-label="Search Pokémon" title="Search Pokémon"
+            class="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white hover:bg-slate-700/60 border border-slate-700 transition">
+            Search <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+          </button>
         </div>
 
-        <!-- Pokemon Search & Selection -->
-        <div class="relative">
-          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Search Pokemon</label>
+        <!-- Pokemon Search (revealed via the header magnifier; collapsed once a Pokémon is set) -->
+        <div id="defender-search-wrap" class="relative hidden">
           <div class="relative">
-            <input type="text" id="defender-search" placeholder="Search (e.g. Amoonguss, Garchomp...)" 
+            <input type="text" id="defender-search" placeholder="Search (e.g. Amoonguss, Garchomp...)"
               class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
             <div id="defender-spinner" class="absolute right-3 top-2.5 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
