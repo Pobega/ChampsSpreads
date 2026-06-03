@@ -916,17 +916,17 @@ function updateLiveStats() {
   // the defender in survival mode): green when it moves first, red when it moves
   // second — i.e. green is always the favorable turn order for that Pokémon.
   if (!STATE.attacker.name || !STATE.defender.name) {
-    setSpeedChips("Awaiting Speed", "slate");
+    setSpeedText("Awaiting Speed", "slate");
   } else {
     const survival = STATE.mode === 'survival';
     const subjectName = survival ? STATE.defender.name : STATE.attacker.name;
     const subjectSpe = survival ? finalDefenderSpe : finalAttackerSpe;
     const otherSpe = survival ? finalAttackerSpe : finalDefenderSpe;
     if (subjectSpe === otherSpe) {
-      setSpeedChips("Speed Tie", "amber");
+      setSpeedText("Speed Tie", "amber");
     } else {
       const first = subjectSpe > otherSpe;
-      setSpeedChips(`${subjectName} moves ${first ? '1st' : '2nd'}`, first ? "emerald" : "red");
+      setSpeedText(`${subjectName} moves ${first ? '1st' : '2nd'}`, first ? "emerald" : "red");
     }
   }
 
@@ -1003,17 +1003,26 @@ const RESULT_VIEWS = [
   },
 ];
 
-// Speed chips live in a different function (speed is known earlier than damage),
-// so updating them is split out. Drives every view's chip + keeps tones in sync.
-function setSpeedChips(label, tone) {
-  const toneCls = RESULT_TONES[tone] || RESULT_TONES.slate;
+// The turn-order line is plain text (not a chip), so it only takes a text color.
+const SPEED_TEXT_TONES = {
+  emerald: 'text-emerald-400',
+  amber: 'text-amber-400',
+  sky: 'text-sky-400',
+  red: 'text-red-400',
+  slate: 'text-slate-400',
+};
+
+// Speed lives in a different function (it's known earlier than damage), so updating
+// it is split out. Drives every view's turn-order text + keeps tones in sync.
+function setSpeedText(label, tone) {
+  const toneCls = SPEED_TEXT_TONES[tone] || SPEED_TEXT_TONES.slate;
   if (DOM.mobOverlaySpeed) {
     DOM.mobOverlaySpeed.textContent = label;
-    DOM.mobOverlaySpeed.className = `text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider border ${toneCls}`;
+    DOM.mobOverlaySpeed.className = `text-[10px] font-extrabold uppercase tracking-wider leading-none ${toneCls}`;
   }
   if (DOM.resSpeed) {
     DOM.resSpeed.textContent = label;
-    DOM.resSpeed.className = `text-[10px] font-black px-2 py-0.5 rounded uppercase font-mono select-none tracking-wider border ${toneCls}`;
+    DOM.resSpeed.className = `text-[11px] font-extrabold uppercase tracking-wider leading-none ${toneCls}`;
   }
 }
 
