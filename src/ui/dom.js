@@ -95,9 +95,6 @@ export const DOM = {
   btnTarget2HKO: document.getElementById('btn-target-2hko'),
   offensiveOptionsContainer: document.getElementById('offensive-options-container'),
 
-  damagePercentageRange: document.getElementById('damage-percentage-range'),
-  damageBarMin: document.getElementById('damage-bar-min'),
-  damageRollsCount: document.getElementById('damage-rolls-count'),
   loadSampleBtn: document.getElementById('load-sample-btn'),
   exportImportBtn: document.getElementById('export-import-btn'),
   eiModal: document.getElementById('ei-modal'),
@@ -113,4 +110,13 @@ export const DOM = {
   mobOverlayPct: document.getElementById('mob-overlay-pct'),
   mobOverlayBadge: document.getElementById('mob-overlay-badge'),
   mobOverlaySpeed: document.getElementById('mob-overlay-speed'),
+
+  // Desktop pinned results HUD
+  resMatchup: document.getElementById('res-matchup'),
+  resMove: document.getElementById('res-move'),
+  resPct: document.getElementById('res-pct'),
+  resDmg: document.getElementById('res-dmg'),
+  resBadge: document.getElementById('res-badge'),
+  resSpeed: document.getElementById('res-speed'),
+  resBar: document.getElementById('res-bar'),
 };
