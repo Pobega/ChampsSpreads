@@ -34,18 +34,19 @@ import {
 import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexPage } from './src/ui/dex-page.js';
 
-// Each format gets a Rotom-form accent: the brand disc's ring/glow and the format
+// Each format gets a Rotom-form accent: the brand Rotom's glow and the format
 // pill borrow that form's signature color. Regulation M-A wears Heat Rotom's warm
 // amber; the unrestricted "None" format wears Wash Rotom's cool sky.
 const FORM_THEMES = {
-  regulation_ma: { ring: 'ring-amber-400/60', discShadow: 'shadow-amber-500/30', pillBorder: 'border-amber-500/40', pillText: 'text-amber-300' },
-  all:           { ring: 'ring-sky-400/60',   discShadow: 'shadow-sky-500/30',   pillBorder: 'border-sky-500/40',   pillText: 'text-sky-300' },
+  regulation_ma: { glow: 'rgba(251,191,36,0.65)', pillBorder: 'border-amber-500/40', pillText: 'text-amber-300' }, // amber-400
+  all:           { glow: 'rgba(56,189,248,0.65)', pillBorder: 'border-sky-500/40',   pillText: 'text-sky-300' },   // sky-400
 };
 
 function applyFormTheme(format) {
   const t = FORM_THEMES[format] || FORM_THEMES.regulation_ma;
-  if (DOM.brandDisc) {
-    DOM.brandDisc.className = `rounded-full shadow flex items-center justify-center w-9 h-9 shrink-0 bg-slate-900 ring-2 transition-colors ${t.ring} ${t.discShadow}`;
+  if (DOM.brandRotom) {
+    // A colored glow hugging Rotom's silhouette — the form accent without a box.
+    DOM.brandRotom.style.filter = `drop-shadow(0 0 5px ${t.glow})`;
   }
   if (DOM.formatPill) {
     DOM.formatPill.className = `flex items-center gap-1.5 bg-slate-900 border rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`;
