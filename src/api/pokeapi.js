@@ -1,0 +1,198 @@
+// PokéAPI plumbing: roster/move fetches plus the localStorage cache wrapper.
+// Kept DOM-free so the data layer can grow (rate limiting, retry, request
+// deduplication, or a test mock) without dragging in UI concerns. The only
+// shared state it touches is CACHE; callers own any DOM the results drive.
+import { CACHE } from '../state.js';
+
+export const API_BASE = 'https://pokeapi.co/api/v2';
+
+export const Storage = {
+  get: (key) => {
+    try {
+      return JSON.parse(localStorage.getItem(key));
+    } catch (e) {
+      return null;
+    }
+  },
+  set: (key, val) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {}
+  }
+};
+
+// Resolves to { count, fallback }. `count` is the number of entries loaded and
+// `fallback` flags that the network failed and a hardcoded roster was used, so
+// the caller can phrase the search placeholders accordingly.
+export async function initPokemonList() {
+  const cached = Storage.get('vgc_opt_pokemon_list_v3');
+  if (cached && cached.length > 0) {
+    CACHE.pokemonList = cached;
+    return { count: CACHE.pokemonList.length, fallback: false };
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/pokemon?limit=1500`);
+    const data = await res.json();
+
+    CACHE.pokemonList = data.results.map(p => ({
+      name: formatDisplayName(p.name),
+      apiName: p.name,
+      url: p.url
+    }));
+
+    Storage.set('vgc_opt_pokemon_list_v3', CACHE.pokemonList);
+    return { count: CACHE.pokemonList.length, fallback: false };
+  } catch (e) {
+    console.error('Failed fetching Pokemon list from PokeAPI', e);
+    CACHE.pokemonList = [
+      { name: 'Incineroar', apiName: 'incineroar' },
+      { name: 'Flutter Mane', apiName: 'flutter-mane' },
+      { name: 'Amoonguss', apiName: 'amoonguss' },
+      { name: 'Urshifu Rapid-Strike', apiName: 'urshifu-rapid-strike' },
+      { name: 'Rillaboom', apiName: 'rillaboom' },
+      { name: 'Calyrex Shadow', apiName: 'calyrex-shadow' },
+      { name: 'Ogerpon Hearthflame', apiName: 'ogerpon-hearthflame' },
+      { name: 'Tornadus', apiName: 'tornadus' }
+    ];
+    return { count: CACHE.pokemonList.length, fallback: true };
+  }
+}
+
+export async function initStatusMovesList() {
+  const cacheKey = 'vgc_opt_status_moves_set_v1';
+  let statusMoves = Storage.get(cacheKey);
+
+  if (!statusMoves) {
+    try {
+      const res = await fetch('https://pokeapi.co/api/v2/move-damage-class/status/');
+      const data = await res.json();
+
+      statusMoves = {};
+      data.moves.forEach(m => {
+        statusMoves[m.name] = true;
+      });
+      Storage.set(cacheKey, statusMoves);
+    } catch (err) {
+      console.error("Failed to fetch status moves list", err);
+      statusMoves = {};
+    }
+  }
+
+  CACHE.statusMoves = statusMoves;
+}
+
+// Loads the Champions-format legal species set. Sourced from the bundled
+// champions_dex.json (not PokéAPI), but shares the same Storage-cache + fallback
+// shape as the roster fetches, so it lives alongside them in the data layer.
+export async function initChampionsLegalList() {
+  const cacheKey = 'vgc_opt_champions_legal_list_v3';
+  const cached = Storage.get(cacheKey);
+  if (cached && cached.length > 0) {
+    CACHE.championsLegalList = new Set(cached);
+    return;
+  }
+
+  try {
+    const res = await fetch('champions_dex.json');
+    const data = await res.json();
+    CACHE.championsLegalList = new Set(data);
+    Storage.set(cacheKey, data);
+  } catch (err) {
+    console.error("Failed to fetch Champions VGC local Pokedex JSON, loading fallback", err);
+    // High-fidelity VGC legal fallbacks (Scenario templates!)
+    CACHE.championsLegalList = new Set([
+      'crabominable', 'incineroar', 'flutter-mane', 'amoonguss', 'rillaboom', 'tornadus',
+      'urshifu', 'gholdengo', 'kingambit', 'sneasler', 'garchomp', 'basculegion',
+      'charizard', 'venusaur', 'blastoise', 'beedrill', 'pidgeot', 'pikachu', 'raichu', 'clefable', 'ninetales'
+    ]);
+  }
+}
+
+// Friendlier labels for forms whose PokéAPI name reads awkwardly. The kept Minior
+// forms differ only by stat profile, so drop the (cosmetic) color and label them
+// by profile instead of "Minior Red" / "Minior Red Meteor".
+const DISPLAY_NAME_OVERRIDES = {
+  'minior-red': 'Minior Core',
+  'minior-red-meteor': 'Minior Meteor',
+};
+
+export function formatDisplayName(apiName) {
+  if (DISPLAY_NAME_OVERRIDES[apiName]) return DISPLAY_NAME_OVERRIDES[apiName];
+  return apiName
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export async function fetchPokemonDetails(apiName) {
+  const cacheKey = `poke_details_v6_${apiName}`;
+  const cached = Storage.get(cacheKey);
+  if (cached) return cached;
+
+  const res = await fetch(`${API_BASE}/pokemon/${apiName}`);
+  const data = await res.json();
+
+  let movesMapped = data.moves.map(m => ({
+    name: formatDisplayName(m.move.name),
+    apiName: m.move.name
+  }));
+
+  // PokéAPI empty moves learnset fallback for Mega Evolution species/special forms!
+  if (movesMapped.length === 0 && apiName.includes('-mega')) {
+    try {
+      const baseSpeciesName = apiName.split('-mega')[0];
+      const baseRes = await fetch(`${API_BASE}/pokemon/${baseSpeciesName}`);
+      const baseData = await baseRes.json();
+      movesMapped = baseData.moves.map(m => ({
+        name: formatDisplayName(m.move.name),
+        apiName: m.move.name
+      }));
+    } catch (err) {
+      console.error(`Failed to fetch base species moves fallback for ${apiName}`, err);
+    }
+  }
+
+  const details = {
+    name: formatDisplayName(data.name),
+    apiName: data.name,
+    sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
+    types: data.types.map(t => formatDisplayName(t.type.name)),
+    baseStats: {
+      hp: data.stats[0].base_stat,
+      atk: data.stats[1].base_stat,
+      def: data.stats[2].base_stat,
+      spa: data.stats[3].base_stat,
+      spd: data.stats[4].base_stat,
+      spe: data.stats[5].base_stat
+    },
+    moves: movesMapped,
+    abilities: data.abilities.map(a => ({
+      name: formatDisplayName(a.ability.name),
+      apiName: a.ability.name
+    }))
+  };
+
+  Storage.set(cacheKey, details);
+  return details;
+}
+
+export async function fetchMoveDetails(moveApiName) {
+  const cacheKey = `move_details_${moveApiName}`;
+  const cached = Storage.get(cacheKey);
+  if (cached) return cached;
+
+  const res = await fetch(`${API_BASE}/move/${moveApiName}`);
+  const data = await res.json();
+
+  const details = {
+    name: formatDisplayName(data.name),
+    apiName: data.name,
+    power: data.power || 0,
+    type: formatDisplayName(data.type.name),
+    category: data.damage_class.name
+  };
+
+  Storage.set(cacheKey, details);
+  return details;
+}

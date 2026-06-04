@@ -8,6 +8,14 @@ import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
 import { DOM } from './src/ui/dom.js';
 import { STATE, CACHE } from './src/state.js';
 import {
+  Storage,
+  initPokemonList,
+  initStatusMovesList,
+  initChampionsLegalList,
+  fetchPokemonDetails,
+  fetchMoveDetails
+} from './src/api/pokeapi.js';
+import {
   getTypeBgClass,
   createOptionCardHTML,
   createImpossibleOptionCardHTML,
@@ -254,197 +262,13 @@ function isRegulationMALegal(apiName) {
   return false;
 }
 
-async function initChampionsLegalList() {
-  const cacheKey = 'vgc_opt_champions_legal_list_v3';
-  const cached = Storage.get(cacheKey);
-  if (cached && cached.length > 0) {
-    CACHE.championsLegalList = new Set(cached);
-    return;
-  }
-
-  try {
-    const res = await fetch('champions_dex.json');
-    const data = await res.json();
-    CACHE.championsLegalList = new Set(data);
-    Storage.set(cacheKey, data);
-  } catch (err) {
-    console.error("Failed to fetch Champions VGC local Pokedex JSON, loading fallback", err);
-    // High-fidelity VGC legal fallbacks (Scenario templates!)
-    CACHE.championsLegalList = new Set([
-      'crabominable', 'incineroar', 'flutter-mane', 'amoonguss', 'rillaboom', 'tornadus',
-      'urshifu', 'gholdengo', 'kingambit', 'sneasler', 'garchomp', 'basculegion',
-      'charizard', 'venusaur', 'blastoise', 'beedrill', 'pidgeot', 'pikachu', 'raichu', 'clefable', 'ninetales'
-    ]);
-  }
+// Reflect the loaded roster size in the search placeholders. The API module
+// stays DOM-free and returns { count, fallback }; the UI wording lives here.
+function setSearchPlaceholders({ count, fallback }) {
+  const label = fallback ? 'Fallbacks loaded' : `${count} loaded`;
+  DOM.attackerSearch.placeholder = `Search Attacker (${label})...`;
+  DOM.defenderSearch.placeholder = `Search Defender (${label})...`;
 }
-
-const API_BASE = 'https://pokeapi.co/api/v2';
-
-const Storage = {
-  get: (key) => {
-    try {
-      return JSON.parse(localStorage.getItem(key));
-    } catch (e) {
-      return null;
-    }
-  },
-  set: (key, val) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(val));
-    } catch (e) {}
-  }
-};
-
-async function initPokemonList() {
-  const cached = Storage.get('vgc_opt_pokemon_list_v3');
-  if (cached && cached.length > 0) {
-    CACHE.pokemonList = cached;
-    DOM.attackerSearch.placeholder = "Search Attacker (" + CACHE.pokemonList.length + " loaded)...";
-    DOM.defenderSearch.placeholder = "Search Defender (" + CACHE.pokemonList.length + " loaded)...";
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/pokemon?limit=1500`);
-    const data = await res.json();
-    
-    CACHE.pokemonList = data.results.map(p => ({
-      name: formatDisplayName(p.name),
-      apiName: p.name,
-      url: p.url
-    }));
-
-    Storage.set('vgc_opt_pokemon_list_v3', CACHE.pokemonList);
-    DOM.attackerSearch.placeholder = "Search Attacker (" + CACHE.pokemonList.length + " loaded)...";
-    DOM.defenderSearch.placeholder = "Search Defender (" + CACHE.pokemonList.length + " loaded)...";
-  } catch (e) {
-    console.error('Failed fetching Pokemon list from PokeAPI', e);
-    CACHE.pokemonList = [
-      { name: 'Incineroar', apiName: 'incineroar' },
-      { name: 'Flutter Mane', apiName: 'flutter-mane' },
-      { name: 'Amoonguss', apiName: 'amoonguss' },
-      { name: 'Urshifu Rapid-Strike', apiName: 'urshifu-rapid-strike' },
-      { name: 'Rillaboom', apiName: 'rillaboom' },
-      { name: 'Calyrex Shadow', apiName: 'calyrex-shadow' },
-      { name: 'Ogerpon Hearthflame', apiName: 'ogerpon-hearthflame' },
-      { name: 'Tornadus', apiName: 'tornadus' }
-    ];
-    DOM.attackerSearch.placeholder = "Search Attacker (Fallbacks loaded)...";
-    DOM.defenderSearch.placeholder = "Search Defender (Fallbacks loaded)...";
-  }
-}
-
-async function initStatusMovesList() {
-  const cacheKey = 'vgc_opt_status_moves_set_v1';
-  let statusMoves = Storage.get(cacheKey);
-  
-  if (!statusMoves) {
-    try {
-      const res = await fetch('https://pokeapi.co/api/v2/move-damage-class/status/');
-      const data = await res.json();
-      
-      statusMoves = {};
-      data.moves.forEach(m => {
-        statusMoves[m.name] = true;
-      });
-      Storage.set(cacheKey, statusMoves);
-    } catch (err) {
-      console.error("Failed to fetch status moves list", err);
-      statusMoves = {};
-    }
-  }
-  
-  CACHE.statusMoves = statusMoves;
-}
-
-// Friendlier labels for forms whose PokéAPI name reads awkwardly. The kept Minior
-// forms differ only by stat profile, so drop the (cosmetic) color and label them
-// by profile instead of "Minior Red" / "Minior Red Meteor".
-const DISPLAY_NAME_OVERRIDES = {
-  'minior-red': 'Minior Core',
-  'minior-red-meteor': 'Minior Meteor',
-};
-
-function formatDisplayName(apiName) {
-  if (DISPLAY_NAME_OVERRIDES[apiName]) return DISPLAY_NAME_OVERRIDES[apiName];
-  return apiName
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-async function fetchPokemonDetails(apiName) {
-  const cacheKey = `poke_details_v6_${apiName}`;
-  const cached = Storage.get(cacheKey);
-  if (cached) return cached;
-
-  const res = await fetch(`${API_BASE}/pokemon/${apiName}`);
-  const data = await res.json();
-
-  let movesMapped = data.moves.map(m => ({
-    name: formatDisplayName(m.move.name),
-    apiName: m.move.name
-  }));
-
-  // PokéAPI empty moves learnset fallback for Mega Evolution species/special forms!
-  if (movesMapped.length === 0 && apiName.includes('-mega')) {
-    try {
-      const baseSpeciesName = apiName.split('-mega')[0];
-      const baseRes = await fetch(`${API_BASE}/pokemon/${baseSpeciesName}`);
-      const baseData = await baseRes.json();
-      movesMapped = baseData.moves.map(m => ({
-        name: formatDisplayName(m.move.name),
-        apiName: m.move.name
-      }));
-    } catch (err) {
-      console.error(`Failed to fetch base species moves fallback for ${apiName}`, err);
-    }
-  }
-
-  const details = {
-    name: formatDisplayName(data.name),
-    apiName: data.name,
-    sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
-    types: data.types.map(t => formatDisplayName(t.type.name)),
-    baseStats: {
-      hp: data.stats[0].base_stat,
-      atk: data.stats[1].base_stat,
-      def: data.stats[2].base_stat,
-      spa: data.stats[3].base_stat,
-      spd: data.stats[4].base_stat,
-      spe: data.stats[5].base_stat
-    },
-    moves: movesMapped,
-    abilities: data.abilities.map(a => ({
-      name: formatDisplayName(a.ability.name),
-      apiName: a.ability.name
-    }))
-  };
-
-  Storage.set(cacheKey, details);
-  return details;
-}
-
-async function fetchMoveDetails(moveApiName) {
-  const cacheKey = `move_details_${moveApiName}`;
-  const cached = Storage.get(cacheKey);
-  if (cached) return cached;
-
-  const res = await fetch(`${API_BASE}/move/${moveApiName}`);
-  const data = await res.json();
-
-  const details = {
-    name: formatDisplayName(data.name),
-    apiName: data.name,
-    power: data.power || 0,
-    type: formatDisplayName(data.type.name),
-    category: data.damage_class.name 
-  };
-
-  Storage.set(cacheKey, details);
-  return details;
-}
-
 
 // ==========================================
 // 7. UI WORKFLOW & CONTROLLER BINDING
@@ -1878,7 +1702,9 @@ async function openDexPage() {
   if (status) status.textContent = 'loading roster…';
   const pending = [];
   if (STATE.format === 'regulation_ma') pending.push(initChampionsLegalList());
-  if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) pending.push(initPokemonList());
+  if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) {
+    pending.push(initPokemonList().then(setSearchPlaceholders));
+  }
   if (pending.length) await Promise.all(pending);
 
   buildDexRoster();
@@ -1973,7 +1799,7 @@ async function init() {
   }
 
   // Fetch massive search databases quietly in the background without blocking!
-  initPokemonList();
+  initPokemonList().then(setSearchPlaceholders);
   initChampionsLegalList();
 }
 
