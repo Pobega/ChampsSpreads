@@ -17,8 +17,8 @@ export function optimizeSurvivalEVsWithNatures(attacker, defender, move, modifie
   let bestNature = null;
   let minSum = 9999;
 
-  const testAttacker = JSON.parse(JSON.stringify(attacker));
-  const testDefender = JSON.parse(JSON.stringify(defender));
+  const testAttacker = structuredClone(attacker);
+  const testDefender = structuredClone(defender);
 
   NATURES.forEach(nat => {
     if (allowedNatures && !allowedNatures.includes(nat.id)) return;
@@ -76,8 +76,8 @@ export function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifi
   let bestNature = null;
   let minSP = 9999;
 
-  const testAttacker = JSON.parse(JSON.stringify(attacker));
-  const testDefender = JSON.parse(JSON.stringify(defender));
+  const testAttacker = structuredClone(attacker);
+  const testDefender = structuredClone(defender);
 
   const defHP = calculateStat('hp', defender.baseStats.hp, defender.sps.hp, defender.nature, true);
 
