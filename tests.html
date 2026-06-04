@@ -1047,5 +1047,104 @@
       summary.classList.add('fail');
     }
   </script>
+
+  <!-- EV/nature optimizer goldens (optimizeSurvival / optimizeOffensive) -->
+  <script type="module">
+    import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    const MON = (o = {}) => ({
+      baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+      sps:       { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      ivs:       { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      boosts:    { atk: 0, spa: 0, def: 0, spd: 0, spe: 0 },
+      nature: 'neutral', item: 'none', ability: 'none', types: ['Normal'], ...o,
+    });
+    const FIRE_BLAST = { apiName: 'fire-blast', type: 'Fire', power: 110, category: 'special' };
+    const WEAK = { apiName: 'weak', type: 'Normal', power: 10, category: 'physical' };
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+    const OPT_CASES = [
+      {
+        // Fire-blast STAB vs a Grass defender just bulky enough that 0 SpA SP
+        // doesn't OHKO on the low roll, but 5 SP (+spa) does. Exercises the
+        // search's "cheapest nonzero SP" path.
+        name: 'offensive: cheapest SP/nature for an OHKO',
+        run: () => eq(
+          optimizeOffensiveEVsWithNatures(
+            MON({ types: ['Fire'], baseStats: { hp:100,atk:100,def:100,spa:140,spd:100,spe:100 } }),
+            MON({ types: ['Grass'], baseStats: { hp:112,atk:100,def:100,spa:100,spd:100,spe:100 } }),
+            FIRE_BLAST, {}, 'ohko', null),
+          { sp: 5, nature: '+spa' }),
+      },
+      {
+        name: 'offensive: unreachable OHKO returns null',
+        run: () => optimizeOffensiveEVsWithNatures(
+          MON(), MON({ baseStats: { hp:200,atk:100,def:150,spa:100,spd:100,spe:100 } }),
+          WEAK, {}, 'ohko', null) === null,
+      },
+      {
+        // A +spa Fire-blast attacker; the 100/100/100 Grass defender needs 10 SP
+        // into SpD (+spd nature) to survive the high roll.
+        name: 'survival: cheapest HP/SpD spread + nature to survive',
+        run: () => eq(
+          optimizeSurvivalEVsWithNatures(
+            MON({ types: ['Fire'], nature: '+spa', sps: { hp:0,atk:0,def:0,spa:32,spd:0,spe:0 } }),
+            MON({ types: ['Grass'] }), FIRE_BLAST, {}, null),
+          { hp: 0, def: 10, nature: '+spd', total: 10 }),
+      },
+      {
+        name: 'survival: unsurvivable hit returns null',
+        run: () => optimizeSurvivalEVsWithNatures(
+          MON({ types: ['Fire'], nature: '+spa', sps: { hp:0,atk:0,def:0,spa:32,spd:0,spe:0 } }),
+          MON({ types: ['Grass'], baseStats: { hp:40,atk:100,def:60,spa:100,spd:60,spe:100 } }),
+          FIRE_BLAST, {}, null) === null,
+      },
+      {
+        name: 'survival: allowedNatures filter is respected (+spd only)',
+        run: () => eq(
+          optimizeSurvivalEVsWithNatures(
+            MON({ types: ['Fire'], nature: '+spa', sps: { hp:0,atk:0,def:0,spa:32,spd:0,spe:0 } }),
+            MON({ types: ['Grass'] }), FIRE_BLAST, {}, ['+spd']),
+          { hp: 0, def: 10, nature: '+spd', total: 10 }),
+      },
+      {
+        // The optimizers clone their actors internally (structuredClone); they
+        // must never mutate the caller's attacker/defender objects.
+        name: 'inputs are not mutated by the search',
+        run: () => {
+          const atk = MON({ types: ['Fire'], baseStats: { hp:100,atk:100,def:100,spa:140,spd:100,spe:100 } });
+          const def = MON({ types: ['Grass'] });
+          const atkBefore = JSON.stringify(atk), defBefore = JSON.stringify(def);
+          optimizeOffensiveEVsWithNatures(atk, def, FIRE_BLAST, {}, 'ohko', null);
+          optimizeSurvivalEVsWithNatures(atk, def, FIRE_BLAST, {}, null);
+          return JSON.stringify(atk) === atkBefore && JSON.stringify(def) === defBefore;
+        },
+      },
+    ];
+
+    let optFail = 0;
+    for (const c of OPT_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [opt] ${c.name}</div>`
+        : `<div class="name">✗ [opt] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) optFail++;
+    }
+
+    // Keep the overall summary honest if an optimizer test regressed.
+    if (optFail > 0) {
+      summary.textContent = `${summary.textContent} · ${optFail} optimizer failure${optFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
 </body>
 </html>
