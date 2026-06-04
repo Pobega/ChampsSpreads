@@ -810,7 +810,7 @@
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
-    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm } from './src/data/dex.js';
+    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isRegulationMALegal } from './src/data/dex.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -926,6 +926,39 @@
           'minior-red-meteor', 'minior-red', 'mr-rime', 'mr-mime', 'iron-hands',
           'tapu-koko', 'nidoran-f',
         ].every(n => !isHiddenForm(n)),
+      },
+
+      // ---- isRegulationMALegal (legal set injected as a param) ----
+      {
+        name: 'isRegulationMALegal: legal base species matches',
+        run: () => isRegulationMALegal('incineroar', new Set(['incineroar', 'charizard'])) === true,
+      },
+      {
+        name: 'isRegulationMALegal: a form of a legal base matches (charizard-mega-x)',
+        run: () => isRegulationMALegal('charizard-mega-x', new Set(['charizard'])) === true,
+      },
+      {
+        name: 'isRegulationMALegal: trailing-hyphen guard — base mew does not match mewtwo',
+        run: () => isRegulationMALegal('mewtwo', new Set(['mew'])) === false
+          && isRegulationMALegal('mew', new Set(['mew'])) === true,
+      },
+      {
+        name: 'isRegulationMALegal: hyphenated base name (kommo-o) matches itself and its forms',
+        run: () => isRegulationMALegal('kommo-o', new Set(['kommo-o'])) === true
+          && isRegulationMALegal('kommo-o-totem', new Set(['kommo-o'])) === false, // totem is a non-legal form
+      },
+      {
+        name: 'isRegulationMALegal: NON_LEGAL_FORMS excluded even if base is legal (charizard-gmax)',
+        run: () => isRegulationMALegal('charizard-gmax', new Set(['charizard'])) === false,
+      },
+      {
+        name: 'isRegulationMALegal: a non-legal species is rejected',
+        run: () => isRegulationMALegal('garchomp', new Set(['incineroar'])) === false,
+      },
+      {
+        name: 'isRegulationMALegal: null/empty inputs return false',
+        run: () => isRegulationMALegal('incineroar', null) === false
+          && isRegulationMALegal('', new Set(['incineroar'])) === false,
       },
     ];
 
@@ -1142,6 +1175,88 @@
     // Keep the overall summary honest if an optimizer test regressed.
     if (optFail > 0) {
       summary.textContent = `${summary.textContent} · ${optFail} optimizer failure${optFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
+
+  <!-- Cache versioning (cacheKey / pruneOldCaches) -->
+  <script type="module">
+    import { CACHE_VERSION, cacheKey, pruneOldCaches } from './src/api/cache.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    // pruneOldCaches mutates the real localStorage (same origin as the app), so
+    // each case snapshots and restores it around the test to stay hermetic.
+    const withCleanStorage = (fn) => {
+      const snapshot = {};
+      for (const k of Object.keys(localStorage)) snapshot[k] = localStorage.getItem(k);
+      try {
+        localStorage.clear();
+        return fn();
+      } finally {
+        localStorage.clear();
+        for (const k of Object.keys(snapshot)) localStorage.setItem(k, snapshot[k]);
+      }
+    };
+
+    const CACHE_CASES = [
+      {
+        name: 'cacheKey namespaces and versions the name',
+        run: () => cacheKey('pokemon_list') === `vgc_v${CACHE_VERSION}_pokemon_list`,
+      },
+      {
+        name: 'pruneOldCaches drops legacy un-namespaced keys',
+        run: () => withCleanStorage(() => {
+          localStorage.setItem('vgc_opt_pokemon_list_v3', '["x"]');
+          localStorage.setItem('poke_details_v6_pikachu', '{}');
+          localStorage.setItem('move_details_tackle', '{}');
+          pruneOldCaches();
+          return !localStorage.getItem('vgc_opt_pokemon_list_v3')
+            && !localStorage.getItem('poke_details_v6_pikachu')
+            && !localStorage.getItem('move_details_tackle');
+        }),
+      },
+      {
+        name: 'pruneOldCaches drops stale-version keys (older and newer)',
+        run: () => withCleanStorage(() => {
+          localStorage.setItem('vgc_v1_pokemon_list', '[]');
+          localStorage.setItem(`vgc_v${CACHE_VERSION + 1}_pokemon_list`, '[]');
+          pruneOldCaches();
+          return !localStorage.getItem('vgc_v1_pokemon_list')
+            && !localStorage.getItem(`vgc_v${CACHE_VERSION + 1}_pokemon_list`);
+        }),
+      },
+      {
+        name: 'pruneOldCaches keeps current-version and unrelated keys',
+        run: () => withCleanStorage(() => {
+          localStorage.setItem(cacheKey('pokemon_list'), '["keep"]');
+          localStorage.setItem('some_other_app_key', 'leave me');
+          pruneOldCaches();
+          return localStorage.getItem(cacheKey('pokemon_list')) === '["keep"]'
+            && localStorage.getItem('some_other_app_key') === 'leave me';
+        }),
+      },
+    ];
+
+    let cacheFail = 0;
+    for (const c of CACHE_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [cache] ${c.name}</div>`
+        : `<div class="name">✗ [cache] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) cacheFail++;
+    }
+
+    // Keep the overall summary honest if a cache test regressed.
+    if (cacheFail > 0) {
+      summary.textContent = `${summary.textContent} · ${cacheFail} cache failure${cacheFail === 1 ? '' : 's'}`;
       summary.classList.remove('pass');
       summary.classList.add('fail');
     }
