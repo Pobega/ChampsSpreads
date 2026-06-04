@@ -6,7 +6,7 @@
 import { CACHE } from '../state.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { fetchMoveDetails, initAllMovesList } from '../api/pokeapi.js';
-import { getTypeBgClass } from './render.js';
+import { getTypeBgClass, escapeHtml } from './render.js';
 import { registerPage } from './page-nav.js';
 
 const AttackdexPage = {
@@ -127,10 +127,12 @@ const GRID = 'grid grid-cols-[minmax(140px,1.4fr)_72px_72px_48px_40px_minmax(220
 
 function moveRowHTML(row) {
   const d = row.details;
+  const apiName = escapeHtml(row.apiName);
+  const name = escapeHtml(row.name);
   if (!d) {
     // Lazy placeholder; carries data-api so the observer knows what to fetch.
-    return `<div class="attackdex-row ${GRID}" data-api="${row.apiName}">
-      <span class="font-bold text-slate-300 truncate">${row.name}</span>
+    return `<div class="attackdex-row ${GRID}" data-api="${apiName}">
+      <span class="font-bold text-slate-300 truncate">${name}</span>
       <span class="text-slate-600 text-[10px]">…</span>
       <span class="text-slate-600 text-[10px]">…</span>
       <span class="text-right font-mono text-slate-600">–</span>
@@ -139,7 +141,8 @@ function moveRowHTML(row) {
     </div>`;
   }
 
-  const typeBadge = `<span class="text-[8px] px-1.5 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(d.type)} text-white" title="${d.type}">${d.type}</span>`;
+  const type = escapeHtml(d.type);
+  const typeBadge = `<span class="text-[8px] px-1.5 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(d.type)} text-white" title="${type}">${type}</span>`;
   const cat = CATEGORY_BADGE[d.category] || CATEGORY_BADGE.status;
   const catBadge = `<span class="text-[8px] px-1.5 py-0.5 font-black uppercase rounded ${cat.cls}">${cat.label}</span>`;
   const power = d.power ? d.power : '—';
@@ -153,13 +156,13 @@ function moveRowHTML(row) {
       ? `<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Spread move — hits both opponents">Spread</span>`
       : '';
 
-  return `<div class="attackdex-row ${GRID} hover:bg-slate-800/40 transition" data-api="${row.apiName}">
-    <span class="font-bold text-slate-100 truncate flex items-center gap-1.5">${row.name}${spread}</span>
+  return `<div class="attackdex-row ${GRID} hover:bg-slate-800/40 transition" data-api="${apiName}">
+    <span class="font-bold text-slate-100 truncate flex items-center gap-1.5">${name}${spread}</span>
     <span>${typeBadge}</span>
     <span>${catBadge}</span>
     <span class="text-left font-mono font-bold text-amber-400">${power}</span>
     <span class="text-left font-mono text-slate-300">${pp}</span>
-    <span class="text-slate-400 text-[10px] leading-tight line-clamp-2">${d.desc || '—'}</span>
+    <span class="text-slate-400 text-[10px] leading-tight line-clamp-2">${escapeHtml(d.desc || '—')}</span>
   </div>`;
 }
 

@@ -6,7 +6,7 @@
 import { STATE, CACHE } from '../state.js';
 import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from '../data/dex.js';
 import { fetchPokemonDetails, initPokemonList, initChampionsLegalList } from '../api/pokeapi.js';
-import { getTypeBgClass, setSearchPlaceholders } from './render.js';
+import { getTypeBgClass, setSearchPlaceholders, escapeHtml } from './render.js';
 import { registerPage } from './page-nav.js';
 
 const DexPage = {
@@ -128,12 +128,14 @@ const TYPE_SHORT = {
 
 function dexRowHTML(row) {
   const d = row.details;
+  const apiName = escapeHtml(row.apiName);
+  const name = escapeHtml(row.name);
   if (!d) {
     // Lazy placeholder; carries data-api so the observer knows what to fetch.
-    return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs" data-api="${row.apiName}">
+    return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs" data-api="${apiName}">
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div>
-        <span class="font-bold text-slate-300 truncate">${row.name}</span>
+        <span class="font-bold text-slate-300 truncate">${name}</span>
       </div>
       <span class="text-slate-600 text-[10px]">…</span>
       <span class="text-slate-600 text-[10px]">loading…</span>
@@ -147,18 +149,19 @@ function dexRowHTML(row) {
     </div>`;
   }
 
-  const types = d.types.map(t =>
-    `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white" title="${t}">${TYPE_SHORT[t] || t}</span>`
-  ).join(' ');
-  const abilities = d.abilities.map(a => a.name).join(', ');
+  const types = d.types.map(t => {
+    const type = escapeHtml(t);
+    return `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white" title="${type}">${escapeHtml(TYPE_SHORT[t] || t)}</span>`;
+  }).join(' ');
+  const abilities = escapeHtml(d.abilities.map(a => a.name).join(', '));
   const s = d.baseStats;
   const total = bst(s);
   const cell = (v) => `<span class="text-right font-mono text-slate-300">${v}</span>`;
 
-  return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs hover:bg-slate-800/40 transition" data-api="${row.apiName}">
+  return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs hover:bg-slate-800/40 transition" data-api="${apiName}">
     <div class="flex items-center gap-2 min-w-0">
-      <img src="${d.sprite || ''}" alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0">
-      <span class="font-bold text-slate-100 truncate">${row.name}</span>
+      <img src="${escapeHtml(d.sprite || '')}" alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0">
+      <span class="font-bold text-slate-100 truncate">${name}</span>
     </div>
     <div class="flex flex-wrap gap-1">${types}</div>
     <span class="text-slate-400 text-[10px] leading-tight">${abilities}</span>
