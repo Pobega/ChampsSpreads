@@ -34,6 +34,24 @@ import {
 import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexPage } from './src/ui/dex-page.js';
 
+// Each format gets a Rotom-form accent: the brand disc's ring/glow and the format
+// pill borrow that form's signature color. Regulation M-A wears Heat Rotom's warm
+// amber; the unrestricted "None" format wears Wash Rotom's cool sky.
+const FORM_THEMES = {
+  regulation_ma: { ring: 'ring-amber-400/60', discShadow: 'shadow-amber-500/30', pillBorder: 'border-amber-500/40', pillText: 'text-amber-300' },
+  all:           { ring: 'ring-sky-400/60',   discShadow: 'shadow-sky-500/30',   pillBorder: 'border-sky-500/40',   pillText: 'text-sky-300' },
+};
+
+function applyFormTheme(format) {
+  const t = FORM_THEMES[format] || FORM_THEMES.regulation_ma;
+  if (DOM.brandDisc) {
+    DOM.brandDisc.className = `rounded-full shadow flex items-center justify-center w-9 h-9 shrink-0 bg-slate-900 ring-2 transition-colors ${t.ring} ${t.discShadow}`;
+  }
+  if (DOM.formatPill) {
+    DOM.formatPill.className = `flex items-center gap-1.5 bg-slate-900 border rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`;
+  }
+}
+
 // ==========================================
 // 2. APPLICATION STATE & GLOBAL CACHE
 // ==========================================
@@ -223,6 +241,7 @@ function setAttackerDetails(details) {
 
   DOM.attackerName.textContent = details.name;
   DOM.attackerSprite.src = details.sprite;
+  DOM.attackerSprite.classList.remove('opacity-20', 'animate-pulse');  // clear the ghost-Rotom placeholder
   DOM.attackerTypes.innerHTML = details.types.map(t => `
     <span class="text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white">${t}</span>
   `).join('');
@@ -303,6 +322,7 @@ function setDefenderDetails(details) {
 
   DOM.defenderName.textContent = details.name;
   DOM.defenderSprite.src = details.sprite;
+  DOM.defenderSprite.classList.remove('opacity-20', 'animate-pulse');  // clear the ghost-Rotom placeholder
   DOM.defenderTypes.innerHTML = details.types.map(t => `
     <span class="text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white">${t}</span>
   `).join('');
@@ -673,6 +693,7 @@ function bindEvents() {
 
   DOM.formatSelector.addEventListener('change', (e) => {
     STATE.format = e.target.value;
+    applyFormTheme(STATE.format);
     updateRegulationTag(STATE.attacker.apiName, DOM.attackerRegTag);
     updateRegulationTag(STATE.defender.apiName, DOM.defenderRegTag);
     updateLiveStats();
@@ -1100,6 +1121,9 @@ async function init() {
   // Fetch massive search databases quietly in the background without blocking!
   initPokemonList().then(setSearchPlaceholders);
   initChampionsLegalList();
+
+  // Tint the brand/format chrome to match the active format's Rotom form.
+  applyFormTheme(STATE.format);
 }
 
 document.addEventListener('DOMContentLoaded', init);

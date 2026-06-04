@@ -4,6 +4,8 @@
 
 export const DOM = {
   formatSelector: document.getElementById('format-selector'),
+  brandDisc: document.getElementById('brand-disc'),
+  formatPill: document.getElementById('format-pill'),
 
   attackerSearch: document.getElementById('attacker-search'),
   attackerSearchWrap: document.getElementById('attacker-search-wrap'),
