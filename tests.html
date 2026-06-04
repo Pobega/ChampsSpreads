@@ -49,6 +49,7 @@
     const ROCK_SLIDE = { apiName: 'rock-slide', type: 'Rock', power: 80, category: 'physical' };
     const ICE_HIT  = { apiName: 'ice-hit',  type: 'Ice',      power: 80, category: 'physical' };
     const ELEC_HIT = { apiName: 'elec-hit', type: 'Electric', power: 80, category: 'physical' };
+    const WEATHER_BALL = { apiName: 'weather-ball', type: 'Normal', power: 50, category: 'physical' };
     const ACROBATICS = { apiName: 'acrobatics', type: 'Flying', power: 55, category: 'physical' };
     const KNOCK_OFF = { apiName: 'knock-off', type: 'Dark', power: 65, category: 'physical' };
     const FACADE = { apiName: 'facade', type: 'Normal', power: 70, category: 'physical' };
@@ -604,6 +605,46 @@
         move: EMBER,
         modifiers: { weather: 'rain' },
         expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'Weather Ball is a 50-power Normal move with no weather',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: WEATHER_BALL,
+        modifiers: {},
+        expected: { min: 40, max: 48 },
+      },
+      {
+        name: 'Weather Ball becomes Fire and doubles power in sun',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: WEATHER_BALL,
+        modifiers: { weather: 'sun' },
+        expected: { min: 79, max: 94 },
+      },
+      {
+        name: 'Weather Ball becomes Water in rain (super-effective on Fire)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Fire'] }),
+        move: WEATHER_BALL,
+        modifiers: { weather: 'rain' },
+        expected: { min: 159, max: 189 },
+      },
+      {
+        name: 'Mega Sol makes Weather Ball a boosted Fire move with no weather',
+        attacker: ATTACKER({ ability: 'mega-sol' }),
+        defender: DEFENDER(),
+        move: WEATHER_BALL,
+        modifiers: {},
+        expected: { min: 79, max: 94 },
+      },
+      {
+        name: 'Mega Sol overrides rain: Weather Ball is Fire (resisted by Fire), not Water',
+        attacker: ATTACKER({ ability: 'mega-sol' }),
+        defender: DEFENDER({ types: ['Fire'] }),
+        move: WEATHER_BALL,
+        modifiers: { weather: 'rain' },
+        expected: { min: 39, max: 47 },
       },
       {
         name: 'Electric terrain boosts Electric move 1.3x (grounded attacker)',
