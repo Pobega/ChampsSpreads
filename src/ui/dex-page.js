@@ -34,10 +34,25 @@ function dexDom() {
     header: document.getElementById('dex-header'),
     regBadge: document.getElementById('dex-regulation-badge'),
     mobileOverlay: document.getElementById('mobile-floating-overlay'),
-    desktopResultsBar: document.getElementById('results-hud')
+    desktopResultsBar: document.getElementById('results-hud'),
+    brandRotom: document.getElementById('brand-rotom'),
+    brandSubtitle: document.getElementById('brand-subtitle')
   };
   return DexPage.dom;
 }
+
+// The header Rotom swaps form per view: base Rotom drives the calculator, while
+// Wash Rotom (a fan-favourite competitive form) presides over the Pokédex.
+const BRAND_BY_PAGE = {
+  calculator: {
+    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/479.gif',
+    subtitle: 'VGC Spread Optimizer',
+  },
+  pokedex: {
+    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/10009.gif',
+    subtitle: 'Pokémon Champions Pokédex',
+  },
+};
 
 // Build the roster for the current STATE.format from the already-loaded caches.
 function buildDexRoster() {
@@ -228,6 +243,13 @@ function showPage(page) {
   const dom = dexDom();
   const activeCls = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow";
   const idleCls = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white";
+
+  // Swap the header Rotom form + tagline to match the active view.
+  const brand = BRAND_BY_PAGE[page] || BRAND_BY_PAGE.calculator;
+  if (dom.brandRotom && dom.brandRotom.getAttribute('src') !== brand.sprite) {
+    dom.brandRotom.src = brand.sprite;
+  }
+  if (dom.brandSubtitle) dom.brandSubtitle.textContent = brand.subtitle;
 
   if (page === 'pokedex') {
     dom.pageCalculator.classList.add('hidden');
