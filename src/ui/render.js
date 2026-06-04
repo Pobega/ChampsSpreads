@@ -28,6 +28,15 @@ export function getTypeBgClass(type) {
   return TYPE_BG_CLASSES[type] || 'bg-slate-700';
 }
 
+// Escape a value for safe interpolation into an HTML string (text or quoted
+// attribute contexts). Used by the dex/attackdex row builders, whose data comes
+// from PokéAPI and is concatenated into innerHTML.
+export function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 // Reflect the loaded roster size in the calculator's search placeholders. The
 // API module stays DOM-free and returns { count, fallback }; the wording lives
 // here. Called after the roster loads (on startup and when the Pokédex triggers
