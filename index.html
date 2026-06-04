@@ -37,6 +37,16 @@
       -webkit-appearance: none;
       margin: 0;
     }
+    /* Rotom electric aura: a faint plasma pulse on the live damage HUD/overlay,
+       drifting between Rotom's electric-blue charge and its orange plasma glow. */
+    @keyframes rotom-aura {
+      0%, 100% { box-shadow: 0 0 0 1px rgba(56,189,248,0.10), 0 0 22px -8px rgba(56,189,248,0.45); }
+      50%      { box-shadow: 0 0 0 1px rgba(251,146,60,0.12), 0 0 26px -6px rgba(251,146,60,0.40); }
+    }
+    .rotom-aura { animation: rotom-aura 4s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .rotom-aura { animation: none; box-shadow: 0 0 22px -8px rgba(56,189,248,0.4); }
+    }
 </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -47,7 +57,7 @@
       
       <!-- Logo / Title (Compact) -->
       <div class="flex items-center gap-2.5 min-w-0">
-        <div class="rounded-full shadow flex items-center justify-center w-9 h-9 shrink-0 bg-slate-900 ring-2 ring-sky-400/60 shadow-sky-500/30">
+        <div id="brand-disc" class="rounded-full shadow flex items-center justify-center w-9 h-9 shrink-0 bg-slate-900 ring-2 ring-sky-400/60 shadow-sky-500/30 transition-colors">
           <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/479.gif" alt="Rotom" class="w-8 h-8 object-contain">
         </div>
         <div class="min-w-0">
@@ -70,7 +80,7 @@
           </button>
         </div>
         <!-- Format Selector (Dropdown select styled compactly) -->
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300">
+        <div id="format-pill" class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition-colors">
           <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Regulation:</span>
           <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]">
             <option value="regulation_ma" class="bg-slate-800">M-A</option>
@@ -100,7 +110,7 @@
        pinned across the whole scroll. -->
   <div id="results-hud" class="hidden lg:block sticky top-3 lg:top-4 z-40 mt-5 lg:mt-6">
     <div id="results-hud-inner" class="max-w-[1440px] mx-auto px-5 lg:px-6">
-      <div id="desktop-results-bar" class="rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
+      <div id="desktop-results-bar" class="rotom-aura rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
     <div class="max-w-[1440px] mx-auto px-6 py-3 flex items-center justify-between gap-6">
 
       <!-- Left: matchup / move / speed -->
@@ -178,7 +188,7 @@
             <input type="text" id="attacker-search" placeholder="Search (e.g. Lopunny, Incineroar...)"
               class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-slate-500 transition">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
-            <div id="attacker-spinner" class="absolute right-3 top-2.5 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
+            <div id="attacker-spinner" class="absolute right-3 top-2 hidden"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/479.png" alt="Loading" class="w-6 h-6 animate-spin" style="image-rendering: pixelated;"></div>
           </div>
           <!-- Dropdown Results -->
           <div id="attacker-results" class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden"></div>
@@ -187,7 +197,7 @@
         <!-- Basic Attacker Profile Card with Stats Bars -->
         <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
           <div class="flex items-center gap-3.5">
-            <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-24 h-24 object-contain bg-slate-900 rounded-xl p-1 shadow-inner border border-slate-700/30">
+            <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/479.png" alt="Attacker" class="w-24 h-24 object-contain bg-slate-900 rounded-xl p-1 shadow-inner border border-slate-700/30 opacity-20 animate-pulse">
             <div class="flex-1 min-w-0 flex flex-col items-center text-center gap-1">
               <div>
                 <span id="attacker-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
@@ -648,7 +658,7 @@
             <input type="text" id="defender-search" placeholder="Search (e.g. Amoonguss, Garchomp...)"
               class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-slate-500 transition">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
-            <div id="defender-spinner" class="absolute right-3 top-2.5 hidden"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
+            <div id="defender-spinner" class="absolute right-3 top-2 hidden"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/479.png" alt="Loading" class="w-6 h-6 animate-spin" style="image-rendering: pixelated;"></div>
           </div>
           <!-- Dropdown Results -->
           <div id="defender-results" class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden"></div>
@@ -657,7 +667,7 @@
         <!-- Basic Defender Profile Card with Stats Bars -->
         <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
           <div class="flex items-center gap-3.5">
-            <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-24 h-24 object-contain bg-slate-900 rounded-xl p-1 shadow-inner border border-slate-700/40">
+            <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/479.png" alt="Defender" class="w-24 h-24 object-contain bg-slate-900 rounded-xl p-1 shadow-inner border border-slate-700/40 opacity-20 animate-pulse">
             <div class="flex-1 min-w-0 flex flex-col items-center text-center gap-1">
               <div>
                 <span id="defender-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
@@ -918,7 +928,7 @@
   </main>
 
   <!-- Premium Mobile Sticky Floating Damage Overlay (Visible ONLY on mobile < lg width!) -->
-  <div id="mobile-floating-overlay" class="lg:hidden fixed bottom-0 left-0 right-0 z-[999] bg-slate-900/96 backdrop-blur-md border-t border-slate-700 px-5 py-3.5 flex flex-col gap-2.5 shadow-[0_-10px_35px_rgba(0,0,0,0.65)] transition-transform duration-300 text-left">
+  <div id="mobile-floating-overlay" class="rotom-aura lg:hidden fixed bottom-0 left-0 right-0 z-[999] bg-slate-900/96 backdrop-blur-md border-t border-slate-700 px-5 py-3.5 flex flex-col gap-2.5 shadow-[0_-10px_35px_rgba(0,0,0,0.65)] transition-transform duration-300 text-left">
 
     <div class="flex items-center justify-between gap-3.5">
       <!-- Left: mode icon + Profile & Move -->
