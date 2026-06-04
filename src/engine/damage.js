@@ -10,6 +10,18 @@ function effectiveSpeed(mon) {
 }
 
 export function calculateDamageRolls(attacker, defender, move, modifiers) {
+  // Weather Ball takes on the weather's type and doubles its power while any
+  // weather is active. Mega Sol makes the user's moves behave as if in harsh
+  // sunlight, so it turns Weather Ball into a boosted Fire move with no weather.
+  if (move.apiName === 'weather-ball') {
+    const ballWeather = attacker.ability === 'mega-sol' ? 'sun' : modifiers.weather;
+    const weatherBallTypes = { sun: 'Fire', rain: 'Water', sandstorm: 'Rock', snow: 'Ice' };
+    const resolvedType = weatherBallTypes[ballWeather];
+    if (resolvedType) {
+      move = { ...move, type: resolvedType, power: move.power * 2 };
+    }
+  }
+
   const baseIsPhysical = move.category.toLowerCase() === 'physical';
 
   // Resolve which stats this move uses. Most moves pit the attacker's
