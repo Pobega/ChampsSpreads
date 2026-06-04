@@ -38,14 +38,27 @@
       margin: 0;
     }
     /* Rotom electric aura: a faint plasma pulse on the live damage HUD/overlay,
-       drifting between Rotom's electric-blue charge and its orange plasma glow. */
-    @keyframes rotom-aura {
-      0%, 100% { box-shadow: 0 0 0 1px rgba(56,189,248,0.10), 0 0 22px -8px rgba(56,189,248,0.45); }
-      50%      { box-shadow: 0 0 0 1px rgba(251,146,60,0.12), 0 0 26px -6px rgba(251,146,60,0.40); }
+       cross-fading between Rotom's electric-blue charge and its orange plasma
+       glow. The glow lives on two stacked pseudo-elements whose OPACITY animates
+       (compositor-only) — animating box-shadow directly flickers when the host
+       also has backdrop-blur, so we keep the host static and pulse a layer behind it. */
+    .rotom-aura { position: relative; isolation: isolate; }
+    .rotom-aura::before,
+    .rotom-aura::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: -1;
+      animation: rotom-aura 4s ease-in-out infinite;
     }
-    .rotom-aura { animation: rotom-aura 4s ease-in-out infinite; }
+    .rotom-aura::before { box-shadow: 0 0 20px -3px rgba(56,189,248,0.55); }   /* electric blue */
+    .rotom-aura::after  { box-shadow: 0 0 22px -3px rgba(251,146,60,0.50); animation-delay: -2s; } /* plasma orange */
+    @keyframes rotom-aura { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
-      .rotom-aura { animation: none; box-shadow: 0 0 22px -8px rgba(56,189,248,0.4); }
+      .rotom-aura::before { animation: none; opacity: 0.8; }
+      .rotom-aura::after  { animation: none; opacity: 0; }
     }
 </style>
 </head>
@@ -110,7 +123,10 @@
        pinned across the whole scroll. -->
   <div id="results-hud" class="hidden lg:block sticky top-3 lg:top-4 z-40 mt-5 lg:mt-6">
     <div id="results-hud-inner" class="max-w-[1440px] mx-auto px-5 lg:px-6">
-      <div id="desktop-results-bar" class="rotom-aura rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
+      <!-- rotom-aura wrapper: glow lives here (no overflow-hidden) so the pulsing
+           pseudo-element shadow isn't clipped by the card's rounded overflow. -->
+      <div class="rotom-aura rounded-2xl">
+      <div id="desktop-results-bar" class="rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
     <div class="max-w-[1440px] mx-auto px-6 py-3 flex items-center justify-between gap-6">
 
       <!-- Left: matchup / move / speed -->
@@ -147,9 +163,10 @@
         <div id="res-bar-min" class="absolute inset-y-0 left-0 transition-all duration-300" style="width:0%"></div>
       </div>
     </div>
-  </div>
-    </div>
-  </div>
+  </div><!-- #desktop-results-bar -->
+    </div><!-- .rotom-aura wrapper -->
+    </div><!-- #results-hud-inner -->
+  </div><!-- #results-hud -->
 
   <!-- Main Layout Container (Spacious 1440p Expanded Width with Mobile bottom pad cushion!) -->
   <main id="page-calculator" class="max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6">
