@@ -98,10 +98,8 @@
         <!-- Format Selector (Dropdown select styled compactly) -->
         <div id="format-pill" class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition-colors">
           <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Regulation:</span>
-          <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]">
-            <option value="regulation_ma" class="bg-slate-800">M-A</option>
-            <option value="all" class="bg-slate-800">None</option>
-          </select>
+          <!-- Options populated from the regulation registry by populateFormatSelector() in app.js. -->
+          <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]"></select>
         </div>
         
         <!-- Load Matchup Button (Turned into a gorgeous compact icon button on mobile, text on desktop!) -->

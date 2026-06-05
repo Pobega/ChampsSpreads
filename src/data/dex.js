@@ -106,10 +106,11 @@ const NON_LEGAL_FORMS = [
   '-eternal', '-mega-z', 'greninja-ash'
 ];
 
-// Whether `apiName` is legal in Regulation M-A, given the legal base-species set
-// (a Set of PokéAPI base names, e.g. CACHE.championsLegalList). Pure: the legal
-// set is injected rather than read from module state, so this stays unit-testable.
-export function isRegulationMALegal(apiName, legalList) {
+// Whether `apiName` is legal under a regulation, given that regulation's legal
+// base-species set (a Set of PokéAPI base names, e.g. from legalSetForFormat()).
+// Pure: the legal set is injected rather than read from module state, so this
+// stays unit-testable and works for any regulation.
+export function isFormatLegal(apiName, legalList) {
   if (!apiName) return false;
   const name = apiName.toLowerCase();
 

@@ -5,8 +5,9 @@
 // decoupled from the calculator controller in app.js.
 import { STATE, CACHE } from '../state.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
-import { fetchMoveDetails, fetchPokemonDetails, initAllMovesList, formatDisplayName } from '../api/pokeapi.js';
-import { isHiddenForm, isRegulationMALegal } from '../data/dex.js';
+import { fetchMoveDetails, fetchPokemonDetails, initAllMovesList, formatDisplayName, legalSetForFormat } from '../api/pokeapi.js';
+import { isHiddenForm, isFormatLegal } from '../data/dex.js';
+import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass, escapeHtml } from './render.js';
 import { registerPage } from './page-nav.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './detail-modal.js';
@@ -341,14 +342,15 @@ async function handleAttackdexRowClick(apiName) {
 
   const details = row.details;
   let learners = (details.learnedBy || []).filter(n => !isHiddenForm(n));
-  if (STATE.format === 'regulation_ma') {
-    learners = learners.filter(n => isRegulationMALegal(n, CACHE.championsLegalList));
+  const legal = legalSetForFormat(STATE.format);
+  if (legal) {
+    learners = learners.filter(n => isFormatLegal(n, legal));
   }
   learners.sort((a, b) => a.localeCompare(b));
 
   const capped = learners.length > LEARNER_CAP;
   const visible = capped ? learners.slice(0, LEARNER_CAP) : learners;
-  const formatLabel = STATE.format === 'regulation_ma' ? 'Regulation M-A' : 'National Dex';
+  const formatLabel = REGULATIONS[STATE.format]?.label ?? 'National Dex';
 
   const localCache = new Map();
   const getDetails = (n) => localCache.get(n) || (_getPokemonDetails && _getPokemonDetails(n));
