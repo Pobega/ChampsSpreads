@@ -4,7 +4,8 @@
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
 import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
-import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from './src/data/dex.js';
+import { bst, sortDex, filterDex, isHiddenForm, isFormatLegal } from './src/data/dex.js';
+import { REGULATIONS, NATIONAL_THEME } from './src/data/regulations.js';
 import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
 import {
   NATURES,
@@ -17,7 +18,8 @@ import { STATE, CACHE } from './src/state.js';
 import {
   initPokemonList,
   initStatusMovesList,
-  initChampionsLegalList,
+  initChampionsRoster,
+  legalSetForFormat,
   initAllMovesList,
   fetchPokemonDetails,
   fetchMoveDetails
@@ -40,15 +42,10 @@ import { registerPage, showPage } from './src/ui/page-nav.js';
 import { initDetailModal } from './src/ui/detail-modal.js';
 
 // Each format gets a Rotom-form accent: the brand Rotom's glow and the format
-// pill borrow that form's signature color. Regulation M-A wears Heat Rotom's warm
-// amber; the unrestricted "None" format wears Wash Rotom's cool sky.
-const FORM_THEMES = {
-  regulation_ma: { glow: 'rgba(251,191,36,0.65)', pillBorder: 'border-amber-500/40', pillText: 'text-amber-300' }, // amber-400
-  all:           { glow: 'rgba(56,189,248,0.65)', pillBorder: 'border-sky-500/40',   pillText: 'text-sky-300' },   // sky-400
-};
-
+// pill borrow that form's signature color. Each regulation carries its own theme
+// (see regulations.js); the unrestricted "None" format wears Wash Rotom's cool sky.
 function applyFormTheme(format) {
-  const t = FORM_THEMES[format] || FORM_THEMES.regulation_ma;
+  const t = REGULATIONS[format]?.theme || NATIONAL_THEME;
   if (DOM.brandRotom) {
     // A colored glow hugging Rotom's silhouette — the form accent without a box.
     DOM.brandRotom.style.filter = `drop-shadow(0 0 5px ${t.glow})`;
@@ -124,8 +121,9 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
     let matches = CACHE.pokemonList.filter(p => p.name.toLowerCase().includes(q));
     matches = matches.filter(p => !isHiddenForm(p.apiName));
 
-    if (STATE.format === 'regulation_ma') {
-      matches = matches.filter(p => isRegulationMALegal(p.apiName, CACHE.championsLegalList));
+    const legal = legalSetForFormat(STATE.format);
+    if (legal) {
+      matches = matches.filter(p => isFormatLegal(p.apiName, legal));
     }
 
     // Dynamic Priority Sorting: Starts-With matches take absolute priority over containing matches!
@@ -149,10 +147,10 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
     }
 
     resultsEl.innerHTML = matches.map(p => {
-      const isRegMA = STATE.format === 'regulation_ma';
-      const badgeText = isRegMA ? 'M-A' : 'National Dex';
-      const badgeColor = isRegMA 
-        ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30' 
+      const reg = REGULATIONS[STATE.format];
+      const badgeText = reg ? reg.short : 'National Dex';
+      const badgeColor = reg
+        ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30'
         : 'bg-slate-800/60 text-slate-400 border border-slate-700/30';
         
       return `
@@ -220,15 +218,15 @@ function updateRegulationTag(apiName, tagEl) {
   }
   tagEl.classList.remove('hidden');
 
-  const isRegMA = STATE.format === 'regulation_ma';
+  const reg = REGULATIONS[STATE.format];
 
-  if (isRegMA) {
-    const isLegal = isRegulationMALegal(apiName, CACHE.championsLegalList);
+  if (reg) {
+    const isLegal = isFormatLegal(apiName, legalSetForFormat(STATE.format));
     if (isLegal) {
-      tagEl.textContent = "Regulation M-A Legal";
+      tagEl.textContent = `${reg.label} Legal`;
       tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50";
     } else {
-      tagEl.textContent = "Banned in M-A";
+      tagEl.textContent = `Banned in ${reg.short}`;
       tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-red-950 text-red-400 border border-red-900/50";
     }
   } else {
@@ -1106,6 +1104,10 @@ async function init() {
   // Sweep stale-version cache entries before any fetch reads or writes them.
   pruneOldCaches();
   populateDropdowns();
+  // Build the format dropdown from the regulation registry (+ the unrestricted
+  // "None" view) up front so it's never empty, even before the async loads below.
+  // Adding a regulation is then purely a data change in regulations.js.
+  populateFormatSelector();
   bindEvents();
   initMobileTabbing();
   // Register the calculator as the home view in the shared nav, then let the
@@ -1144,7 +1146,7 @@ async function init() {
   // The status-move filter list must be ready before any move dropdown is
   // built, otherwise non-damaging moves leak through unfiltered.
   await initStatusMovesList();
-  await initChampionsLegalList();
+  await initChampionsRoster();
 
   // Fire preloaded sample scenario instantly on startup!
   try {
@@ -1161,6 +1163,19 @@ async function init() {
 
   // Tint the brand/format chrome to match the active format's Rotom form.
   applyFormTheme(STATE.format);
+}
+
+// Populate #format-selector: one option per regulation, then the unrestricted
+// National Dex ("None") view. Keeps the menu in sync with REGULATIONS.
+function populateFormatSelector() {
+  const sel = DOM.formatSelector;
+  if (!sel) return;
+  const options = Object.entries(REGULATIONS).map(
+    ([format, reg]) => `<option value="${format}" class="bg-slate-800">${reg.short}</option>`
+  );
+  options.push('<option value="all" class="bg-slate-800">None</option>');
+  sel.innerHTML = options.join('');
+  sel.value = STATE.format;
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -1004,7 +1004,8 @@
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
-    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isRegulationMALegal } from './src/data/dex.js';
+    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isFormatLegal } from './src/data/dex.js';
+    import { resolveLegalSet } from './src/data/regulations.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -1122,37 +1123,67 @@
         ].every(n => !isHiddenForm(n)),
       },
 
-      // ---- isRegulationMALegal (legal set injected as a param) ----
+      // ---- isFormatLegal (legal set injected as a param) ----
       {
-        name: 'isRegulationMALegal: legal base species matches',
-        run: () => isRegulationMALegal('incineroar', new Set(['incineroar', 'charizard'])) === true,
+        name: 'isFormatLegal: legal base species matches',
+        run: () => isFormatLegal('incineroar', new Set(['incineroar', 'charizard'])) === true,
       },
       {
-        name: 'isRegulationMALegal: a form of a legal base matches (charizard-mega-x)',
-        run: () => isRegulationMALegal('charizard-mega-x', new Set(['charizard'])) === true,
+        name: 'isFormatLegal: a form of a legal base matches (charizard-mega-x)',
+        run: () => isFormatLegal('charizard-mega-x', new Set(['charizard'])) === true,
       },
       {
-        name: 'isRegulationMALegal: trailing-hyphen guard — base mew does not match mewtwo',
-        run: () => isRegulationMALegal('mewtwo', new Set(['mew'])) === false
-          && isRegulationMALegal('mew', new Set(['mew'])) === true,
+        name: 'isFormatLegal: trailing-hyphen guard — base mew does not match mewtwo',
+        run: () => isFormatLegal('mewtwo', new Set(['mew'])) === false
+          && isFormatLegal('mew', new Set(['mew'])) === true,
       },
       {
-        name: 'isRegulationMALegal: hyphenated base name (kommo-o) matches itself and its forms',
-        run: () => isRegulationMALegal('kommo-o', new Set(['kommo-o'])) === true
-          && isRegulationMALegal('kommo-o-totem', new Set(['kommo-o'])) === false, // totem is a non-legal form
+        name: 'isFormatLegal: hyphenated base name (kommo-o) matches itself and its forms',
+        run: () => isFormatLegal('kommo-o', new Set(['kommo-o'])) === true
+          && isFormatLegal('kommo-o-totem', new Set(['kommo-o'])) === false, // totem is a non-legal form
       },
       {
-        name: 'isRegulationMALegal: NON_LEGAL_FORMS excluded even if base is legal (charizard-gmax)',
-        run: () => isRegulationMALegal('charizard-gmax', new Set(['charizard'])) === false,
+        name: 'isFormatLegal: NON_LEGAL_FORMS excluded even if base is legal (charizard-gmax)',
+        run: () => isFormatLegal('charizard-gmax', new Set(['charizard'])) === false,
       },
       {
-        name: 'isRegulationMALegal: a non-legal species is rejected',
-        run: () => isRegulationMALegal('garchomp', new Set(['incineroar'])) === false,
+        name: 'isFormatLegal: a non-legal species is rejected',
+        run: () => isFormatLegal('garchomp', new Set(['incineroar'])) === false,
       },
       {
-        name: 'isRegulationMALegal: null/empty inputs return false',
-        run: () => isRegulationMALegal('incineroar', null) === false
-          && isRegulationMALegal('', new Set(['incineroar'])) === false,
+        name: 'isFormatLegal: null/empty inputs return false',
+        run: () => isFormatLegal('incineroar', null) === false
+          && isFormatLegal('', new Set(['incineroar'])) === false,
+      },
+
+      // ---- resolveLegalSet (roster + per-regulation include/exclude delta) ----
+      {
+        name: 'resolveLegalSet: empty delta returns the roster unchanged',
+        run: () => {
+          const s = resolveLegalSet(['charizard', 'incineroar'], { include: [], exclude: [] });
+          return s.size === 2 && s.has('charizard') && s.has('incineroar');
+        },
+      },
+      {
+        name: 'resolveLegalSet: exclude drops a roster species',
+        run: () => {
+          const s = resolveLegalSet(['charizard', 'incineroar'], { exclude: ['incineroar'] });
+          return s.has('charizard') && !s.has('incineroar');
+        },
+      },
+      {
+        name: 'resolveLegalSet: include adds a species beyond the roster',
+        run: () => {
+          const s = resolveLegalSet(['charizard'], { include: ['miraidon'] });
+          return s.has('charizard') && s.has('miraidon');
+        },
+      },
+      {
+        name: 'resolveLegalSet: missing include/exclude keys are treated as empty',
+        run: () => {
+          const s = resolveLegalSet(['charizard'], {});
+          return s.size === 1 && s.has('charizard');
+        },
       },
     ];
 

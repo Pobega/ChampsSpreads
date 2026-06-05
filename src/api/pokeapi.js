@@ -6,6 +6,7 @@
 // invalidates all cached resources at once (see cache.js).
 import { CACHE } from '../state.js';
 import { Storage, cacheKey } from './cache.js';
+import { REGULATIONS, resolveLegalSet } from '../data/regulations.js';
 
 export const API_BASE = 'https://pokeapi.co/api/v2';
 
@@ -70,31 +71,46 @@ export async function initStatusMovesList() {
   CACHE.statusMoves = statusMoves;
 }
 
-// Loads the Champions-format legal species set. Sourced from the bundled
-// champions_dex.json (not PokéAPI), but shares the same Storage-cache + fallback
-// shape as the roster fetches, so it lives alongside them in the data layer.
-export async function initChampionsLegalList() {
-  const key = cacheKey('champions_legal_list');
+// Loads the Champions game roster (the bundled champions_dex.json, mirrored
+// upstream as PokéAPI pokedex 36) into CACHE.championsRoster. The roster is
+// regulation-independent; each regulation's legal set is derived from it on
+// demand by legalSetForFormat(). Shares the Storage-cache + fallback shape of
+// the other roster fetches, so it lives alongside them in the data layer.
+export async function initChampionsRoster() {
+  const key = cacheKey('champions_roster');
   const cached = Storage.get(key);
   if (cached && cached.length > 0) {
-    CACHE.championsLegalList = new Set(cached);
+    CACHE.championsRoster = cached;
     return;
   }
 
   try {
     const res = await fetch('champions_dex.json');
-    const data = await res.json();
-    CACHE.championsLegalList = new Set(data);
-    Storage.set(key, data);
+    CACHE.championsRoster = await res.json();
+    Storage.set(key, CACHE.championsRoster);
   } catch (err) {
-    console.error("Failed to fetch Champions VGC local Pokedex JSON, loading fallback", err);
-    // High-fidelity VGC legal fallbacks (Scenario templates!)
-    CACHE.championsLegalList = new Set([
+    console.error("Failed to fetch Champions roster JSON, loading fallback", err);
+    // High-fidelity VGC roster fallback (Scenario templates!)
+    CACHE.championsRoster = [
       'crabominable', 'incineroar', 'flutter-mane', 'amoonguss', 'rillaboom', 'tornadus',
       'urshifu', 'gholdengo', 'kingambit', 'sneasler', 'garchomp', 'basculegion',
       'charizard', 'venusaur', 'blastoise', 'beedrill', 'pidgeot', 'pikachu', 'raichu', 'clefable', 'ninetales'
-    ]);
+    ];
   }
+}
+
+// Resolved legal base-species Set for a regulation format (a STATE.format value),
+// or null for the unrestricted "National Dex" view ('all'). Memoized per format —
+// the roster is fixed for a session, so each regulation's delta resolves once.
+const legalSetByFormat = {};
+export function legalSetForFormat(format) {
+  if (!REGULATIONS[format]) return null;
+  const roster = CACHE.championsRoster;
+  if (!roster || roster.length === 0) return new Set(); // roster not loaded yet
+  if (!legalSetByFormat[format]) {
+    legalSetByFormat[format] = resolveLegalSet(roster, REGULATIONS[format]);
+  }
+  return legalSetByFormat[format];
 }
 
 // Friendlier labels for forms whose PokéAPI name reads awkwardly. The kept Minior

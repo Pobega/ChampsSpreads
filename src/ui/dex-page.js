@@ -4,8 +4,9 @@
 // and queries its own DOM nodes (dexDom), so it stays decoupled from the
 // calculator controller in app.js.
 import { STATE, CACHE } from '../state.js';
-import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from '../data/dex.js';
-import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsLegalList } from '../api/pokeapi.js';
+import { bst, sortDex, filterDex, isHiddenForm, isFormatLegal } from '../data/dex.js';
+import { REGULATIONS } from '../data/regulations.js';
+import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat } from '../api/pokeapi.js';
 import { getTypeBgClass, setSearchPlaceholders, escapeHtml } from './render.js';
 import { spreadKind } from '../data/moves.js';
 import { registerPage } from './page-nav.js';
@@ -46,10 +47,11 @@ function buildDexRoster() {
   let entries = (CACHE.pokemonList || [])
     .filter(p => !isHiddenForm(p.apiName))
     .map(p => ({ apiName: p.apiName, name: p.name }));
-  // M-A: keep only legal varieties, using the same predicate the calculator's
-  // search uses so the two views stay in sync.
-  if (STATE.format === 'regulation_ma') {
-    entries = entries.filter(p => isRegulationMALegal(p.apiName, CACHE.championsLegalList));
+  // Under a regulation, keep only legal varieties — using the same predicate and
+  // legal set the calculator's search uses so the two views stay in sync.
+  const legal = legalSetForFormat(STATE.format);
+  if (legal) {
+    entries = entries.filter(p => isFormatLegal(p.apiName, legal));
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -61,12 +63,13 @@ function buildDexRoster() {
 }
 
 // Badge next to the "Pokédex" title showing the active regulation, styled to
-// match the per-Pokémon legality tags (green for M-A, slate for National Dex).
+// match the per-Pokémon legality tags (green for a regulation, slate for National Dex).
 function updateDexRegulationBadge() {
   const { regBadge } = dexDom();
   if (!regBadge) return;
-  if (STATE.format === 'regulation_ma') {
-    regBadge.textContent = 'Regulation M-A';
+  const reg = REGULATIONS[STATE.format];
+  if (reg) {
+    regBadge.textContent = reg.label;
     regBadge.className = 'text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50';
   } else {
     regBadge.textContent = 'National Dex';
@@ -248,12 +251,12 @@ async function openDexPage() {
   }
 
   // The roster is sourced from the background caches — make sure they're ready.
-  // Both caches are needed even for M-A: the legal list seeds base species while
-  // the full variety list supplies their Mega and regional forms.
+  // Both caches are needed under a regulation: the Champions roster seeds base
+  // species while the full variety list supplies their Mega and regional forms.
   const { status } = dexDom();
   if (status) status.textContent = 'loading roster…';
   const pending = [];
-  if (STATE.format === 'regulation_ma') pending.push(initChampionsLegalList());
+  if (REGULATIONS[STATE.format]) pending.push(initChampionsRoster());
   if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) {
     pending.push(initPokemonList().then(setSearchPlaceholders));
   }
@@ -261,8 +264,8 @@ async function openDexPage() {
 
   buildDexRoster();
   renderDex();
-  // M-A is bounded — eager-load everything so sort/search work instantly.
-  if (STATE.format === 'regulation_ma') {
+  // A regulation roster is bounded — eager-load everything so sort/search work instantly.
+  if (REGULATIONS[STATE.format]) {
     loadDexDetails(DexPage.roster.map(r => r.apiName));
   }
 }
