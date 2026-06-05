@@ -170,8 +170,12 @@ export async function openDexPage() {
   DexStore.loading = false;
   notifyDex();
   // A regulation roster is bounded — eager-load everything so sort/search work
-  // instantly. The National Dex also eager-loads in 2a (lazy observer is 2b).
-  loadDexDetails(DexStore.roster.map(r => r.apiName));
+  // instantly. The National Dex (~1259 rows) stays lazy: DexView's observer
+  // fetches placeholder rows as they scroll into view (ensureDexFullyLoaded
+  // still force-loads all when a stat-sort or ability-search needs it).
+  if (REGULATIONS[STATE.format]) {
+    loadDexDetails(DexStore.roster.map(r => r.apiName));
+  }
 }
 
 // Look up already-loaded Pokémon details by apiName (used by attackdex-page via

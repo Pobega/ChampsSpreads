@@ -2,14 +2,14 @@
 // existing #page-pokedex container. Reads the reactive DexStore and re-renders on
 // notifyDex(); all data + loading logic lives in dex-store.js. Row click opens the
 // shared vanilla detail modal. (Lazy National-Dex loading is restored in 2b.)
-import { html, useState, useLayoutEffect } from './preact.js';
+import { html, useState, useEffect, useLayoutEffect, useRef } from './preact.js';
 import { STATE } from '../state.js';
 import { bst, sortDex, filterDex } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass } from '../ui/render.js';
 import {
   DexStore, subscribeDex, dexStatusText,
-  setDexSort, setDexQuery, clearDexQuery, handleDexRowClick,
+  setDexSort, setDexQuery, clearDexQuery, handleDexRowClick, loadDexDetails,
 } from './dex-store.js';
 
 // Re-render-on-DexStore-change hook (mirrors useStore for the calculator store).
@@ -102,6 +102,36 @@ export function DexView() {
   const sorted = sortDex(filtered, DexStore.sortKey, DexStore.sortDir);
   const statusText = DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
 
+  // Lazy National-Dex loading: fetch placeholder rows as they scroll into view.
+  // Re-runs every render (the placeholder set shrinks as rows load and changes
+  // on sort/search); recreate + disconnect the observer each time, mirroring the
+  // old vanilla observeLazyDexRows. Skipped once everything is loaded (regulation
+  // rosters eager-load, so they're fully loaded and never observed).
+  const rowsRef = useRef(null);
+  useEffect(() => {
+    const container = rowsRef.current;
+    if (!container || DexStore.allLoaded) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      const toLoad = [];
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const apiName = entry.target.getAttribute('data-api');
+        const row = DexStore.byName[apiName];
+        if (row && !row.details) toLoad.push(apiName);
+        observer.unobserve(entry.target);
+      });
+      if (toLoad.length) loadDexDetails(toLoad);
+    }, { rootMargin: '200px' });
+
+    container.querySelectorAll('[data-api]').forEach((el) => {
+      const row = DexStore.byName[el.getAttribute('data-api')];
+      if (row && !row.details) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  });
+
   return html`
     <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">
 
@@ -137,7 +167,7 @@ export function DexView() {
             ${SORT_COLS.slice(1).map((col) => html`<${SortButton} col=${col} />`)}
           </div>
           <!-- Data rows -->
-          <div class="flex flex-col">
+          <div class="flex flex-col" ref=${rowsRef}>
             ${sorted.length
               ? sorted.map((row) => html`<${DexRow} key=${row.apiName} row=${row} />`)
               : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match “${DexStore.query}”.</div>`}
