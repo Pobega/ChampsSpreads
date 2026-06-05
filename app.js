@@ -1129,6 +1129,7 @@ async function init() {
   // The status-move filter list must be ready before any move dropdown is
   // built, otherwise non-damaging moves leak through unfiltered.
   await initStatusMovesList();
+  await initChampionsLegalList();
 
   // Fire preloaded sample scenario instantly on startup!
   try {
@@ -1139,7 +1140,6 @@ async function init() {
 
   // Fetch massive search databases quietly in the background without blocking!
   initPokemonList().then(setSearchPlaceholders);
-  initChampionsLegalList();
   // Warm the Attackdex move index so its first open is instant (names only; each
   // move's stats are lazy-loaded as rows scroll in).
   initAllMovesList();
