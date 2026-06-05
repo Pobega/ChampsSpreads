@@ -126,18 +126,25 @@ export async function fetchPokemonDetails(apiName) {
     apiName: m.move.name
   }));
 
-  // PokéAPI empty moves learnset fallback for Mega Evolution species/special forms!
-  if (movesMapped.length === 0 && apiName.includes('-mega')) {
+  // A Mega Evolution shares its base form's movepool (you only Mega-evolve mid-battle),
+  // but PokéAPI's Mega learnsets are often empty or incomplete — e.g. Mega Charizard is
+  // missing Weather Ball. Merge in any of the base species' moves the Mega lacks.
+  if (apiName.includes('-mega')) {
     try {
       const baseSpeciesName = apiName.split('-mega')[0];
       const baseRes = await fetch(`${API_BASE}/pokemon/${baseSpeciesName}`);
       const baseData = await baseRes.json();
-      movesMapped = baseData.moves.map(m => ({
-        name: formatDisplayName(m.move.name),
-        apiName: m.move.name
-      }));
+      const seen = new Set(movesMapped.map(m => m.apiName));
+      baseData.moves.forEach(m => {
+        if (seen.has(m.move.name)) return;
+        seen.add(m.move.name);
+        movesMapped.push({
+          name: formatDisplayName(m.move.name),
+          apiName: m.move.name
+        });
+      });
     } catch (err) {
-      console.error(`Failed to fetch base species moves fallback for ${apiName}`, err);
+      console.error(`Failed to merge base species moves for ${apiName}`, err);
     }
   }
 
