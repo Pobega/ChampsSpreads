@@ -82,9 +82,8 @@
       
       <!-- Logo / Title (Compact) -->
       <div class="flex items-center gap-2.5 min-w-0">
-        <div class="flex items-center justify-center w-11 h-11 shrink-0">
-          <img id="brand-rotom" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/479.gif" alt="Rotom" class="w-11 h-11 object-contain transition-[filter]">
-        </div>
+        <!-- Brand Rotom sprite: Preact Brand island (tints its glow to the format). -->
+        <div id="brand-rotom-root" class="flex items-center justify-center w-11 h-11 shrink-0"></div>
         <div class="min-w-0">
           <h1 class="text-sm sm:text-base font-black tracking-wider bg-gradient-to-r from-amber-400 via-orange-500 to-sky-400 bg-clip-text text-transparent uppercase truncate">
             Rotometrics
@@ -107,24 +106,9 @@
             <i class="fa-solid fa-burst sm:hidden"></i><span class="hidden sm:inline">Attackdex</span>
           </button>
         </div>
-        <!-- Format Selector (Dropdown select styled compactly) -->
-        <div id="format-pill" class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition-colors">
-          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Regulation:</span>
-          <!-- Options populated from the regulation registry by populateFormatSelector() in app.js. -->
-          <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]"></select>
-        </div>
-        
-        <!-- Load Matchup Button (Turned into a gorgeous compact icon button on mobile, text on desktop!) -->
-        <button id="load-sample-btn" class="bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white text-[10px] font-extrabold py-1.5 px-2.5 rounded-lg transition flex items-center gap-1.5 shadow" title="Load VGC Sample Matchup">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span class="hidden md:inline">Load Sample</span>
-        </button>
-
-        <!-- Export / Import the current matchup as shareable text -->
-        <button id="export-import-btn" class="bg-cyan-700 hover:bg-cyan-600 border border-cyan-500/30 text-white text-[10px] font-extrabold py-1.5 px-2.5 rounded-lg transition flex items-center gap-1.5 shadow" title="Export or import a matchup as text">
-          <i class="fa-solid fa-right-left"></i>
-          <span class="hidden md:inline">Export / Import</span>
-        </button>
+        <!-- Format pill + Load Sample + Export/Import: Preact HeaderControls island.
+             `contents` keeps its children as direct flex items of this bar. -->
+        <div id="header-controls-root" class="contents"></div>
       </div>
       
     </div>
@@ -188,40 +172,14 @@
     <!-- Preact ResultsHUD island (mobile variant) mounts here. -->
   </div>
   <!-- Export / Import matchup modal (hidden until opened from the header) -->
-  <div id="ei-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col gap-3 p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-extrabold text-cyan-400 flex items-center gap-2">
-          <i class="fa-solid fa-right-left"></i> Export / Import Matchup
-        </h3>
-        <button id="ei-close-btn" class="text-slate-400 hover:text-white text-lg leading-none px-1" title="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <p class="text-[11px] text-slate-400 leading-snug">
-        Copy this text to share the matchup, or paste someone else's and hit Import to load it.
-      </p>
-      <textarea id="ei-textarea" spellcheck="false" rows="12"
-        class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500 resize-y"></textarea>
-      <div class="flex items-center justify-between gap-2">
-        <span id="ei-status" class="text-[11px] text-cyan-400 font-bold min-h-[1rem]"></span>
-        <div class="flex gap-2">
-          <button id="ei-copy-btn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-extrabold py-1.5 px-3 rounded-lg transition flex items-center gap-1.5">
-            <i class="fa-solid fa-copy"></i> Copy
-          </button>
-          <button id="ei-import-btn" class="bg-cyan-700 hover:bg-cyan-600 border border-cyan-500/30 text-white text-xs font-extrabold py-1.5 px-3 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
-            <i class="fa-solid fa-file-import"></i> Import
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Export / Import modal: rendered by the Preact ExportImportModal island. -->
+  <div id="ei-modal-root"></div>
 
   <!-- Detail modal (learnset / learned-by): rendered by the Preact DetailModal
        island (src/ui-preact/DetailModal.js), mounted here by app.js. -->
   <div id="detail-modal-root"></div>
 
   <!-- Script imports -->
-  <script type="module" src="app.js?v=1.0.29"></script>
+  <script type="module" src="app.js?v=1.0.30"></script>
 </body>
 </html>

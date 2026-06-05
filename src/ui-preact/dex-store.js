@@ -8,7 +8,7 @@ import { STATE, CACHE } from '../state.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat } from '../api/pokeapi.js';
-import { setSearchPlaceholders, getTypeBgClass } from '../ui/render.js';
+import { getTypeBgClass } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { spreadKind } from '../data/moves.js';
 import { html } from './preact.js';
@@ -163,7 +163,7 @@ export async function openDexPage() {
   const pending = [];
   if (REGULATIONS[STATE.format]) pending.push(initChampionsRoster());
   if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) {
-    pending.push(initPokemonList().then(setSearchPlaceholders));
+    pending.push(initPokemonList());
   }
   if (pending.length) await Promise.all(pending);
 

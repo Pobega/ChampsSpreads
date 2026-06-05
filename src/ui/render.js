@@ -1,7 +1,7 @@
-// Pure-ish UI render helpers. These do not read or mutate STATE; they take
-// data and write to the DOM. Anything that needs STATE stays in app.js.
-
-import { DOM } from './dom.js';
+// Pure UI render helpers shared across the Preact islands: type→Tailwind color
+// and nature-id→display-name lookups. Both are pure (no STATE, no DOM); the rest
+// of the old vanilla rendering (dropdown colors, move badges, option cards, stat
+// bars, search placeholders) moved into the islands during the Preact migration.
 
 const TYPE_BG_CLASSES = {
   Normal: 'bg-neutral-500',
@@ -28,18 +28,6 @@ export function getTypeBgClass(type) {
   return TYPE_BG_CLASSES[type] || 'bg-slate-700';
 }
 
-// Reflect the loaded roster size in the calculator's search placeholders. The
-// API module stays DOM-free and returns { count, fallback }; the wording lives
-// here. Called after the roster loads (on startup and when the Pokédex triggers
-// the background fetch).
-export function setSearchPlaceholders({ count, fallback }) {
-  const label = fallback ? 'Fallbacks loaded' : `${count} loaded`;
-  // Both search inputs now live in the Preact islands, so their refs may be absent
-  // here; guard the writes (kept for the pre-island vanilla layout / tests).
-  if (DOM.attackerSearch) DOM.attackerSearch.placeholder = `Search Attacker (${label})...`;
-  if (DOM.defenderSearch) DOM.defenderSearch.placeholder = `Search Defender (${label})...`;
-}
-
 const NATURE_DISPLAY = {
   'neutral': 'Neutral',
   '+atk': '+Atk',
@@ -52,82 +40,3 @@ const NATURE_DISPLAY = {
 export function formatNatureDisplayName(natId) {
   return NATURE_DISPLAY[natId.toLowerCase()] || natId;
 }
-
-export function createOptionCardHTML(title, nature, hpVal, defVal, statName, totalSP, themeColor) {
-  const isSurvival = themeColor === 'blue';
-  const themeText = isSurvival ? 'text-blue-400' : 'text-amber-400';
-  const themeBg = isSurvival ? 'bg-blue-950/25 border-blue-900/40 hover:border-blue-800/60' : 'bg-amber-950/25 border-amber-900/40 hover:border-amber-800/60';
-  const themeBtn = isSurvival ? 'bg-blue-600 hover:bg-blue-500 focus:ring-blue-800' : 'bg-amber-600 hover:bg-amber-500 focus:ring-amber-800';
-
-  const natureFormatted = formatNatureDisplayName(nature);
-
-  return `
-    <div class="border rounded-xl p-3 flex flex-col gap-2 transition text-left ${themeBg}">
-      <div class="flex justify-between items-start gap-3">
-        <div>
-          <div class="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">${title}</div>
-          <div class="text-xs font-black text-white mt-0.5">
-            Nature: <span class="${themeText}">${natureFormatted}</span>
-          </div>
-        </div>
-        <button class="apply-opt-btn ${themeBtn} text-white text-[9px] font-bold py-1 px-2 rounded-lg transition shrink-0"
-          data-type="${isSurvival ? 'survival' : 'offensive'}"
-          data-nature="${nature}"
-          ${isSurvival ? `data-hp="${hpVal}" data-def="${defVal}" data-stat="${statName.toLowerCase()}"` : `data-ev="${hpVal}" data-stat="${statName.toLowerCase()}"`}>
-          Apply All
-        </button>
-      </div>
-      <div class="flex justify-between items-center text-[10px] border-t border-slate-800 pt-1.5 text-slate-400 font-mono">
-        <span>Spread: <span class="font-bold text-slate-200">${isSurvival ? `${hpVal} HP / ${defVal} ${statName}` : `${hpVal} ${statName.toUpperCase()}`}</span></span>
-        <span>Total: <span class="font-bold text-slate-200">${totalSP} SP</span></span>
-      </div>
-    </div>
-  `;
-}
-
-export function createImpossibleOptionCardHTML(title, nature, themeColor) {
-  const isSurvival = themeColor === 'blue';
-  const themeBg = 'bg-slate-800/10 border-slate-800/50';
-
-  const natureFormatted = formatNatureDisplayName(nature);
-
-  return `
-    <div class="border rounded-xl p-3 flex flex-col gap-1.5 opacity-40 cursor-not-allowed text-left ${themeBg}">
-      <div class="flex justify-between items-start">
-        <div>
-          <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">${title}</div>
-          <div class="text-xs font-bold text-slate-400 mt-0.5">
-            Nature: <span>${natureFormatted}</span>
-          </div>
-        </div>
-        <span class="text-[9px] text-slate-500 font-bold border border-slate-800 px-1.5 py-0.5 rounded-lg shrink-0">
-          Impossible
-        </span>
-      </div>
-      <p class="text-[9px] text-slate-500 italic border-t border-slate-800/30 pt-1">Requires > 66 SP to achieve survival/KO</p>
-    </div>
-  `;
-}
-
-export function updateStatsBars(baseStats, prefix) {
-  const container = document.getElementById(`${prefix}-stats-bars`);
-  if (!container) return;
-
-  container.classList.remove('hidden');
-
-  const stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-  stats.forEach(stat => {
-    const valEl = document.getElementById(`${prefix}-bar-${stat}-val`);
-    const barEl = document.getElementById(`${prefix}-bar-${stat}`);
-    if (valEl && barEl) {
-      const baseVal = baseStats[stat];
-      valEl.textContent = baseVal;
-
-      const pct = Math.min(100, Math.max(5, (baseVal / 200) * 100));
-      barEl.style.width = `${pct}%`;
-    }
-  });
-}
-
-// Note: the calculator's dropdown-color, move-badge, and move-detail rendering
-// moved into the Preact ModifiersPanel / MovePanel islands during the migration.

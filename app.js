@@ -3,10 +3,7 @@
 
 import { calculateDamageRolls } from './src/engine/damage.js';
 import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
-import { REGULATIONS, NATIONAL_THEME } from './src/data/regulations.js';
-import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
 import { OFF_VGC_ABILITIES_HELPER, DEF_VGC_ABILITIES_HELPER } from './src/data/constants.js';
-import { DOM } from './src/ui/dom.js';
 import { STATE, CACHE } from './src/state.js';
 import {
   initPokemonList,
@@ -17,7 +14,6 @@ import {
   fetchMoveDetails
 } from './src/api/pokeapi.js';
 import { pruneOldCaches } from './src/api/cache.js';
-import { setSearchPlaceholders } from './src/ui/render.js';
 import { buildResultModel } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexStore, openDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui-preact/dex-store.js';
 import { DexView } from './src/ui-preact/DexView.js';
@@ -30,21 +26,10 @@ import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
 import { CenterPanel } from './src/ui-preact/OptimizerPanel.js';
 import { ResultsHUD } from './src/ui-preact/ResultsHUD.js';
+import { Brand, HeaderControls } from './src/ui-preact/HeaderControls.js';
+import { ExportImportModal } from './src/ui-preact/ExportImportModal.js';
 import { setRecompute, notify, DERIVED } from './src/ui-preact/store.js';
 
-// Each format gets a Rotom-form accent: the brand Rotom's glow and the format
-// pill borrow that form's signature color. Each regulation carries its own theme
-// (see regulations.js); the unrestricted "None" format wears Wash Rotom's cool sky.
-function applyFormTheme(format) {
-  const t = REGULATIONS[format]?.theme || NATIONAL_THEME;
-  if (DOM.brandRotom) {
-    // A colored glow hugging Rotom's silhouette — the form accent without a box.
-    DOM.brandRotom.style.filter = `drop-shadow(0 0 5px ${t.glow})`;
-  }
-  if (DOM.formatPill) {
-    DOM.formatPill.className = `flex items-center gap-1.5 bg-slate-900 border rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`;
-  }
-}
 
 // ==========================================
 // 2. APPLICATION STATE & GLOBAL CACHE
@@ -239,77 +224,6 @@ function runOptimizations() {
   // Headline result model for both HUD views (rendered by the ResultsHUD island).
   DERIVED.model = buildResultModel(rolls, STATE);
 }
-
-function bindEvents() {
-  // Attacker + defender inputs are wired inside their Preact islands; only the
-  // still-vanilla move / modifier inputs are bound here.
-  // The move/modifier inputs, mode tabs, and OHKO/2HKO target buttons are all
-  // wired inside the CenterPanel island (ModifiersPanel / MovePanel /
-  // OptimizerPanel). Only the still-vanilla format selector + header buttons here.
-  DOM.formatSelector.addEventListener('change', (e) => {
-    STATE.format = e.target.value;
-    applyFormTheme(STATE.format);
-    // Both regulation tags are rendered by their islands (refreshed via notify()
-    // at the end of updateLiveStats).
-    updateLiveStats();
-    onDexFormatChange();
-  });
-
-  DOM.loadSampleBtn.addEventListener('click', () => {
-    loadSampleVGCScenario();
-  });
-
-  bindExportImportModal();
-}
-
-// Export/import the current matchup as a human-readable text block.
-function bindExportImportModal() {
-  const setStatus = (msg) => { DOM.eiStatus.textContent = msg || ''; };
-  const openModal = () => {
-    DOM.eiTextarea.value = exportMatchup(augmentedState());
-    setStatus('');
-    DOM.eiModal.classList.remove('hidden');
-    DOM.eiTextarea.focus();
-    DOM.eiTextarea.select();
-  };
-  const closeModal = () => DOM.eiModal.classList.add('hidden');
-
-  DOM.exportImportBtn.addEventListener('click', openModal);
-  DOM.eiCloseBtn.addEventListener('click', closeModal);
-  // Click on the dimmed backdrop (but not the dialog itself) closes the modal.
-  DOM.eiModal.addEventListener('click', (e) => {
-    if (e.target === DOM.eiModal) closeModal();
-  });
-
-  DOM.eiCopyBtn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(DOM.eiTextarea.value);
-      setStatus('Copied to clipboard!');
-    } catch (err) {
-      // Clipboard API may be blocked; fall back to selecting the text.
-      DOM.eiTextarea.select();
-      setStatus('Press Ctrl/Cmd+C to copy.');
-    }
-  });
-
-  DOM.eiImportBtn.addEventListener('click', async () => {
-    const parsed = importMatchup(DOM.eiTextarea.value);
-    if (!parsed) {
-      setStatus("Couldn't read that — expected an \"Attacker:\" / \"Defender:\" block.");
-      return;
-    }
-    setStatus('Loading…');
-    DOM.eiImportBtn.disabled = true;
-    const ok = await applyMatchup(parsed);
-    DOM.eiImportBtn.disabled = false;
-    if (ok) {
-      closeModal();
-    } else {
-      setStatus('Failed to load — check the Pokémon names are spelled correctly.');
-    }
-  });
-}
-
 
 async function loadSampleVGCScenario() {
   // Fetch official details in parallel!
@@ -536,11 +450,14 @@ async function init() {
   render(h(CenterPanel), document.getElementById('panel-center'));
   render(h(ResultsHUD, { variant: 'desktop' }), document.getElementById('results-hud'));
   render(h(ResultsHUD, { variant: 'mobile' }), document.getElementById('mobile-floating-overlay'));
-  // Build the format dropdown from the regulation registry (+ the unrestricted
-  // "None" view) up front so it's never empty, even before the async loads below.
-  // Adding a regulation is then purely a data change in regulations.js.
-  populateFormatSelector();
-  bindEvents();
+  // Header chrome islands: brand Rotom (glow tints to the format), the format
+  // pill + selector + Load Sample + Export/Import controls, and the Export/Import
+  // modal. The format selector reads its options from the regulation registry, so
+  // adding a regulation is purely a data change in regulations.js. The theme tint
+  // is reactive (no applyFormTheme): the islands re-render from STATE.format.
+  render(h(Brand), document.getElementById('brand-rotom-root'));
+  render(h(HeaderControls, { onLoadSample: loadSampleVGCScenario }), document.getElementById('header-controls-root'));
+  render(h(ExportImportModal, { augmentedState, applyMatchup }), document.getElementById('ei-modal-root'));
   initMobileTabbing();
   // Register the calculator as the home view in the shared nav, then let the
   // dex pages register themselves. The calculator has no onShow side effect.
@@ -594,26 +511,10 @@ async function init() {
   notify();
 
   // Fetch massive search databases quietly in the background without blocking!
-  initPokemonList().then(setSearchPlaceholders);
+  initPokemonList();
   // Warm the Attackdex move index so its first open is instant (names only; each
   // move's stats are lazy-loaded as rows scroll in).
   initAllMovesList();
-
-  // Tint the brand/format chrome to match the active format's Rotom form.
-  applyFormTheme(STATE.format);
-}
-
-// Populate #format-selector: one option per regulation, then the unrestricted
-// National Dex ("None") view. Keeps the menu in sync with REGULATIONS.
-function populateFormatSelector() {
-  const sel = DOM.formatSelector;
-  if (!sel) return;
-  const options = Object.entries(REGULATIONS).map(
-    ([format, reg]) => `<option value="${format}" class="bg-slate-800">${reg.short}</option>`
-  );
-  options.push('<option value="all" class="bg-slate-800">None</option>');
-  sel.innerHTML = options.join('');
-  sel.value = STATE.format;
 }
 
 document.addEventListener('DOMContentLoaded', init);
