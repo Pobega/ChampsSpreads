@@ -24,7 +24,7 @@ import { DexView } from './src/ui-preact/DexView.js';
 import { initAttackdexStore, openAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui-preact/attackdex-store.js';
 import { AttackdexView } from './src/ui-preact/AttackdexView.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
-import { initDetailModal } from './src/ui/detail-modal.js';
+import { DetailModal } from './src/ui-preact/DetailModal.js';
 import { render, h } from 'preact';
 import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
@@ -548,7 +548,7 @@ async function init() {
     navBtn: document.getElementById('nav-calculator'),
     pageEl: document.getElementById('page-calculator')
   });
-  initDetailModal();
+  render(h(DetailModal), document.getElementById('detail-modal-root'));
   // Pokédex is a Preact island: wire its store callbacks, mount the view into the
   // persistent #page-pokedex container, and register its onShow (build + load).
   initDexStore({

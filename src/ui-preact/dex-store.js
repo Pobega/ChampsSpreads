@@ -3,14 +3,15 @@
 // state (roster, sort, query, load flags) and its own subscribe/notify set
 // (separate from the calculator store in store.js) so the concurrency-limited
 // loaders trigger a DexView re-render instead of calling a renderDex() that
-// touches the DOM. The row-click detail modal stays the shared vanilla one.
+// touches the DOM. The row-click detail modal is the shared Preact DetailModal.
 import { STATE, CACHE } from '../state.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat } from '../api/pokeapi.js';
-import { setSearchPlaceholders, getTypeBgClass, escapeHtml } from '../ui/render.js';
-import { openDetailModal, closeDetailModal, refreshDetailModalBody } from '../ui/detail-modal.js';
+import { setSearchPlaceholders, getTypeBgClass } from '../ui/render.js';
+import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { spreadKind } from '../data/moves.js';
+import { html } from './preact.js';
 
 // Shared, reactive Pokédex state. DexView reads these fields directly and
 // re-renders on notifyDex(). Same shape/semantics as the old vanilla DexPage.
@@ -213,25 +214,27 @@ const MOVE_CAT_CLS = {
 };
 
 function buildMoveItem(move, md, onClick) {
-  const name = escapeHtml(move.name);
   if (!md) {
-    return { html: `<span class="font-bold text-slate-500 flex-1 truncate animate-pulse">${name}</span>`, onClick };
+    return { node: html`<span class="font-bold text-slate-500 flex-1 truncate animate-pulse">${move.name}</span>`, onClick };
   }
-  const type = escapeHtml(md.type);
-  const typeBadge = `<div class="w-14 shrink-0"><span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(md.type)} text-white">${type}</span></div>`;
   const catCls = MOVE_CAT_CLS[md.category] || MOVE_CAT_CLS.status;
   const catLabel = md.category ? md.category.charAt(0).toUpperCase() + md.category.slice(1) : '—';
-  const catBadge = `<div class="w-16 shrink-0"><span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${catCls}">${catLabel}</span></div>`;
-  const power = md.power
-    ? `<span class="font-mono text-amber-400 w-7 text-right shrink-0 text-[11px]">${md.power}</span>`
-    : `<span class="font-mono text-slate-600 w-7 text-right shrink-0 text-[11px]">—</span>`;
   const kind = spreadKind(md);
   const spreadBadge = kind === 'ally'
-    ? `<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-rose-950/50 text-rose-400 border border-rose-900/40" title="Also hits your ally">Spread+Ally</span>`
+    ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-rose-950/50 text-rose-400 border border-rose-900/40" title="Also hits your ally">Spread+Ally</span>`
     : kind === 'opponents'
-      ? `<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Hits both opponents">Spread</span>`
+      ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Hits both opponents">Spread</span>`
       : '';
-  return { html: `<span class="font-bold text-slate-100 flex-1 flex items-center gap-1.5 min-w-0"><span class="truncate">${name}</span>${spreadBadge}</span>${typeBadge}${catBadge}${power}`, onClick };
+  return {
+    node: html`
+      <span class="font-bold text-slate-100 flex-1 flex items-center gap-1.5 min-w-0"><span class="truncate">${move.name}</span>${spreadBadge}</span>
+      <div class="w-14 shrink-0"><span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(md.type)} text-white`}>${md.type}</span></div>
+      <div class="w-16 shrink-0"><span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${catCls}`}>${catLabel}</span></div>
+      ${md.power
+        ? html`<span class="font-mono text-amber-400 w-7 text-right shrink-0 text-[11px]">${md.power}</span>`
+        : html`<span class="font-mono text-slate-600 w-7 text-right shrink-0 text-[11px]">—</span>`}`,
+    onClick,
+  };
 }
 
 export async function handleDexRowClick(apiName) {

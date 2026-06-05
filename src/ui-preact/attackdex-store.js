@@ -8,8 +8,9 @@ import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { fetchMoveDetails, fetchPokemonDetails, initAllMovesList, formatDisplayName, legalSetForFormat } from '../api/pokeapi.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
-import { getTypeBgClass, escapeHtml } from '../ui/render.js';
-import { openDetailModal, closeDetailModal, refreshDetailModalBody } from '../ui/detail-modal.js';
+import { getTypeBgClass } from '../ui/render.js';
+import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
+import { html } from './preact.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
 // re-renders on notifyAdx(). Same shape/semantics as the old vanilla AttackdexPage.
@@ -206,21 +207,20 @@ export function jumpToAttackdexMove(apiName) {
 const LEARNER_CAP = 150;
 
 function buildPokemonItem(n, pd, onClick) {
-  const name = escapeHtml(formatDisplayName(n));
+  const name = formatDisplayName(n);
   if (!pd) {
     return {
-      html: `<div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div><span class="font-bold text-slate-500 flex-1 truncate">${name}</span>`,
+      node: html`<div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div><span class="font-bold text-slate-500 flex-1 truncate">${name}</span>`,
       onClick
     };
   }
-  const sprite = escapeHtml(pd.sprite || '');
-  const img = `<img src="${sprite}" alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0">`;
-  const types = pd.types.map(t => {
-    const type = escapeHtml(t);
-    return `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white">${type}</span>`;
-  }).join('');
   return {
-    html: `${img}<span class="font-bold text-slate-100 flex-1 truncate min-w-0">${name}</span><div class="flex gap-1 shrink-0">${types}</div>`,
+    node: html`
+      <img src=${pd.sprite || ''} alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0" />
+      <span class="font-bold text-slate-100 flex-1 truncate min-w-0">${name}</span>
+      <div class="flex gap-1 shrink-0">
+        ${pd.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
+      </div>`,
     onClick
   };
 }
