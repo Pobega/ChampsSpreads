@@ -43,7 +43,8 @@ import { initDetailModal } from './src/ui/detail-modal.js';
 import { render, h } from 'preact';
 import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
-import { setRecompute, notify } from './src/ui-preact/store.js';
+import { CenterPanel } from './src/ui-preact/OptimizerPanel.js';
+import { setRecompute, notify, DERIVED } from './src/ui-preact/store.js';
 
 // Each format gets a Rotom-form accent: the brand Rotom's glow and the format
 // pill borrow that form's signature color. Each regulation carries its own theme
@@ -70,16 +71,18 @@ function applyFormTheme(format) {
 // (its late updateLiveStats would otherwise clobber the imported move).
 let isApplyingMatchup = false;
 
-// burn lives on attacker.status and the tailwind flags are read straight off
-// the DOM in updateLiveStats, so fold them into the modifiers slice for export.
+// Tracks whether the field aura is currently force-locked to Fairy by the
+// attacker's Fairy Aura ability, so releasing the ability can revert it to none.
+let auraLockedByFairyAura = false;
+
+// burn lives on attacker.status (the rest, incl. tailAtk/tailDef, are already on
+// STATE.modifiers), so fold burn into the modifiers slice for export.
 function augmentedState() {
   return {
     ...STATE,
     modifiers: {
       ...STATE.modifiers,
-      burn: STATE.attacker.status === 'burned',
-      tailAtk: DOM.modTailAtk.checked,
-      tailDef: DOM.modTailDef.checked
+      burn: STATE.attacker.status === 'burned'
     }
   };
 }
@@ -89,17 +92,6 @@ function augmentedState() {
 // 7. UI WORKFLOW & CONTROLLER BINDING
 // ==========================================
 
-
-function populateDropdowns() {
-  // Both nature selects are rendered by their Preact islands; only the still-vanilla
-  // move-type select is populated here.
-  ALL_TYPES.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
-    DOM.moveType.appendChild(opt);
-  });
-}
 
 function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
   inputEl.addEventListener('input', (e) => {
@@ -248,39 +240,36 @@ function setAttackerDetails(details) {
     STATE.attacker.ability = "none";
   }
 
-  // Move dropdown lives in the still-vanilla center panel.
+  // The move dropdown is rendered by the MovePanel island from STATE.attacker.moves;
+  // here we only choose which move is active (STATE.move).
   const damagingMoves = details.moves
     .filter(m => !CACHE.statusMoves[m.apiName])
     .sort((a, b) => a.name.localeCompare(b.name));
-  DOM.attackerMoveSelect.innerHTML = `<option value="custom">--- Custom Move ---</option>` +
-    damagingMoves.map(m => `<option value="${m.apiName}">${m.name}</option>`).join('');
 
   // Auto Pre-Selection of the very first valid damaging move from the new learnset!
   // While importing a matchup, applyMatchup owns the move selection, so skip the
   // async auto-pick here — its late updateLiveStats() would clobber the import.
   if (damagingMoves.length > 0 && !isApplyingMatchup) {
     const firstMove = damagingMoves[0];
-    DOM.attackerMoveSelect.value = firstMove.apiName;
     STATE.move.apiName = firstMove.apiName;
-    
+    STATE.move.name = firstMove.name;
+
     fetchMoveDetails(firstMove.apiName).then(move => {
-      DOM.movePower.value = move.power;
-      DOM.movePower.dataset.basePower = move.power;
-      updateMoveDetailsVisuals(move.type, move.category, false);
+      STATE.move.power = move.power; // base power; MovePanel shows resolved BP
+      STATE.move.type = move.type;
+      STATE.move.category = move.category.toLowerCase();
       updateLiveStats();
     }).catch(err => {
       console.error("Error auto pre-selecting first VGC move:", err);
-      DOM.attackerMoveSelect.value = "custom";
       STATE.move.apiName = "";
-      DOM.movePower.value = 80;
-      updateMoveDetailsVisuals("Normal", "physical", true);
+      STATE.move.name = "Custom Move";
+      STATE.move.power = 80;
       updateLiveStats();
     });
-  } else {
-    DOM.attackerMoveSelect.value = "custom";
+  } else if (!isApplyingMatchup) {
     STATE.move.apiName = "";
-    DOM.movePower.value = 80;
-    updateMoveDetailsVisuals("Normal", "physical", true);
+    STATE.move.name = "Custom Move";
+    STATE.move.power = 80;
     updateLiveStats();
   }
 
@@ -312,7 +301,6 @@ function setDefenderDetails(details) {
 
 
 function updateLiveStats() {
-  updateDropdownColors();
   // Attacker fields are owned by the Preact AttackerCard island (it writes them
   // straight to STATE); only read the vanilla card here if it's actually mounted.
   if (DOM.attackerNature) {
@@ -342,46 +330,17 @@ function updateLiveStats() {
     STATE.defender.boosts.spe = parseInt(DOM.defenderBoostSpe.value) || 0;
   }
 
-  const selectedMoveOpt = DOM.attackerMoveSelect.options[DOM.attackerMoveSelect.selectedIndex];
-  let moveName = selectedMoveOpt ? selectedMoveOpt.textContent : "Custom Move";
-  if (moveName.includes("Custom Move")) moveName = "Custom Move";
-  STATE.move.name = moveName;
-
-  STATE.move.type = DOM.moveType.value;
-  STATE.move.power = parseInt(DOM.movePower.value) || 0;
-  STATE.move.category = DOM.moveCategory.value;
-
-  STATE.modifiers.spread = DOM.modSpread.checked;
-  STATE.modifiers.weather = DOM.modWeatherSelect.value;
-  STATE.modifiers.crit = DOM.modCrit.checked;
-  STATE.modifiers.friendGuard = DOM.modFriendGuard.checked;
-  STATE.modifiers.screens = DOM.modScreens.checked;
-  STATE.modifiers.helpingHand = DOM.modHelpingHand.checked;
-  STATE.modifiers.terrain = DOM.modTerrainSelect.value;
-
-  // Fairy Aura locks the field aura to Fairy for its holder.
+  // Move + modifier fields are owned by the MovePanel / ModifiersPanel islands,
+  // which write them straight to STATE. The only cross-panel rule enforced here:
+  // Fairy Aura forces the field aura to Fairy while its holder is the attacker
+  // (the ModifiersPanel renders the aura select locked/disabled from this), and
+  // releasing the lock reverts a previously-forced 'fairy' back to 'none'.
   if (STATE.attacker.ability === 'fairy-aura') {
-    DOM.modAuraSelect.value = 'fairy';
-    DOM.modAuraSelect.disabled = true;
-    DOM.modAuraSelect.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] text-slate-400 cursor-not-allowed";
-  } else if (DOM.modAuraSelect.disabled) {
-    // Releasing a previously forced lock: clear it and re-enable.
-    DOM.modAuraSelect.value = 'none';
-    DOM.modAuraSelect.disabled = false;
-    DOM.modAuraSelect.className = "w-full bg-slate-900/45 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer";
-  }
-  STATE.modifiers.aura = DOM.modAuraSelect.value;
-  STATE.attacker.status = DOM.modBurned.checked ? 'burned' : null;
-
-  // Variable-type/-power moves (Weather Ball) resolve from battle state. Keep
-  // STATE.move at its *base* type/power so calculateDamageRolls doubles exactly
-  // once; surface the resolved type + BP in the Attack card. Base power lives in
-  // dataset.basePower because the visible input may hold a prior resolved value.
-  if (STATE.move.apiName) {
-    STATE.move.power = parseInt(DOM.movePower.dataset.basePower) || STATE.move.power;
-    const effective = resolveEffectiveMove(STATE.attacker, STATE.move, STATE.modifiers);
-    setMoveTypeBadge(effective.type);
-    DOM.movePower.value = effective.power;
+    STATE.modifiers.aura = 'fairy';
+    auraLockedByFairyAura = true;
+  } else if (auraLockedByFairyAura) {
+    STATE.modifiers.aura = 'none';
+    auraLockedByFairyAura = false;
   }
 
   const attackerSPSum = STATE.attacker.sps.atk + STATE.attacker.sps.spa + STATE.attacker.sps.spe;
@@ -415,7 +374,7 @@ function updateLiveStats() {
   if (STATE.attacker.item === 'choice_scarf') {
     finalAttackerSpe = Math.floor(finalAttackerSpe * 1.5);
   }
-  if (DOM.modTailAtk.checked) {
+  if (STATE.modifiers.tailAtk) {
     finalAttackerSpe = finalAttackerSpe * 2;
   }
 
@@ -442,7 +401,7 @@ function updateLiveStats() {
   if (STATE.defender.item === 'choice_scarf') {
     finalDefenderSpe = Math.floor(finalDefenderSpe * 1.5);
   }
-  if (DOM.modTailDef.checked) {
+  if (STATE.modifiers.tailDef) {
     finalDefenderSpe = finalDefenderSpe * 2;
   }
 
@@ -530,153 +489,73 @@ function updateLiveStats() {
 }
 
 
+// Compute the damage rolls + optimizer suggestion cards into the DERIVED stash.
+// The OptimizerPanel + ResultsHUD islands render from DERIVED; this no longer
+// touches the DOM. Card shape is documented on DERIVED in store.js.
 function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
+  DERIVED.rolls = rolls;
+
+  const cards = [];
+  let notPossible = false;
 
   if (STATE.mode === 'survival') {
     const cheapest = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, null);
     const speedy = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, ['+spe']);
     const current = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, [STATE.defender.nature]);
-
-    const defStatName = STATE.move.category.toLowerCase() === 'physical' ? 'Def' : 'SpD';
+    const statName = STATE.move.category.toLowerCase() === 'physical' ? 'Def' : 'SpD';
+    const stat = statName.toLowerCase();
+    const opt = (title, r) => ({ type: 'survival', theme: 'blue', title, nature: r.nature, hp: r.hp, def: r.def, statName, stat, total: r.total });
 
     if (cheapest) {
-      DOM.survivalNotPossible.classList.add('hidden');
-      DOM.survivalOptionsContainer.innerHTML = '';
-
-      // Card 1: Most Efficient
-      DOM.survivalOptionsContainer.innerHTML += createOptionCardHTML('Option 1: Most Efficient', cheapest.nature, cheapest.hp, cheapest.def, defStatName, cheapest.total, 'blue');
-
-      // Card 2: Speed Positive
-      if (speedy) {
-        DOM.survivalOptionsContainer.innerHTML += createOptionCardHTML('Option 2: Speed Positive (+Spe)', speedy.nature, speedy.hp, speedy.def, defStatName, speedy.total, 'blue');
-      } else {
-        DOM.survivalOptionsContainer.innerHTML += createImpossibleOptionCardHTML('Option 2: Speed Positive (+Spe)', '+spe', 'blue');
-      }
-
-      // Card 3: Current Nature
+      cards.push(opt('Option 1: Most Efficient', cheapest));
+      cards.push(speedy ? opt('Option 2: Speed Positive (+Spe)', speedy)
+        : { impossible: true, theme: 'blue', title: 'Option 2: Speed Positive (+Spe)', nature: '+spe' });
       if (current) {
-        const isDuplicateCheapest = (current.nature === cheapest.nature);
-        const isDuplicateSpeedy = (speedy && current.nature === speedy.nature);
-        if (!isDuplicateCheapest && !isDuplicateSpeedy) {
-          DOM.survivalOptionsContainer.innerHTML += createOptionCardHTML('Option 3: Keep Current Nature', current.nature, current.hp, current.def, defStatName, current.total, 'blue');
+        if (current.nature !== cheapest.nature && !(speedy && current.nature === speedy.nature)) {
+          cards.push(opt('Option 3: Keep Current Nature', current));
         }
       } else {
-        DOM.survivalOptionsContainer.innerHTML += createImpossibleOptionCardHTML('Option 3: Keep Current Nature', STATE.defender.nature, 'blue');
+        cards.push({ impossible: true, theme: 'blue', title: 'Option 3: Keep Current Nature', nature: STATE.defender.nature });
       }
-
-      bindApplyButtonsListeners();
     } else {
-      DOM.survivalNotPossible.classList.remove('hidden');
-      DOM.survivalOptionsContainer.innerHTML = `<div class="text-xs text-slate-500 italic p-4 text-center border border-slate-800 rounded-xl bg-slate-800/20">Survival is impossible even with maximum defensive Nature & allocations</div>`;
+      notPossible = true;
     }
   } else {
     const cheapest = optimizeOffensiveEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.targetKO, null);
     const speedy = optimizeOffensiveEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.targetKO, ['+spe']);
     const current = optimizeOffensiveEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.targetKO, [STATE.attacker.nature]);
-
-    const categoryLabel = STATE.move.category.toLowerCase() === 'physical' ? 'atk' : 'spa';
+    const stat = STATE.move.category.toLowerCase() === 'physical' ? 'atk' : 'spa';
+    const opt = (title, r) => ({ type: 'offensive', theme: 'amber', title, nature: r.nature, sp: r.sp, statName: stat, stat, total: r.sp });
 
     if (cheapest) {
-      DOM.offensiveNotPossible.classList.add('hidden');
-      DOM.offensiveOptionsContainer.innerHTML = '';
-
-      // Card 1: Most Efficient
-      DOM.offensiveOptionsContainer.innerHTML += createOptionCardHTML('Option 1: Most Efficient', cheapest.nature, cheapest.sp, cheapest.sp, categoryLabel, cheapest.sp, 'amber');
-
-      // Card 2: Speed Positive
-      if (speedy) {
-        DOM.offensiveOptionsContainer.innerHTML += createOptionCardHTML('Option 2: Speed Positive (+Spe)', speedy.nature, speedy.sp, speedy.sp, categoryLabel, speedy.sp, 'amber');
-      } else {
-        DOM.offensiveOptionsContainer.innerHTML += createImpossibleOptionCardHTML('Option 2: Speed Positive (+Spe)', '+spe', 'amber');
-      }
-
-      // Card 3: Current Nature
+      cards.push(opt('Option 1: Most Efficient', cheapest));
+      cards.push(speedy ? opt('Option 2: Speed Positive (+Spe)', speedy)
+        : { impossible: true, theme: 'amber', title: 'Option 2: Speed Positive (+Spe)', nature: '+spe' });
       if (current) {
-        const isDuplicateCheapest = (current.nature === cheapest.nature);
-        const isDuplicateSpeedy = (speedy && current.nature === speedy.nature);
-        if (!isDuplicateCheapest && !isDuplicateSpeedy) {
-          DOM.offensiveOptionsContainer.innerHTML += createOptionCardHTML('Option 3: Keep Current Nature', current.nature, current.sp, current.sp, categoryLabel, current.sp, 'amber');
+        if (current.nature !== cheapest.nature && !(speedy && current.nature === speedy.nature)) {
+          cards.push(opt('Option 3: Keep Current Nature', current));
         }
       } else {
-        DOM.offensiveOptionsContainer.innerHTML += createImpossibleOptionCardHTML('Option 3: Keep Current Nature', STATE.attacker.nature, 'amber');
+        cards.push({ impossible: true, theme: 'amber', title: 'Option 3: Keep Current Nature', nature: STATE.attacker.nature });
       }
-
-      bindApplyButtonsListeners();
     } else {
-      DOM.offensiveNotPossible.classList.remove('hidden');
-      DOM.offensiveOptionsContainer.innerHTML = `<div class="text-xs text-slate-500 italic p-4 text-center border border-slate-800 rounded-xl bg-slate-800/20">Secure KO is impossible even with maximum offensive Nature & allocations</div>`;
+      notPossible = true;
     }
   }
+
+  DERIVED.optimizer = { notPossible, cards };
 
   // Mirror the headline result into every view (mobile overlay + desktop HUD).
   updateResultSummary(rolls);
 }
 
-
-function bindApplyButtonsListeners() {
-  document.querySelectorAll('.apply-opt-btn').forEach(btn => {
-    btn.onclick = (e) => {
-      const dataset = e.currentTarget.dataset;
-      const type = dataset.type;
-      const nature = dataset.nature;
-      const statType = dataset.stat;
-
-      if (type === 'survival') {
-        const hp = parseInt(dataset.hp);
-        const def = parseInt(dataset.def);
-
-        if (!isNaN(hp)) {
-          // Defender fields live on STATE (island-owned), not the DOM.
-          STATE.defender.sps.hp = hp;
-          if (statType === 'def') {
-            STATE.defender.sps.def = def;
-            STATE.defender.sps.spd = 0;
-          } else {
-            STATE.defender.sps.spd = def;
-            STATE.defender.sps.def = 0;
-          }
-          if (nature) {
-            STATE.defender.nature = nature;
-          }
-          updateLiveStats();
-        }
-      } else {
-        const ev = parseInt(dataset.ev);
-
-        if (!isNaN(ev)) {
-          // Attacker fields live on STATE (island-owned), not the DOM.
-          if (statType === 'atk') {
-            STATE.attacker.sps.atk = ev;
-            STATE.attacker.sps.spa = 0;
-          } else {
-            STATE.attacker.sps.spa = ev;
-            STATE.attacker.sps.atk = 0;
-          }
-          if (nature) {
-            STATE.attacker.nature = nature;
-          }
-          updateLiveStats();
-        }
-      }
-    };
-  });
-}
-
 function bindEvents() {
   // Attacker + defender inputs are wired inside their Preact islands; only the
   // still-vanilla move / modifier inputs are bound here.
-  const inputs = [
-    DOM.moveType, DOM.movePower, DOM.moveCategory,
-    DOM.modSpread, DOM.modWeatherSelect, DOM.modCrit,
-    DOM.modFriendGuard, DOM.modScreens, DOM.modBurned, DOM.modHelpingHand,
-    DOM.modTailAtk, DOM.modTailDef, DOM.modTerrainSelect, DOM.modAuraSelect
-  ];
-
-  inputs.forEach(inp => {
-    inp.addEventListener('input', updateLiveStats);
-  });
-
+  // The move/modifier inputs, mode tabs, and OHKO/2HKO target buttons are all
+  // wired inside the CenterPanel island (ModifiersPanel / MovePanel /
+  // OptimizerPanel). Only the still-vanilla format selector + header buttons here.
   DOM.formatSelector.addEventListener('change', (e) => {
     STATE.format = e.target.value;
     applyFormTheme(STATE.format);
@@ -684,62 +563,6 @@ function bindEvents() {
     // at the end of updateLiveStats).
     updateLiveStats();
     onDexFormatChange();
-  });
-
-  // Attacker + defender SP presets are handled inside their islands.
-
-  DOM.tabSurvival.addEventListener('click', () => {
-    STATE.mode = 'survival';
-    DOM.tabSurvival.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow";
-    DOM.tabOffensive.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
-    DOM.survivalResults.classList.remove('hidden');
-    DOM.offensiveResults.classList.add('hidden');
-    updateLiveStats();
-  });
-
-  DOM.tabOffensive.addEventListener('click', () => {
-    STATE.mode = 'offensive';
-    DOM.tabOffensive.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow";
-    DOM.tabSurvival.className = "flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
-    DOM.offensiveResults.classList.remove('hidden');
-    DOM.survivalResults.classList.add('hidden');
-    updateLiveStats();
-  });
-
-  DOM.btnTargetOHKO.addEventListener('click', () => {
-    STATE.targetKO = 'ohko';
-    DOM.btnTargetOHKO.className = "bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition";
-    DOM.btnTarget2HKO.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl border border-slate-700 transition";
-    updateLiveStats();
-  });
-
-  DOM.btnTarget2HKO.addEventListener('click', () => {
-    STATE.targetKO = '2hko';
-    DOM.btnTarget2HKO.className = "bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition";
-    DOM.btnTargetOHKO.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl border border-slate-700 transition";
-    updateLiveStats();
-  });
-
-  DOM.attackerMoveSelect.addEventListener('change', async (e) => {
-    const val = e.target.value;
-    
-    if (val === 'custom') {
-      STATE.move.apiName = "";
-      updateMoveDetailsVisuals("Normal", "physical", true);
-      updateLiveStats();
-      return;
-    }
-
-    try {
-      const move = await fetchMoveDetails(val);
-      DOM.movePower.value = move.power;
-      DOM.movePower.dataset.basePower = move.power;
-      STATE.move.apiName = move.apiName;
-      updateMoveDetailsVisuals(move.type, move.category, false);
-      updateLiveStats();
-    } catch (err) {
-      console.error('Error fetching move info', err);
-    }
   });
 
   DOM.loadSampleBtn.addEventListener('click', () => {
@@ -851,25 +674,26 @@ async function loadSampleVGCScenario() {
   STATE.defender.sps.spd = 0;
   STATE.defender.sps.spe = 0;
 
-  // Pre-select Flying-type Acrobatics move
-  DOM.attackerMoveSelect.value = "acrobatics";
-
+  // Pre-select Flying-type Acrobatics move (move fields live on STATE.move).
   try {
     const move = await fetchMoveDetails("acrobatics");
-    DOM.movePower.value = move.power;
     STATE.move.apiName = move.apiName;
-    updateMoveDetailsVisuals(move.type, move.category, false);
+    STATE.move.name = "Acrobatics";
+    STATE.move.power = move.power;
+    STATE.move.type = move.type;
+    STATE.move.category = move.category.toLowerCase();
   } catch (err) {
     console.error("Failed to load preloaded Acrobatics move info", err);
   }
 
-  DOM.modSpread.checked = false;
-  DOM.modWeatherSelect.value = 'none';
-  DOM.modCrit.checked = false;
-  DOM.modBurned.checked = false;
-  DOM.modHelpingHand.checked = false;
-  DOM.modTailAtk.checked = false;
-  DOM.modTailDef.checked = false;
+  // Modifiers live on STATE.modifiers (burn on attacker.status).
+  STATE.modifiers.spread = false;
+  STATE.modifiers.weather = 'none';
+  STATE.modifiers.crit = false;
+  STATE.attacker.status = null;
+  STATE.modifiers.helpingHand = false;
+  STATE.modifiers.tailAtk = false;
+  STATE.modifiers.tailDef = false;
 
   updateLiveStats();
 }
@@ -912,48 +736,46 @@ async function applyMatchup(parsed) {
     STATE.defender.boosts.spd = parsed.defender.boosts.spd;
     STATE.defender.boosts.spe = parsed.defender.boosts.spe;
 
-    // Modifiers.
+    // Modifiers (all on STATE.modifiers; burn on attacker.status).
     const mod = parsed.modifiers;
-    DOM.modSpread.checked = mod.spread;
-    DOM.modCrit.checked = mod.crit;
-    DOM.modScreens.checked = mod.screens;
-    DOM.modFriendGuard.checked = mod.friendGuard;
-    DOM.modHelpingHand.checked = mod.helpingHand;
-    DOM.modBurned.checked = mod.burn;
-    DOM.modTailAtk.checked = mod.tailAtk;
-    DOM.modTailDef.checked = mod.tailDef;
-    DOM.modWeatherSelect.value = mod.weather;
-    DOM.modTerrainSelect.value = mod.terrain;
-    DOM.modAuraSelect.value = mod.aura;
+    STATE.modifiers.spread = mod.spread;
+    STATE.modifiers.crit = mod.crit;
+    STATE.modifiers.screens = mod.screens;
+    STATE.modifiers.friendGuard = mod.friendGuard;
+    STATE.modifiers.helpingHand = mod.helpingHand;
+    STATE.attacker.status = mod.burn ? 'burned' : null;
+    STATE.modifiers.tailAtk = mod.tailAtk;
+    STATE.modifiers.tailDef = mod.tailDef;
+    STATE.modifiers.weather = mod.weather;
+    STATE.modifiers.terrain = mod.terrain;
+    STATE.modifiers.aura = mod.aura;
 
-    // Move: a named move re-fetches its power/type/category; a custom move
-    // carries those explicitly. The dropdown options are keyed by apiName.
+    // Move: a named move re-fetches its base power/type/category; a custom move
+    // carries those explicitly. The MovePanel renders from STATE.move.
     if (parsed.move.apiName) {
       try {
         const mv = await fetchMoveDetails(parsed.move.apiName);
-        DOM.attackerMoveSelect.value = mv.apiName;
-        DOM.movePower.value = mv.power;
-        DOM.movePower.dataset.basePower = mv.power;
         STATE.move.apiName = mv.apiName;
-        updateMoveDetailsVisuals(mv.type, mv.category, false);
+        STATE.move.name = parsed.move.name || mv.apiName;
+        STATE.move.power = mv.power;
+        STATE.move.type = mv.type;
+        STATE.move.category = mv.category.toLowerCase();
       } catch (err) {
         console.error("Imported move not found, falling back to custom:", err);
-        DOM.attackerMoveSelect.value = "custom";
         STATE.move.apiName = "";
+        STATE.move.name = "Custom Move";
       }
     } else {
-      DOM.attackerMoveSelect.value = "custom";
       STATE.move.apiName = "";
-      DOM.moveType.value = parsed.move.type;
-      DOM.moveCategory.value = parsed.move.category;
-      DOM.movePower.value = parsed.move.power;
-      updateMoveDetailsVisuals(parsed.move.type, parsed.move.category, true);
+      STATE.move.name = "Custom Move";
+      STATE.move.type = parsed.move.type;
+      STATE.move.category = parsed.move.category;
+      STATE.move.power = parsed.move.power;
     }
 
-    // Panel state. The tab/target buttons own their active-class styling, so
-    // reuse their click handlers.
-    (parsed.mode === 'survival' ? DOM.tabSurvival : DOM.tabOffensive).click();
-    (parsed.ko === '2hko' ? DOM.btnTarget2HKO : DOM.btnTargetOHKO).click();
+    // Panel state (mode tabs + target buttons render from STATE in OptimizerPanel).
+    STATE.mode = parsed.mode === 'survival' ? 'survival' : 'offensive';
+    STATE.targetKO = parsed.ko === '2hko' ? '2hko' : 'ohko';
 
     isApplyingMatchup = false;
     updateLiveStats();
@@ -1021,7 +843,7 @@ async function init() {
   setRecompute(updateLiveStats);
   render(h(AttackerCard, { onChoose: setAttackerDetails }), document.getElementById('panel-attacker'));
   render(h(DefenderCard, { onChoose: setDefenderDetails }), document.getElementById('panel-defender'));
-  populateDropdowns();
+  render(h(CenterPanel), document.getElementById('panel-center'));
   // Build the format dropdown from the regulation registry (+ the unrestricted
   // "None" view) up front so it's never empty, even before the async loads below.
   // Adding a regulation is then purely a data change in regulations.js.

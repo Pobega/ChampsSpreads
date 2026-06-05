@@ -56,7 +56,13 @@ export const STATE = {
     spread: false,
     weather: 'none', // 'none', 'sun', 'rain', 'sandstorm', 'snow'
     crit: false,
-    helpingHand: false
+    helpingHand: false,
+    friendGuard: false,
+    screens: false,
+    terrain: 'none', // 'none', 'electric', 'grassy', 'psychic', 'misty'
+    aura: 'none',    // 'none', 'fairy', 'dark'
+    tailAtk: false,  // attacker Tailwind (2x Speed) — was read off the DOM
+    tailDef: false   // defender Tailwind (2x Speed)
     // movesFirst (Bolt Beak / Fishious Rend) is left unset so the engine
     // infers turn order from effective Speed; set it to override that.
   }

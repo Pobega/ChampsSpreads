@@ -11,6 +11,17 @@ import { STATE, CACHE } from '../state.js';
 
 export { STATE, CACHE };
 
+// Derived results stashed by the recompute pipeline (updateLiveStats) and read by
+// the OptimizerPanel + ResultsHUD islands, so they render reactively instead of
+// the controller writing innerHTML. recompute fills this, then notify() fires.
+export const DERIVED = {
+  rolls: [],
+  // Optimizer suggestions for the active mode: { notPossible, cards: [...] }.
+  // Each card is either an option { type, theme, title, nature, ...applyData }
+  // or an impossible placeholder { impossible:true, theme, title, nature }.
+  optimizer: { notPossible: false, cards: [] },
+};
+
 const listeners = new Set();
 
 // Subscribe a render trigger; returns an unsubscribe fn (for useEffect cleanup).
