@@ -8,7 +8,8 @@ import { STATE, CACHE } from '../state.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat } from '../api/pokeapi.js';
-import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
+import { getTypeBgClass, getCategoryBadge, TYPE_SHORT } from '../ui/render.js';
+import { getTypeEffectiveness } from '../engine/stats.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { spreadKind } from '../data/moves.js';
 import { html } from './preact.js';
@@ -207,6 +208,54 @@ export function onDexFormatChange() {
   }
 }
 
+// --- Type matchup summary (header of the row-click modal) ---
+
+const ALL_TYPES = [
+  'Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison',
+  'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy',
+];
+
+// Sections in display order (most resistant → most weak). Neutral (1×) is omitted
+// per the design; immunities get their own section above the 4× resist tier.
+const MATCHUP_SECTIONS = [
+  { mult: 0,    label: 'Immune',    tone: 'text-sky-400' },
+  { mult: 0.25, label: '4× Resist', tone: 'text-emerald-400' },
+  { mult: 0.5,  label: '2× Resist', tone: 'text-emerald-400' },
+  { mult: 2,    label: '2× Weak',   tone: 'text-red-400' },
+  { mult: 4,    label: '4× Weak',   tone: 'text-red-400' },
+];
+
+// Build the matchup header: for each attacking type, how the Pokémon takes it.
+// Returns null when the Pokémon is neutral to everything (no section to show).
+function buildTypeMatchup(types) {
+  const byMult = new Map();
+  for (const t of ALL_TYPES) {
+    const mult = getTypeEffectiveness(t, types);
+    if (mult === 1) continue;
+    if (!byMult.has(mult)) byMult.set(mult, []);
+    byMult.get(mult).push(t);
+  }
+  const sections = MATCHUP_SECTIONS
+    .map(s => ({ ...s, types: byMult.get(s.mult) || [] }))
+    .filter(s => s.types.length);
+  if (sections.length === 0) return null;
+
+  // One column per tier, laid out as a single non-wrapping row separated by
+  // vertical dividers: a tone-coloured label on top with the tier's type badges
+  // beneath. Columns share the width evenly (flex-1) and never overflow onto a
+  // second row — min-w-0 lets a crowded tier wrap its own badges instead.
+  return html`
+    <div class="flex gap-2 pb-3 border-b border-slate-700">
+      ${sections.map((s, i) => html`
+        <div class=${`flex flex-col gap-1 flex-1 min-w-0 ${i > 0 ? 'pl-2 border-l border-slate-800/70' : ''}`}>
+          <span class=${`text-[9px] font-black uppercase tracking-wider ${s.tone}`}>${s.label}</span>
+          <div class="flex flex-wrap gap-1">
+            ${s.types.map(t => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`} title=${t}>${TYPE_SHORT[t] || t}</span>`)}
+          </div>
+        </div>`)}
+    </div>`;
+}
+
 // --- Row-click detail modal (reuses the shared vanilla detail-modal.js) ---
 
 function buildMoveItem(move, md, onClick) {
@@ -265,8 +314,14 @@ export async function handleDexRowClick(apiName) {
   const buildItems = () => moves.map(m => buildMoveItem(m, getDetails(m), makeOnClick(m)));
 
   const session = openDetailModal({
-    title: `${details.name}'s Moves`,
-    subtitle: `${moves.length} moves`,
+    title: details.name,
+    subtitle: html`
+      <span class="flex items-center flex-wrap gap-1.5">
+        ${details.types.map(t => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
+        <span class="text-slate-500">${moves.length} moves</span>
+      </span>`,
+    image: details.sprite || '',
+    header: buildTypeMatchup(details.types),
     items: buildItems()
   });
 

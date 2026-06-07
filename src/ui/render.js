@@ -28,6 +28,15 @@ export function getTypeBgClass(type) {
   return TYPE_BG_CLASSES[type] || 'bg-slate-700';
 }
 
+// Three-letter type abbreviations for space-constrained badges (the Pokédex table
+// type column + the detail modal's type-matchup summary).
+export const TYPE_SHORT = {
+  Normal: 'NOR', Fire: 'FIR', Water: 'WAT', Grass: 'GRA', Electric: 'ELE',
+  Ice: 'ICE', Fighting: 'FIG', Poison: 'POI', Ground: 'GRD', Flying: 'FLY',
+  Psychic: 'PSY', Bug: 'BUG', Rock: 'ROC', Ghost: 'GHO', Dragon: 'DRA',
+  Dark: 'DRK', Steel: 'STE', Fairy: 'FAI',
+};
+
 // Move-category badge ({ label, cls }) shared by the Attackdex table and the
 // Pokédex learnset modal. (The calculator's MovePanel uses its own icon-badge
 // styling and intentionally does not share this.)

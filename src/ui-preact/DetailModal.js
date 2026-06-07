@@ -14,7 +14,7 @@ import { createEmitter, useSubscription } from './reactive.js';
 // Reactive modal state with its own emitter. `session` bumps on every open/close
 // so an async worker streaming rows into a modal it opened can tell when it's
 // been superseded (the user closed it or opened a different one).
-const modal = { open: false, title: '', subtitle: '', items: [], session: 0 };
+const modal = { open: false, title: '', subtitle: '', image: '', header: null, items: [], session: 0 };
 const { subscribe, notify } = createEmitter();
 
 // items: [{
@@ -22,12 +22,18 @@ const { subscribe, notify } = createEmitter();
 //   label?:   plain-text fallback used when `node` is absent
 //   onClick?: () => void   — omit for non-interactive note rows
 // }]
+// header: optional Preact VNode rendered above the item list (e.g. the Pokédex
+// type-matchup summary). Pinned for the life of the modal — refreshes that stream
+// items in leave it untouched.
+// image: optional sprite URL shown to the left of the title.
 // Returns the session token for this open; pass it to refreshDetailModalBody so
 // a stale worker can't overwrite a later modal.
-export function openDetailModal({ title, subtitle, items }) {
+export function openDetailModal({ title, subtitle, image, header, items }) {
   modal.open = true;
   modal.title = title;
   modal.subtitle = subtitle || '';
+  modal.image = image || '';
+  modal.header = header || null;
   modal.items = items;
   modal.session += 1;
   notify();
@@ -70,14 +76,18 @@ export function DetailModal() {
       onClick=${(e) => { if (e.target === e.currentTarget) closeDetailModal(); }}>
       <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-3 p-5 max-h-[80vh]">
         <div class="flex items-center justify-between gap-3 border-b border-slate-700 pb-3">
-          <div class="min-w-0">
-            <h3 class="text-sm font-extrabold text-amber-400 truncate">${modal.title}</h3>
-            <p class="text-[11px] text-slate-500 mt-0.5">${modal.subtitle}</p>
+          <div class="flex items-center gap-3 min-w-0">
+            ${modal.image && html`<img src=${modal.image} alt="" class="w-10 h-10 object-contain shrink-0" />`}
+            <div class="min-w-0">
+              <h3 class="text-sm font-extrabold text-amber-400 truncate">${modal.title}</h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">${modal.subtitle}</p>
+            </div>
           </div>
           <button onClick=${closeDetailModal} class="text-slate-400 hover:text-white text-lg leading-none px-1 shrink-0" title="Close">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
+        ${modal.header}
         <div class="overflow-y-auto flex flex-col min-h-0 flex-1">
           ${modal.items.length
             ? modal.items.map((item, i) => html`<${Item} key=${i} item=${item} />`)
