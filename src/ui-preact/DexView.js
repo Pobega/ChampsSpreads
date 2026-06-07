@@ -10,7 +10,8 @@ import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass, TYPE_SHORT } from '../ui/render.js';
 import {
   DexStore, subscribeDex, dexStatusText,
-  setDexSort, setDexQuery, clearDexQuery, handleDexRowClick, loadDexDetails,
+  setDexSort, setDexDraft, commitDexFilter, removeDexFilter, clearDexFilters,
+  handleDexRowClick, loadDexDetails,
 } from './dex-store.js';
 
 const ROW_GRID = 'grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
@@ -86,7 +87,10 @@ function RegulationBadge() {
 export function DexView() {
   useSubscription(subscribeDex);
 
-  const filtered = filterDex(DexStore.roster, DexStore.query);
+  // Committed chips plus the live draft (so typing previews before Enter).
+  const draft = DexStore.draft.trim();
+  const terms = draft ? [...DexStore.filters, draft] : DexStore.filters;
+  const filtered = filterDex(DexStore.roster, terms);
   const sorted = sortDex(filtered, DexStore.sortKey, DexStore.sortDir);
   const statusText = DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
 
@@ -105,17 +109,36 @@ export function DexView() {
           <${RegulationBadge} />
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
-        <div class="relative w-full sm:w-72">
-          <input type="text" placeholder="Search name or ability…"
-            value=${DexStore.query}
-            onInput=${(e) => setDexQuery(e.target.value)}
-            class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" />
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-          ${DexStore.query && html`
-            <button onClick=${clearDexQuery}
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition leading-none" aria-label="Clear search">
-              <i class="fa-solid fa-xmark text-sm"></i>
-            </button>`}
+        <div class="flex flex-col items-stretch gap-2 w-full sm:w-72">
+          <div class="relative w-full">
+            <input type="text" placeholder="Search name, type, ability, move… (Enter to add)"
+              value=${DexStore.draft}
+              onInput=${(e) => setDexDraft(e.target.value)}
+              onKeyDown=${(e) => { if (e.key === 'Enter') { e.preventDefault(); commitDexFilter(); } }}
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" />
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+            ${DexStore.draft && html`
+              <button onClick=${() => setDexDraft('')}
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition leading-none" aria-label="Clear input">
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>`}
+          </div>
+          ${DexStore.filters.length > 0 && html`
+            <div class="flex flex-wrap items-center gap-1.5">
+              ${DexStore.filters.map((term, i) => html`
+                <span key=${term} class="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-900/50 rounded-lg pl-2 pr-1 py-0.5">
+                  ${term}
+                  <button onClick=${() => removeDexFilter(i)}
+                    class="text-amber-500/70 hover:text-white transition leading-none px-0.5" aria-label=${`Remove ${term}`}>
+                    <i class="fa-solid fa-xmark text-[11px]"></i>
+                  </button>
+                </span>`)}
+              ${DexStore.filters.length > 1 && html`
+                <button onClick=${clearDexFilters}
+                  class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 hover:text-white transition px-1">
+                  Clear all
+                </button>`}
+            </div>`}
         </div>
       </div>
 
@@ -133,7 +156,7 @@ export function DexView() {
           <div class="flex flex-col" ref=${rowsRef}>
             ${sorted.length
               ? sorted.map((row) => html`<${DexRow} key=${row.apiName} row=${row} />`)
-              : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match “${DexStore.query}”.</div>`}
+              : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`}
           </div>
         </div>
       </div>

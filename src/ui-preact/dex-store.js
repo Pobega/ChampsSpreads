@@ -23,7 +23,8 @@ export const DexStore = {
   byName: {},          // apiName -> row (same object refs as roster)
   sortKey: 'bst',
   sortDir: 'desc',
-  query: '',
+  filters: [],         // committed search terms (the chips); ANDed together
+  draft: '',           // uncommitted input text (live-previewed before Enter)
   builtForFormat: null,
   allLoaded: false,    // every roster row has details loaded
   loading: false,
@@ -124,25 +125,52 @@ export async function setDexSort(key) {
   }
 }
 
-// Update the search query. Ability search needs every row's details; in the lazy
-// National Dex, load them all the first time the user types a non-empty query.
-export async function setDexQuery(query) {
-  DexStore.query = query;
+// True when any search term is active (a committed chip or the live draft), so
+// the view depends on every row's loaded details (type/ability/move search).
+function hasActiveTerm() {
+  return DexStore.filters.length > 0 || DexStore.draft.trim() !== '';
+}
+
+// Update the live (uncommitted) draft text. Type/ability/move search needs every
+// row's details; in the lazy National Dex, load them all the first time a term
+// becomes active.
+export async function setDexDraft(text) {
+  DexStore.draft = text;
   notifyDex();
-  if (query.trim() && !DexStore.allLoaded) {
+  if (hasActiveTerm() && !DexStore.allLoaded) {
     await ensureDexFullyLoaded();
   }
 }
 
-export function clearDexQuery() {
-  DexStore.query = '';
+// Lock the current draft in as a chip (on Enter). Skips blanks and duplicates.
+export async function commitDexFilter() {
+  const term = DexStore.draft.trim();
+  DexStore.draft = '';
+  if (term && !DexStore.filters.some((f) => f.toLowerCase() === term.toLowerCase())) {
+    DexStore.filters = [...DexStore.filters, term];
+  }
+  notifyDex();
+  if (hasActiveTerm() && !DexStore.allLoaded) {
+    await ensureDexFullyLoaded();
+  }
+}
+
+export function removeDexFilter(index) {
+  DexStore.filters = DexStore.filters.filter((_, i) => i !== index);
+  notifyDex();
+}
+
+export function clearDexFilters() {
+  DexStore.filters = [];
+  DexStore.draft = '';
   notifyDex();
 }
 
 // Build + render the dex the first time it's shown (or after a format change).
 export async function openDexPage() {
   if (!_preserveQuery) {
-    DexStore.query = '';
+    DexStore.filters = [];
+    DexStore.draft = '';
   }
   _preserveQuery = false;
 
@@ -193,9 +221,10 @@ export function getPokemonDetails(apiName) {
 export function jumpToDexPokemon(apiName) {
   const displayName = DexStore.byName[apiName]?.name || formatDisplayName(apiName);
   _preserveQuery = true;
-  DexStore.query = displayName;
+  DexStore.filters = [displayName];
+  DexStore.draft = '';
   // Only notify if roster is built; otherwise openDexPage (triggered by
-  // showPage) will render with the query already set.
+  // showPage) will render with the filter already set.
   if (DexStore.roster.length > 0) notifyDex();
 }
 
