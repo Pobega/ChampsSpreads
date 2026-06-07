@@ -8,6 +8,7 @@
 // at the end of updateLiveStats so islands also refresh on vanilla-driven edits
 // (e.g. toggling Tailwind in the still-vanilla modifiers panel).
 import { STATE, CACHE } from '../state.js';
+import { createEmitter } from './reactive.js';
 
 export { STATE, CACHE };
 
@@ -24,18 +25,10 @@ export const DERIVED = {
   model: null,
 };
 
-const listeners = new Set();
-
-// Subscribe a render trigger; returns an unsubscribe fn (for useEffect cleanup).
-export function subscribe(fn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-// Re-render every mounted island. Called by app.js at the tail of updateLiveStats.
-export function notify() {
-  listeners.forEach((l) => l());
-}
+// Subscribe a render trigger (returns an unsubscribe fn); notify() re-renders
+// every mounted island. Called by app.js at the tail of updateLiveStats.
+const { subscribe, notify } = createEmitter();
+export { subscribe, notify };
 
 // The shared recompute pipeline. app.js registers updateLiveStats here so islands
 // don't need to import app.js (which would create a cycle).

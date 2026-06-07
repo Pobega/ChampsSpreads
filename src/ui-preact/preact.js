@@ -7,13 +7,11 @@ import htm from 'htm';
 export const html = htm.bind(h);
 export { h, render, Fragment, useState, useEffect, useLayoutEffect, useRef, useMemo };
 
-// Re-render-on-store-change hook: subscribes the component to the bridge so it
-// refreshes whenever STATE changes (from this island or vanilla code).
-// useLayoutEffect (vs useEffect) registers the subscription synchronously right
-// after mount, before paint — shrinking the window where an early notify() from
-// startup could be missed.
+// Re-render-on-store-change hook: subscribes the component to the calculator
+// bridge so it refreshes whenever STATE changes (from this island or vanilla
+// code). Thin wrapper over the shared useSubscription primitive.
 import { subscribe } from './store.js';
+import { useSubscription } from './reactive.js';
 export function useStore() {
-  const [, force] = useState(0);
-  useLayoutEffect(() => subscribe(() => force((n) => n + 1)), []);
+  useSubscription(subscribe);
 }

@@ -3,7 +3,8 @@
 // re-renders on notifyAdx(); all data + loading logic lives in attackdex-store.js.
 // Row click opens the shared vanilla detail modal ("Who learns …"). Lazy rows via
 // an IntersectionObserver, mirroring DexView.
-import { html, useState, useEffect, useLayoutEffect, useRef } from './preact.js';
+import { html, useEffect, useRef } from './preact.js';
+import { useSubscription } from './reactive.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
 import { ALL_TYPES } from '../data/constants.js';
@@ -12,11 +13,6 @@ import {
   setAdxSort, setAdxQuery, clearAdxQuery, setAdxType, setAdxCategory, toggleAdxSpread,
   handleAttackdexRowClick, loadMoveDetails,
 } from './attackdex-store.js';
-
-function useAdxStore() {
-  const [, force] = useState(0);
-  useLayoutEffect(() => subscribeAdx(() => force((n) => n + 1)), []);
-}
 
 const ROW_GRID ='grid grid-cols-[minmax(140px,1.4fr)_72px_72px_48px_40px_minmax(220px,2.8fr)] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
 
@@ -80,7 +76,7 @@ function SortButton({ col }) {
 }
 
 export function AttackdexView() {
-  useAdxStore();
+  useSubscription(subscribeAdx);
 
   const filtered = filterMoves(AdxStore.roster, {
     query: AdxStore.query,

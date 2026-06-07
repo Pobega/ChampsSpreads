@@ -2,7 +2,8 @@
 // existing #page-pokedex container. Reads the reactive DexStore and re-renders on
 // notifyDex(); all data + loading logic lives in dex-store.js. Row click opens the
 // shared vanilla detail modal. (Lazy National-Dex loading is restored in 2b.)
-import { html, useState, useEffect, useLayoutEffect, useRef } from './preact.js';
+import { html, useEffect, useRef } from './preact.js';
+import { useSubscription } from './reactive.js';
 import { STATE } from '../state.js';
 import { bst, sortDex, filterDex } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
@@ -11,12 +12,6 @@ import {
   DexStore, subscribeDex, dexStatusText,
   setDexSort, setDexQuery, clearDexQuery, handleDexRowClick, loadDexDetails,
 } from './dex-store.js';
-
-// Re-render-on-DexStore-change hook (mirrors useStore for the calculator store).
-function useDexStore() {
-  const [, force] = useState(0);
-  useLayoutEffect(() => subscribeDex(() => force((n) => n + 1)), []);
-}
 
 const TYPE_SHORT = {
   Normal: 'NOR', Fire: 'FIR', Water: 'WAT', Grass: 'GRA', Electric: 'ELE',
@@ -96,7 +91,7 @@ function RegulationBadge() {
 }
 
 export function DexView() {
-  useDexStore();
+  useSubscription(subscribeDex);
 
   const filtered = filterDex(DexStore.roster, DexStore.query);
   const sorted = sortDex(filtered, DexStore.sortKey, DexStore.sortDir);

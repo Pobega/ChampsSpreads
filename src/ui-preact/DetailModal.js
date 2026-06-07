@@ -8,14 +8,14 @@
 // refresh for free: the scroll container element persists across renders, so
 // only its children reconcile (the vanilla version had to save/restore scrollTop
 // because it rebuilt innerHTML).
-import { html, useState, useLayoutEffect } from './preact.js';
+import { html } from './preact.js';
+import { createEmitter, useSubscription } from './reactive.js';
 
-// Reactive modal state with its own listener set. `session` bumps on every
-// open/close so an async worker streaming rows into a modal it opened can tell
-// when it's been superseded (the user closed it or opened a different one).
+// Reactive modal state with its own emitter. `session` bumps on every open/close
+// so an async worker streaming rows into a modal it opened can tell when it's
+// been superseded (the user closed it or opened a different one).
 const modal = { open: false, title: '', subtitle: '', items: [], session: 0 };
-const listeners = new Set();
-function notify() { listeners.forEach((l) => l()); }
+const { subscribe, notify } = createEmitter();
 
 // items: [{
 //   node?:    Preact VNode for the row interior
@@ -61,12 +61,7 @@ function Item({ item }) {
 }
 
 export function DetailModal() {
-  const [, force] = useState(0);
-  useLayoutEffect(() => {
-    const fn = () => force((n) => n + 1);
-    listeners.add(fn);
-    return () => listeners.delete(fn);
-  }, []);
+  useSubscription(subscribe);
 
   if (!modal.open) return null;
 

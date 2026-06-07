@@ -12,6 +12,7 @@ import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { spreadKind } from '../data/moves.js';
 import { html } from './preact.js';
+import { createEmitter } from './reactive.js';
 
 // Shared, reactive Pokédex state. DexView reads these fields directly and
 // re-renders on notifyDex(). Same shape/semantics as the old vanilla DexPage.
@@ -26,10 +27,9 @@ export const DexStore = {
   loading: false,
 };
 
-// Own listener set, independent of the calculator store.
-const listeners = new Set();
-export function subscribeDex(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-export function notifyDex() { listeners.forEach((l) => l()); }
+// Own emitter, independent of the calculator store.
+const { subscribe: subscribeDex, notify: notifyDex } = createEmitter();
+export { subscribeDex, notifyDex };
 
 // Callbacks wired by initDexStore (cross-nav to the Attackdex + its move cache).
 let _onMoveClick = null;

@@ -11,6 +11,7 @@ import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { html } from './preact.js';
+import { createEmitter } from './reactive.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
 // re-renders on notifyAdx(). Same shape/semantics as the old vanilla AttackdexPage.
@@ -28,10 +29,9 @@ export const AdxStore = {
   loading: false,
 };
 
-// Own listener set, independent of the calculator + dex stores.
-const listeners = new Set();
-export function subscribeAdx(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-export function notifyAdx() { listeners.forEach((l) => l()); }
+// Own emitter, independent of the calculator + dex stores.
+const { subscribe: subscribeAdx, notify: notifyAdx } = createEmitter();
+export { subscribeAdx, notifyAdx };
 
 // Callbacks wired by initAttackdexStore (cross-nav to the Pokédex + its details).
 let _onPokemonClick = null;
