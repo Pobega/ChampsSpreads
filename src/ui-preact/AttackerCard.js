@@ -87,13 +87,13 @@ export function AttackerCard({ onChoose }) {
   const learnable = OFF_VGC_ABILITIES_HELPER(a.abilities || []);
   const tag = regulationTag(a.apiName);
 
-  // Live stats (mirror updateLiveStats). Speed folds in Choice Scarf + Tailwind;
-  // the Tailwind flag still lives on the vanilla modifiers panel.
+  // Live stats (mirror updateLiveStats). Speed folds in Choice Scarf + Tailwind
+  // (the Tailwind flag lives on STATE.modifiers, set by the ModifiersPanel).
   const finalAtk = calculateStatBoost(calculateStat('atk', a.baseStats.atk, a.sps.atk, a.nature, false), a.boosts.atk);
   const finalSpa = calculateStatBoost(calculateStat('spa', a.baseStats.spa, a.sps.spa, a.nature, false), a.boosts.spa);
   let finalSpe = calculateStatBoost(calculateStat('spe', a.baseStats.spe || 100, a.sps.spe, a.nature, false), a.boosts.spe);
   if (a.item === 'choice_scarf') finalSpe = Math.floor(finalSpe * 1.5);
-  if (document.getElementById('mod-tail-atk')?.checked) finalSpe *= 2;
+  if (STATE.modifiers.tailAtk) finalSpe *= 2;
 
   const spSum = a.sps.atk + a.sps.spa + a.sps.spe;
   const preset = matchedPreset(a.sps, a.nature);

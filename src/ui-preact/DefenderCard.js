@@ -97,7 +97,7 @@ export function DefenderCard({ onChoose }) {
   const finalSpd = calculateStatBoost(calculateStat('spd', d.baseStats.spd, d.sps.spd, d.nature, false), d.boosts.spd);
   let finalSpe = calculateStatBoost(calculateStat('spe', d.baseStats.spe || 100, d.sps.spe, d.nature, false), d.boosts.spe);
   if (d.item === 'choice_scarf') finalSpe = Math.floor(finalSpe * 1.5);
-  if (document.getElementById('mod-tail-def')?.checked) finalSpe *= 2;
+  if (STATE.modifiers.tailDef) finalSpe *= 2;
 
   const spSum = d.sps.hp + d.sps.def + d.sps.spd + d.sps.spe;
   const preset = matchedPreset(d.sps);
