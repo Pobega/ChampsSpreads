@@ -22,6 +22,7 @@ import { AttackdexView } from './src/ui-preact/AttackdexView.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
 import { DetailModal } from './src/ui-preact/DetailModal.js';
 import { render, h } from 'preact';
+import { ErrorBoundary } from './src/ui-preact/preact.js';
 import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
 import { CenterPanel } from './src/ui-preact/OptimizerPanel.js';
@@ -454,25 +455,30 @@ function initMobileTabbing() {
   switchTab('results');
 }
 
+function mountIsland(Island, props, element) {
+  if (!element) return;
+  render(h(ErrorBoundary, {}, h(Island, props)), element);
+}
+
 async function init() {
   // Sweep stale-version cache entries before any fetch reads or writes them.
   pruneOldCaches();
   // Register the shared recompute pipeline so the Preact islands' update() calls
   // run the same updateLiveStats the vanilla inputs use, then mount the island.
   setRecompute(updateLiveStats);
-  render(h(AttackerCard, { onChoose: setAttackerDetails }), document.getElementById('panel-attacker'));
-  render(h(DefenderCard, { onChoose: setDefenderDetails }), document.getElementById('panel-defender'));
-  render(h(CenterPanel), document.getElementById('panel-center'));
-  render(h(ResultsHUD, { variant: 'desktop' }), document.getElementById('results-hud'));
-  render(h(ResultsHUD, { variant: 'mobile' }), document.getElementById('mobile-floating-overlay'));
+  mountIsland(AttackerCard, { onChoose: setAttackerDetails }, document.getElementById('panel-attacker'));
+  mountIsland(DefenderCard, { onChoose: setDefenderDetails }, document.getElementById('panel-defender'));
+  mountIsland(CenterPanel, {}, document.getElementById('panel-center'));
+  mountIsland(ResultsHUD, { variant: 'desktop' }, document.getElementById('results-hud'));
+  mountIsland(ResultsHUD, { variant: 'mobile' }, document.getElementById('mobile-floating-overlay'));
   // Header chrome islands: brand Rotom (glow tints to the format), the format
   // pill + selector + Load Sample + Export/Import controls, and the Export/Import
   // modal. The format selector reads its options from the regulation registry, so
   // adding a regulation is purely a data change in regulations.js. The theme tint
   // is reactive (no applyFormTheme): the islands re-render from STATE.format.
-  render(h(Brand), document.getElementById('brand-rotom-root'));
-  render(h(HeaderControls, { onLoadSample: loadSampleVGCScenario }), document.getElementById('header-controls-root'));
-  render(h(ExportImportModal, { augmentedState, applyMatchup }), document.getElementById('ei-modal-root'));
+  mountIsland(Brand, {}, document.getElementById('brand-rotom-root'));
+  mountIsland(HeaderControls, { onLoadSample: loadSampleVGCScenario }, document.getElementById('header-controls-root'));
+  mountIsland(ExportImportModal, { augmentedState, applyMatchup }, document.getElementById('ei-modal-root'));
   initMobileTabbing();
   // Register the calculator as the home view in the shared nav, then let the
   // dex pages register themselves. The calculator has no onShow side effect.
@@ -480,14 +486,14 @@ async function init() {
     navBtn: document.getElementById('nav-calculator'),
     pageEl: document.getElementById('page-calculator')
   });
-  render(h(DetailModal), document.getElementById('detail-modal-root'));
+  mountIsland(DetailModal, {}, document.getElementById('detail-modal-root'));
   // Pokédex is a Preact island: wire its store callbacks, mount the view into the
   // persistent #page-pokedex container, and register its onShow (build + load).
   initDexStore({
     onMoveClick: (apiName) => { jumpToAttackdexMove(apiName); showPage('attackdex'); },
     getMoveDetails
   });
-  render(h(DexView), document.getElementById('page-pokedex'));
+  mountIsland(DexView, {}, document.getElementById('page-pokedex'));
   registerPage('pokedex', {
     navBtn: document.getElementById('nav-pokedex'),
     pageEl: document.getElementById('page-pokedex'),
@@ -499,7 +505,7 @@ async function init() {
     onPokemonClick: (apiName) => { jumpToDexPokemon(apiName); showPage('pokedex'); },
     getPokemonDetails
   });
-  render(h(AttackdexView), document.getElementById('page-attackdex'));
+  mountIsland(AttackdexView, {}, document.getElementById('page-attackdex'));
   registerPage('attackdex', {
     navBtn: document.getElementById('nav-attackdex'),
     pageEl: document.getElementById('page-attackdex'),
