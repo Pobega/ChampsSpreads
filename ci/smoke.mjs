@@ -134,6 +134,13 @@ try {
   await page.waitForTimeout(800);
   const dexModal = await page.evaluate(() => { const m = document.querySelector('#detail-modal-root'); return !!m && m.textContent.trim().length > 0; });
   check('modal: Pokédex detail modal opens', dexModal);
+  // The modal now leads with a type-matchup summary (at least one of the
+  // resist/weak/immune sections shows unless the species is neutral to all 18).
+  const matchup = await page.evaluate(() => {
+    const m = document.querySelector('#detail-modal-root');
+    return !!m && /(Resist|Weak|Immune)/.test(m.textContent);
+  });
+  check('modal: Pokédex modal shows type matchups', matchup);
   await page.keyboard.press('Escape').catch(() => {});
 
   // 7) Attackdex renders, lazy-loads, and its modal opens.

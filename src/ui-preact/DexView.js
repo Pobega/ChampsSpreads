@@ -7,18 +7,11 @@ import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { STATE } from '../state.js';
 import { bst, sortDex, filterDex } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
-import { getTypeBgClass } from '../ui/render.js';
+import { getTypeBgClass, TYPE_SHORT } from '../ui/render.js';
 import {
   DexStore, subscribeDex, dexStatusText,
   setDexSort, setDexQuery, clearDexQuery, handleDexRowClick, loadDexDetails,
 } from './dex-store.js';
-
-const TYPE_SHORT = {
-  Normal: 'NOR', Fire: 'FIR', Water: 'WAT', Grass: 'GRA', Electric: 'ELE',
-  Ice: 'ICE', Fighting: 'FIG', Poison: 'POI', Ground: 'GRD', Flying: 'FLY',
-  Psychic: 'PSY', Bug: 'BUG', Rock: 'ROC', Ghost: 'GHO', Dragon: 'DRA',
-  Dark: 'DRK', Steel: 'STE', Fairy: 'FAI'
-};
 
 const ROW_GRID = 'grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
 
