@@ -109,7 +109,14 @@ export async function loadDexDetails(apiNames, { rerenderEachBatch = true } = {}
 // Ensure every roster row has details (used before stat-sort / ability-search in
 // the National Dex where rows are otherwise lazy-loaded).
 export async function ensureDexFullyLoaded() {
-  if (DexStore.allLoaded || DexStore.loading) return;
+  if (DexStore.allLoaded) return;
+  // A lazy batch may be in flight (only the rows scrolled into view). Wait it
+  // out rather than bailing, or a sort/search fired mid-load would silently run
+  // over a partially-loaded roster. (Mirrors attackdex-store's ensureAllLoaded.)
+  while (DexStore.loading) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    if (DexStore.allLoaded) return;
+  }
   await loadDexDetails(DexStore.roster.map(r => r.apiName));
 }
 
