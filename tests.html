@@ -1017,6 +1017,18 @@
       name,
       details: baseStats ? { name, baseStats, abilities: (abilities || []).map(n => ({ name: n, apiName: n.toLowerCase() })) } : null,
     });
+    // Richer factory for the multi-field search tests: also carries types + moves.
+    const dexRow = (name, { types = [], abilities = [], moves = [] } = {}) => ({
+      apiName: name.toLowerCase(),
+      name,
+      details: {
+        name,
+        baseStats: stats(1, 1, 1, 1, 1, 1),
+        types,
+        abilities: abilities.map(n => ({ name: n, apiName: n.toLowerCase() })),
+        moves: moves.map(n => ({ name: n, apiName: n.toLowerCase() })),
+      },
+    });
 
     const names = (rows) => rows.map(r => r.name);
     const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -1088,18 +1100,55 @@
         },
       },
       {
-        name: 'filterDex falls back to name-only when details absent',
+        name: 'filterDex matches by move name',
         run: () => {
-          const rows = [row('Pending', null), row('Other', null)];
-          // ability query should match nothing (no details), name query still works
-          return filterDex(rows, 'intimidate').length === 0 && eq(names(filterDex(rows, 'pend')), ['Pending']);
+          const rows = [
+            dexRow('Liepard', { moves: ['Encore', 'Fake Out'] }),
+            dexRow('Snorlax', { moves: ['Body Slam'] }),
+          ];
+          return eq(names(filterDex(rows, ['encore'])), ['Liepard']);
         },
       },
       {
-        name: 'filterDex returns all rows for empty query',
+        name: 'filterDex exact-type term matches by type, not move/ability text',
+        run: () => {
+          const rows = [
+            dexRow('Sableye', { types: ['Dark', 'Ghost'], moves: ['Encore'] }),
+            // Normal-type that learns a "Dark"-named move must NOT match the "dark" type chip.
+            dexRow('Snorlax', { types: ['Normal'], moves: ['Dark Pulse'] }),
+          ];
+          return eq(names(filterDex(rows, ['dark'])), ['Sableye']);
+        },
+      },
+      {
+        name: 'filterDex ANDs multiple terms across fields',
+        run: () => {
+          const rows = [
+            dexRow('Liepard', { types: ['Dark'], abilities: ['Prankster'], moves: ['Encore'] }),
+            dexRow('Sableye', { types: ['Dark', 'Ghost'], abilities: ['Prankster'], moves: ['Encore'] }),
+            dexRow('Whimsicott', { types: ['Grass', 'Fairy'], abilities: ['Prankster'], moves: ['Encore'] }),
+          ];
+          // Prankster + Encore + Dark -> only the two Dark-types.
+          return eq(names(filterDex(rows, ['prankster', 'encore', 'dark'])), ['Liepard', 'Sableye']);
+        },
+      },
+      {
+        name: 'filterDex falls back to name-only when details absent',
+        run: () => {
+          const rows = [row('Pending', null), row('Other', null)];
+          // ability/type/move terms match nothing (no details), name term still works
+          return filterDex(rows, 'intimidate').length === 0
+            && filterDex(rows, ['dark']).length === 0
+            && eq(names(filterDex(rows, 'pend')), ['Pending']);
+        },
+      },
+      {
+        name: 'filterDex returns all rows for empty/blank terms',
         run: () => {
           const rows = [row('A', stats(1, 1, 1, 1, 1, 1)), row('B', null)];
-          return filterDex(rows, '   ').length === 2;
+          return filterDex(rows, '   ').length === 2
+            && filterDex(rows, []).length === 2
+            && filterDex(rows, ['  ', '']).length === 2;
         },
       },
       {

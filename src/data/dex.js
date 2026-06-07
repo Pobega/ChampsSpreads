@@ -1,8 +1,13 @@
 // Pure, DOM/fetch-free logic for the Pokédex stats-browser page.
 // Kept side-effect free so it can be unit-tested in tests.html.
+import { ALL_TYPES } from './constants.js';
 
 // The six base stats, in canonical Showdown order.
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+// Lowercased type names, used to recognize a search term that should filter by
+// type (an exact match) rather than as a loose substring. Built once.
+const TYPE_NAMES = new Set(ALL_TYPES.map((t) => t.toLowerCase()));
 
 // Sum of the six base stats.
 export function bst(baseStats) {
@@ -44,18 +49,34 @@ export function sortDex(rows, key, dir = 'desc') {
     .map((e) => e.row);
 }
 
-// Case-insensitive filter: matches when the query is a substring of the display
-// name or of any ability name. Rows without loaded details match on name only.
-export function filterDex(rows, query) {
-  const q = (query || '').trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((row) => {
-    if (row.name.toLowerCase().includes(q)) return true;
-    if (row.details && row.details.abilities) {
-      return row.details.abilities.some((a) => a.name.toLowerCase().includes(q));
-    }
-    return false;
-  });
+// Does a single, already-lowercased term match a row? A term that exactly names
+// a type filters by that type only (so 'dark' = Dark-types, not every Pokémon
+// that learns a "Dark"-named move); any other term is a substring match against
+// the display name, any ability name, or any move name. Rows without loaded
+// details can only match on name (their types/abilities/moves are unknown),
+// preserving the lazy-load fallback behaviour.
+function termMatches(row, term) {
+  const d = row.details;
+  if (TYPE_NAMES.has(term)) {
+    return !!(d && d.types && d.types.some((t) => t.toLowerCase() === term));
+  }
+  if (row.name.toLowerCase().includes(term)) return true;
+  if (!d) return false;
+  if (d.abilities && d.abilities.some((a) => a.name.toLowerCase().includes(term))) return true;
+  if (d.moves && d.moves.some((m) => m.name.toLowerCase().includes(term))) return true;
+  return false;
+}
+
+// Case-insensitive filter over a list of search terms which are ANDed: a row is
+// kept only when it satisfies every term. `terms` may be a single string (legacy
+// single-search callers) or an array of strings (the stackable chip search).
+// Empty/whitespace terms are ignored; no terms returns every row.
+export function filterDex(rows, terms) {
+  const list = (Array.isArray(terms) ? terms : [terms])
+    .map((t) => (t || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (list.length === 0) return rows;
+  return rows.filter((row) => list.every((term) => termMatches(row, term)));
 }
 
 // Cosmetic forms that are identical (stats + type + ability) to a kept sibling,
