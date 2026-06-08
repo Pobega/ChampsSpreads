@@ -18,6 +18,7 @@ import {
   fetchMoveDetailsMany,
 } from './src/api/pokeapi.js';
 import { pickDefaultMove } from './src/engine/default-move.js';
+import { pickAttackerSpread, pickDefenderSpread } from './src/engine/default-spread.js';
 import { pruneOldCaches } from './src/api/cache.js';
 import { buildResultModel } from './src/ui/result-summary.js';
 import {
@@ -92,6 +93,15 @@ function setAttackerDetails(details) {
   // Render-only fields the AttackerCard island reads (sprite + raw ability list).
   STATE.attacker.sprite = details.sprite;
   STATE.attacker.abilities = details.abilities || [];
+
+  // Default the nature + SP spread to one that fits this mon's base stats (a
+  // physical attacker gets +atk/Atk spread, a special one +spa/SpA). While
+  // importing a matchup the caller owns the spread, so leave it alone.
+  if (!isApplyingMatchup) {
+    const { nature, sps } = pickAttackerSpread(details.baseStats);
+    STATE.attacker.nature = nature;
+    Object.assign(STATE.attacker.sps, sps);
+  }
 
   // Mega Evolution lock (VGC authenticity): Megas have a fixed item and a single
   // ability. The island renders the lock from STATE; here we just set the values.
@@ -172,6 +182,16 @@ function setDefenderDetails(details) {
   // Render-only fields the DefenderCard island reads.
   STATE.defender.sprite = details.sprite;
   STATE.defender.abilities = details.abilities || [];
+
+  // Default the defender to an attacker spread (no bulk): most mons don't run
+  // dedicated defensive investment, so a freshly-picked defender gets the same
+  // offense-leaning nature + Spe an attacker would and zero HP/Def/SpD. Imports
+  // own the spread, so skip while applying a matchup.
+  if (!isApplyingMatchup) {
+    const { nature, sps } = pickDefenderSpread(details.baseStats);
+    STATE.defender.nature = nature;
+    Object.assign(STATE.defender.sps, sps);
+  }
 
   // Symmetrical mega lock: fixed item + single (first learnable) ability. The
   // island renders the lock from STATE; here we just set the values.

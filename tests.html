@@ -1817,5 +1817,108 @@
     // Keep the overall summary honest if a default-move test regressed.
     recordSuite('defaultmove', { pass: DM_CASES.length - dmFail, fail: dmFail });
   </script>
+
+  <!-- Smart default nature + SP spread (pickAttackerSpread / pickDefenderSpread) -->
+  <script type="module">
+    import { pickAttackerSpread, pickDefenderSpread } from './src/engine/default-spread.js';
+
+    const results = document.getElementById('results');
+    // Base-stat factory; Spe defaults to a fast 100 (Spe investment) but slow
+    // cases pass a value < 60 to exercise the HP-instead-of-Speed branch.
+    const BS = (atk, spa, def, spd, spe = 100) => ({ hp: 100, atk, def, spa, spd, spe });
+
+    const DS_CASES = [
+      {
+        // A physical attacker (Atk > SpA) gets the +atk / Atk+Spe spread.
+        name: 'attacker: high-Atk mon defaults to a physical +atk spread',
+        run: () => {
+          const r = pickAttackerSpread(BS(135, 60, 120, 85));
+          return r.nature === '+atk' && r.sps.atk === 32 && r.sps.spa === 0 && r.sps.spe === 32
+            && r.sps.hp === 0;
+        },
+      },
+      {
+        // A slow mon (base Spe < 60) banks the second 32 into HP instead of Spe.
+        name: 'attacker: slow mon (Spe < 60) invests HP instead of Speed',
+        run: () => {
+          const r = pickAttackerSpread(BS(135, 60, 120, 85, 50));
+          return r.nature === '+atk' && r.sps.atk === 32 && r.sps.hp === 32 && r.sps.spe === 0;
+        },
+      },
+      {
+        // Base Spe of exactly 60 is fast enough — still Speed, not HP.
+        name: 'attacker: base Spe of 60 still invests Speed',
+        run: () => {
+          const r = pickAttackerSpread(BS(135, 60, 120, 85, 60));
+          return r.sps.spe === 32 && r.sps.hp === 0;
+        },
+      },
+      {
+        // A special attacker (SpA > Atk) gets the +spa / SpA+Spe spread.
+        name: 'attacker: high-SpA mon defaults to a special +spa spread',
+        run: () => {
+          const r = pickAttackerSpread(BS(55, 135, 55, 135));
+          return r.nature === '+spa' && r.sps.spa === 32 && r.sps.atk === 0 && r.sps.spe === 32;
+        },
+      },
+      {
+        // Equal attacking stats tie-break to physical (matches pickDefaultMove).
+        name: 'attacker: equal Atk/SpA ties to physical',
+        run: () => pickAttackerSpread(BS(100, 100, 80, 80)).nature === '+atk',
+      },
+      {
+        // Defenders default to an attacker spread, not bulk: no HP/Def/SpD SP.
+        // A high-Atk mon gets the physical +atk offense-leaning spread.
+        name: 'defender: high-Atk mon defaults to a no-bulk physical spread',
+        run: () => {
+          const r = pickDefenderSpread(BS(135, 60, 120, 85));
+          return r.nature === '+atk' && r.sps.hp === 0 && r.sps.def === 0 && r.sps.spd === 0
+            && r.sps.atk === 32 && r.sps.spe === 32;
+        },
+      },
+      {
+        // A high-SpA mon gets the special +spa offense-leaning spread, still no bulk.
+        name: 'defender: high-SpA mon defaults to a no-bulk special spread',
+        run: () => {
+          const r = pickDefenderSpread(BS(55, 135, 55, 135));
+          return r.nature === '+spa' && r.sps.hp === 0 && r.sps.def === 0 && r.sps.spd === 0
+            && r.sps.spa === 32 && r.sps.spe === 32;
+        },
+      },
+      {
+        // Never invests Def/SpD SP regardless of how bulky the base stats are.
+        name: 'defender: bulky base stats still get zero Def/SpD SP',
+        run: () => {
+          const r = pickDefenderSpread(BS(60, 60, 130, 130));
+          return r.sps.def === 0 && r.sps.spd === 0;
+        },
+      },
+      {
+        // A slow defender inherits the attacker HP split: HP instead of Speed,
+        // still with no Def/SpD investment.
+        name: 'defender: slow mon (Spe < 60) invests HP instead of Speed',
+        run: () => {
+          const r = pickDefenderSpread(BS(135, 60, 120, 85, 45));
+          return r.sps.hp === 32 && r.sps.spe === 0 && r.sps.def === 0 && r.sps.spd === 0;
+        },
+      },
+    ];
+
+    let dsFail = 0;
+    for (const c of DS_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [defaultspread] ${c.name}</div>`
+        : `<div class="name">✗ [defaultspread] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) dsFail++;
+    }
+
+    recordSuite('defaultspread', { pass: DS_CASES.length - dsFail, fail: dsFail });
+  </script>
 </body>
 </html>
