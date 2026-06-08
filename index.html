@@ -220,6 +220,47 @@
     >
       <!-- Preact ResultsHUD island (mobile variant) mounts here. -->
     </div>
+    <!-- Shared site footer: one muted line of attribution + links. Lives outside
+       the toggled #page-* mains so it shows on every view. The mobile bottom pad
+       clears the fixed #mobile-floating-overlay (z-999) on small screens. -->
+    <footer
+      class="border-t border-slate-800 mt-8 py-4 px-4 pb-28 lg:pb-4 text-center text-[11px] leading-relaxed text-slate-500"
+    >
+      <span class="font-semibold text-slate-400">Rotometrics</span>
+      <span class="mx-1.5">·</span>
+      <a
+        href="https://github.com/Pobega/Rotometrics"
+        class="hover:text-slate-300 transition"
+        target="_blank"
+        rel="noopener"
+      >
+        <i class="fa-brands fa-github"></i> GitHub
+      </a>
+      <span class="mx-1.5">·</span>
+      <a
+        href="https://github.com/Pobega/Rotometrics/blob/main/LICENSE"
+        class="hover:text-slate-300 transition"
+        target="_blank"
+        rel="noopener"
+      >
+        Apache 2.0
+      </a>
+      <span class="mx-1.5">·</span>
+      <a
+        href="https://pokeapi.co/"
+        class="hover:text-slate-300 transition"
+        target="_blank"
+        rel="noopener"
+      >
+        Data from PokeAPI
+      </a>
+      <span class="mx-1.5">·</span>
+      <span
+        >Not affiliated with Nintendo / Game Freak / The Pokémon Company. Pokémon and all related
+        names are trademarks of their respective owners.</span
+      >
+    </footer>
+
     <!-- Export / Import matchup modal (hidden until opened from the header) -->
     <!-- Export / Import modal: rendered by the Preact ExportImportModal island. -->
     <div id="ei-modal-root"></div>
