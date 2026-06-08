@@ -129,6 +129,13 @@ export function formatDisplayName(apiName) {
     .join(' ');
 }
 
+// Megas whose true pre-Mega form is a special form rather than the plain species.
+// Mega Floette can only be reached from Eternal Floette (the Eternal Flower), so its
+// movepool — Light of Ruin included — must merge from floette-eternal, not floette.
+const MEGA_BASE_OVERRIDES = {
+  'floette-mega': 'floette-eternal',
+};
+
 // Union `additions` ({ name, apiName }) into `target` in place, skipping any move
 // already present. Shared by the Mega and pre-evolution learnset merges below.
 function mergeMoves(target, additions) {
@@ -197,7 +204,7 @@ export async function fetchPokemonDetails(apiName) {
   // missing Weather Ball. Merge in any of the base species' moves the Mega lacks.
   if (apiName.includes('-mega')) {
     try {
-      const baseSpeciesName = apiName.split('-mega')[0];
+      const baseSpeciesName = MEGA_BASE_OVERRIDES[apiName] || apiName.split('-mega')[0];
       const baseRes = await fetch(`${API_BASE}/pokemon/${baseSpeciesName}`);
       const baseData = await baseRes.json();
       mergeMoves(movesMapped, baseData.moves.map(m => ({
