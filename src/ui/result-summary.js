@@ -71,9 +71,10 @@ function turnOrder(state) {
 // the card in sync with the Attack card and the damage math.
 export function buildMoveLine(attacker, defender, move, modifiers, mode) {
   const eff = resolveEffectiveMove(attacker, move, modifiers);
-  const mult = getTypeEffectiveness(eff.type, defender.types);
+  const mult = getTypeEffectiveness(eff.type, defender.types, { scrappy: attacker.ability === 'scrappy' });
   const info = effectivenessInfo(mult, mode);
-  return { text: `${move.name} (${eff.power} BP) · ${info.label}`, tone: info.tone };
+  const hitsTwice = attacker.ability === 'parental-bond' ? ' · hits twice' : '';
+  return { text: `${move.name} (${eff.power} BP) · ${info.label}${hitsTwice}`, tone: info.tone };
 }
 
 // Build the full result-summary model from rolls + state. Pure (no DOM); the

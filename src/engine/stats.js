@@ -54,10 +54,15 @@ export function calculateStatBoost(statValue, stage) {
   }
 }
 
-export function getTypeEffectiveness(moveType, defenderTypes) {
+// `scrappy` lets the attacker's Normal/Fighting moves treat a Ghost defender's
+// immunity as neutral. We skip the Ghost entry rather than forcing the whole
+// result to 1, so dual-type math stays correct (e.g. Fighting vs Ghost/Psychic
+// stays 0.5x, not 1x).
+export function getTypeEffectiveness(moveType, defenderTypes, { scrappy = false } = {}) {
   let mult = 1.0;
   for (const defType of defenderTypes) {
     if (defType === '???' || !defType) continue;
+    if (scrappy && defType === 'Ghost' && (moveType === 'Normal' || moveType === 'Fighting')) continue;
     const row = TYPE_EFFECTIVENESS[moveType];
     if (row && row[defType] !== undefined) {
       mult *= row[defType];

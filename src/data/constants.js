@@ -34,7 +34,9 @@ export const OFFENSIVE_VGC_ABILITIES = [
   { apiName: 'supreme-overlord', name: 'Supreme Overlord (1.5x damage)' },
   { apiName: 'iron-fist', name: 'Iron Fist (1.2x Punching moves)' },
   { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' },
-  { apiName: 'fairy-aura', name: 'Fairy Aura (1.33x Fairy moves)' }
+  { apiName: 'fairy-aura', name: 'Fairy Aura (1.33x Fairy moves)' },
+  { apiName: 'scrappy', name: 'Scrappy (Hit Ghosts w/ Normal/Fighting)' },
+  { apiName: 'parental-bond', name: 'Parental Bond (Hits twice, 2nd at 0.25x)' }
 ];
 
 export const DEFENSIVE_VGC_ABILITIES = [
