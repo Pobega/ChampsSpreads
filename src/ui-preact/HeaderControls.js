@@ -17,8 +17,8 @@ import { openExportImport } from './ExportImportModal.js';
 const themeFor = (format) => REGULATIONS[format]?.theme || NATIONAL_THEME;
 
 // The header Rotom swaps form per view: base Rotom drives the calculator, Wash
-// Rotom presides over the Pokédex, and Mow Rotom (its grass-cutting form) fronts
-// the Attackdex. page-nav records the active view on STATE.page and notifies.
+// Rotom presides over the Pokédex, and Heat Rotom (its microwave-oven form)
+// fronts the Attackdex. page-nav records the active view on STATE.page and notifies.
 const SPRITE_BASE =
   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated';
 const ROTOM_BY_PAGE = {
@@ -27,16 +27,25 @@ const ROTOM_BY_PAGE = {
   attackdex: `${SPRITE_BASE}/10008.gif`,
 };
 
+// The alt forms (Wash/Heat) sit a few px lower within their Gen-V sprite frames
+// than base Rotom, so they read as visually dropped in the header. Nudge them up
+// to line their bodies up with the base form.
+const ROTOM_OFFSET_BY_PAGE = {
+  pokedex: '-3px',
+  attackdex: '-5px',
+};
+
 // Brand Rotom sprite — its form follows the active view and its drop-shadow glow
 // follows the active format's accent.
 export function Brand() {
   useStore();
   const t = themeFor(STATE.format);
   const sprite = ROTOM_BY_PAGE[STATE.page] || ROTOM_BY_PAGE.calculator;
+  const offset = ROTOM_OFFSET_BY_PAGE[STATE.page] || '0px';
   return html`
     <img src=${sprite}
-      alt="Rotom" class="w-11 h-11 object-contain transition-[filter]"
-      style=${{ filter: `drop-shadow(0 0 5px ${t.glow})` }} />`;
+      alt="Rotom" class="w-11 h-11 object-contain transition-[filter,transform]"
+      style=${{ filter: `drop-shadow(0 0 5px ${t.glow})`, transform: `translateY(${offset})` }} />`;
 }
 
 function onFormatChange(value) {
