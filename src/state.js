@@ -76,4 +76,5 @@ export const CACHE = {
   statusMoves: {},
   championsRoster: null,
   allMoves: [],
+  allAbilities: [],
 };

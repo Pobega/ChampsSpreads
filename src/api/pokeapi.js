@@ -377,3 +377,66 @@ export async function initAllMovesList() {
     CACHE.allMoves = [];
   }
 }
+
+// English rules text for an ability. Prefers the terse short_effect, then the
+// fuller effect, then a flavor-text line (older abilities sometimes carry only
+// flavor text). Backs the Abilitydex free-text search + its description column.
+function abilityDescription(data) {
+  const entry = (data.effect_entries || []).find((e) => e.language && e.language.name === 'en');
+  if (entry) {
+    const text = (entry.short_effect || entry.effect || '').trim();
+    if (text) return text;
+  }
+  const flavor = (data.flavor_text_entries || []).find(
+    (e) => e.language && e.language.name === 'en'
+  );
+  return flavor ? (flavor.flavor_text || '').replace(/\s+/g, ' ').trim() : '';
+}
+
+export async function fetchAbilityDetails(abilityApiName) {
+  const key = cacheKey(`ability_details_${abilityApiName}`);
+  const cached = Storage.get(key);
+  if (cached) return cached;
+
+  const res = await fetch(`${API_BASE}/ability/${abilityApiName}`);
+  const data = await res.json();
+
+  const details = {
+    name: formatDisplayName(data.name),
+    apiName: data.name,
+    desc: abilityDescription(data),
+    // Pokémon that can have this ability (parallel to a move's learnedBy). Used
+    // by the Abilitydex row-click modal.
+    pokemon: (data.pokemon || []).map((p) => p.pokemon.name),
+  };
+
+  Storage.set(key, details);
+  return details;
+}
+
+// Loads the full ability name list (PokéAPI's /ability index, ~360 entries) into
+// CACHE.allAbilities as [{ name, apiName }], cached in localStorage. Only names
+// are fetched here; the Abilitydex lazy-loads each ability's effect + Pokémon
+// list via fetchAbilityDetails as rows scroll in (or before a search/filter).
+export async function initAllAbilitiesList() {
+  const key = cacheKey('all_abilities_list');
+  const cached = Storage.get(key);
+  if (cached && cached.length > 0) {
+    CACHE.allAbilities = cached;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/ability?limit=500`);
+    const data = await res.json();
+    const list = (data.results || []).map((a) => ({
+      name: formatDisplayName(a.name),
+      apiName: a.name,
+    }));
+    CACHE.allAbilities = list;
+    Storage.set(key, list);
+  } catch (err) {
+    console.error('Failed to fetch the ability list', err);
+    CACHE.allAbilities = [];
+  }
+}

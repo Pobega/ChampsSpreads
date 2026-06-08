@@ -17,22 +17,25 @@ import { openExportImport } from './ExportImportModal.js';
 const themeFor = (format) => REGULATIONS[format]?.theme || NATIONAL_THEME;
 
 // The header Rotom swaps form per view: base Rotom drives the calculator, Wash
-// Rotom presides over the Pokédex, and Heat Rotom (its microwave-oven form)
-// fronts the Attackdex. page-nav records the active view on STATE.page and notifies.
+// Rotom presides over the Pokédex, Heat Rotom (its microwave-oven form) fronts the
+// Attackdex, and Frost Rotom fronts the Abilitydex. page-nav records the active
+// view on STATE.page and notifies.
 const SPRITE_BASE =
   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated';
 const ROTOM_BY_PAGE = {
   calculator: `${SPRITE_BASE}/479.gif`,
   pokedex: `${SPRITE_BASE}/10009.gif`,
   attackdex: `${SPRITE_BASE}/10008.gif`,
+  abilitydex: `${SPRITE_BASE}/10010.gif`,
 };
 
-// The alt forms (Wash/Heat) sit a few px lower within their Gen-V sprite frames
-// than base Rotom, so they read as visually dropped in the header. Nudge them up
-// to line their bodies up with the base form.
+// The alt forms sit a few px lower within their Gen-V sprite frames than base
+// Rotom, so they read as visually dropped in the header. Nudge them up to line
+// their bodies up with the base form.
 const ROTOM_OFFSET_BY_PAGE = {
   pokedex: '-3px',
   attackdex: '-5px',
+  abilitydex: '-3px',
 };
 
 // Brand Rotom sprite — its form follows the active view and its drop-shadow glow
