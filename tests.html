@@ -1333,6 +1333,93 @@
     recordSuite('dex', { pass: DEX_CASES.length - dexFail, fail: dexFail });
   </script>
 
+  <!-- Abilitydex pure-logic tests (filterAbilities / sortAbilities / vgcTag) -->
+  <script type="module">
+    import { filterAbilities, sortAbilities, vgcTag, isVgcAbility } from './src/data/abilities.js';
+
+    const results = document.getElementById('results');
+
+    // Row factory: details null until "loaded" (mirrors the lazy-load shape).
+    const abRow = (name, apiName, desc = null) => ({
+      apiName,
+      name,
+      details: desc === null ? null : { name, apiName, desc, pokemon: [] },
+    });
+    const names = (rows) => rows.map((r) => r.apiName);
+
+    const ABILITY_CASES = [
+      {
+        name: 'vgcTag classifies offensive / defensive / neither',
+        run: () =>
+          vgcTag('huge-power') === 'off' &&
+          vgcTag('multiscale') === 'def' &&
+          vgcTag('run-away') === null &&
+          isVgcAbility('huge-power') === true &&
+          isVgcAbility('run-away') === false,
+      },
+      {
+        name: 'sortAbilities orders by name (stable, asc/desc)',
+        run: () => {
+          const rows = [abRow('Sturdy', 'sturdy'), abRow('Adaptability', 'adaptability'), abRow('Mega Launcher', 'mega-launcher')];
+          const asc = names(sortAbilities(rows, 'asc'));
+          const desc = names(sortAbilities(rows, 'desc'));
+          return JSON.stringify(asc) === JSON.stringify(['adaptability', 'mega-launcher', 'sturdy'])
+            && JSON.stringify(desc) === JSON.stringify(['sturdy', 'mega-launcher', 'adaptability']);
+        },
+      },
+      {
+        name: 'filterAbilities: query matches the name',
+        run: () => {
+          const rows = [abRow('Intimidate', 'intimidate'), abRow('Levitate', 'levitate')];
+          return names(filterAbilities(rows, { query: 'intim' })).join() === 'intimidate';
+        },
+      },
+      {
+        name: 'filterAbilities: query matches loaded effect text',
+        run: () => {
+          const rows = [
+            abRow('Intimidate', 'intimidate', "Lowers the foe's Attack on entry."),
+            abRow('Levitate', 'levitate', 'Immune to Ground-type moves.'),
+          ];
+          return names(filterAbilities(rows, { query: 'ground' })).join() === 'levitate';
+        },
+      },
+      {
+        name: 'filterAbilities: an unloaded row can only match by name',
+        run: () => {
+          const rows = [abRow('Levitate', 'levitate')]; // details null
+          return filterAbilities(rows, { query: 'ground' }).length === 0
+            && filterAbilities(rows, { query: 'levi' }).length === 1;
+        },
+      },
+      {
+        name: 'filterAbilities: vgcOnly keeps only curated VGC abilities',
+        run: () => {
+          const rows = [abRow('Huge Power', 'huge-power'), abRow('Multiscale', 'multiscale'), abRow('Run Away', 'run-away')];
+          return JSON.stringify(names(filterAbilities(rows, { vgcOnly: true })))
+            === JSON.stringify(['huge-power', 'multiscale']);
+        },
+      },
+    ];
+
+    let abFail = 0;
+    for (const c of ABILITY_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [ability] ${c.name}</div>`
+        : `<div class="name">✗ [ability] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) abFail++;
+    }
+
+    // Keep the overall summary honest if an ability test regressed.
+    recordSuite('ability', { pass: ABILITY_CASES.length - abFail, fail: abFail });
+  </script>
+
   <!-- Matchup export/import text round-trip tests -->
   <script type="module">
     import { exportMatchup, importMatchup } from './src/data/matchup-text.js';

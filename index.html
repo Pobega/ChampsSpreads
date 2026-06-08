@@ -130,6 +130,13 @@
               <i class="fa-solid fa-burst sm:hidden"></i
               ><span class="hidden sm:inline">Attackdex</span>
             </button>
+            <button
+              id="nav-abilitydex"
+              class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white"
+            >
+              <i class="fa-solid fa-atom sm:hidden"></i
+              ><span class="hidden sm:inline">Abilitydex</span>
+            </button>
           </div>
           <!-- Format pill + Load Sample + Export/Import: Preact HeaderControls island.
              `contents` keeps its children as direct flex items of this bar. -->
@@ -212,6 +219,11 @@
        AttackdexView island (src/ui-preact/AttackdexView.js), mounted here by
        app.js. Hidden by default; toggled via #nav-attackdex through page-nav. -->
     <main id="page-attackdex" class="hidden max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6"></main>
+
+    <!-- Abilitydex: an ability browser parallel to the Attackdex. Rendered by the
+       Preact AbilitydexView island (src/ui-preact/AbilitydexView.js), mounted here
+       by app.js. Hidden by default; toggled via #nav-abilitydex through page-nav. -->
+    <main id="page-abilitydex" class="hidden max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6"></main>
 
     <!-- Premium Mobile Sticky Floating Damage Overlay (Visible ONLY on mobile < lg width!) -->
     <div

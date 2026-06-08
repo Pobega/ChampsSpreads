@@ -13,6 +13,7 @@ import {
   initStatusMovesList,
   initChampionsRoster,
   initAllMovesList,
+  initAllAbilitiesList,
   fetchPokemonDetails,
   fetchMoveDetails,
   fetchMoveDetailsMany,
@@ -35,6 +36,11 @@ import {
   getMoveDetails,
 } from './src/ui-preact/attackdex-store.js';
 import { AttackdexView } from './src/ui-preact/AttackdexView.js';
+import {
+  initAbilitydexStore,
+  openAbilitydexPage,
+} from './src/ui-preact/abilitydex-store.js';
+import { AbilitydexView } from './src/ui-preact/AbilitydexView.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
 import { DetailModal } from './src/ui-preact/DetailModal.js';
 import { render, h } from 'preact';
@@ -700,6 +706,21 @@ async function init() {
     pageEl: document.getElementById('page-attackdex'),
     onShow: openAttackdexPage,
   });
+  // Abilitydex is a Preact island too: wire its store callbacks, mount the view
+  // into the persistent #page-abilitydex container, and register its onShow.
+  initAbilitydexStore({
+    onPokemonClick: (apiName) => {
+      jumpToDexPokemon(apiName);
+      showPage('pokedex');
+    },
+    getPokemonDetails,
+  });
+  mountIsland(AbilitydexView, {}, document.getElementById('page-abilitydex'));
+  registerPage('abilitydex', {
+    navBtn: document.getElementById('nav-abilitydex'),
+    pageEl: document.getElementById('page-abilitydex'),
+    onShow: openAbilitydexPage,
+  });
 
   // Both search/autocomplete flows live inside their Preact islands.
 
@@ -725,6 +746,9 @@ async function init() {
   // Warm the Attackdex move index so its first open is instant (names only; each
   // move's stats are lazy-loaded as rows scroll in).
   initAllMovesList();
+  // Likewise warm the Abilitydex ability index (names only; each ability's effect
+  // + Pokémon list is lazy-loaded as rows scroll in).
+  initAllAbilitiesList();
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -19,6 +19,7 @@ const SUBTITLE_BY_PAGE = {
   calculator: 'VGC Spread Optimizer',
   pokedex: 'Pokémon Champions Pokédex',
   attackdex: 'Pokémon Champions Attackdex',
+  abilitydex: 'Pokémon Champions Abilitydex',
 };
 
 const pages = new Map(); // id -> { navBtn, pageEl, onShow }
