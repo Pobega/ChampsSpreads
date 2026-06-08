@@ -6,7 +6,7 @@
 // invalidates all cached resources at once (see cache.js).
 import { CACHE } from '../state.js';
 import { Storage, cacheKey } from './cache.js';
-import { REGULATIONS, resolveLegalSet } from '../data/regulations.js';
+import { REGULATIONS, resolveLegalSet, resolveNonLegalForms } from '../data/regulations.js';
 
 export const API_BASE = 'https://pokeapi.co/api/v2';
 
@@ -111,6 +111,21 @@ export function legalSetForFormat(format) {
     legalSetByFormat[format] = resolveLegalSet(roster, REGULATIONS[format]);
   }
   return legalSetByFormat[format];
+}
+
+// Resolved banned form-suffix list for a regulation format (the global NON_LEGAL_FORMS
+// minus that regulation's re-allowed `legalForms`), to pair with legalSetForFormat() in
+// isFormatLegal(). Returns [] for the unrestricted "National Dex" view ('all'), which
+// applies no form ban — cosmetic/non-battle forms are handled by isHiddenForm instead.
+// Memoized per format, like legalSetForFormat.
+const nonLegalFormsByFormat = {};
+export function nonLegalFormsForFormat(format) {
+  const reg = REGULATIONS[format];
+  if (!reg) return [];
+  if (!nonLegalFormsByFormat[format]) {
+    nonLegalFormsByFormat[format] = resolveNonLegalForms(reg);
+  }
+  return nonLegalFormsByFormat[format];
 }
 
 // Friendlier labels for forms whose PokéAPI name reads awkwardly. The kept Minior

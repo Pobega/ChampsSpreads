@@ -8,7 +8,7 @@ import { getTypeBgClass } from '../ui/render.js';
 import { NATURES, DEF_VGC_ABILITIES_HELPER } from '../data/constants.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
-import { legalSetForFormat, fetchPokemonDetails } from '../api/pokeapi.js';
+import { legalSetForFormat, nonLegalFormsForFormat, fetchPokemonDetails } from '../api/pokeapi.js';
 import { GHOST_SPRITE, BOOST_STAGES, regulationTag } from './card-common.js';
 
 // Mirror of the defender preset matcher in app.js.
@@ -96,7 +96,7 @@ export function DefenderCard({ onChoose }) {
     if (!term) { setResults([]); return; }
     let m = CACHE.pokemonList.filter((p) => p.name.toLowerCase().includes(term) && !isHiddenForm(p.apiName));
     const legal = legalSetForFormat(STATE.format);
-    if (legal) m = m.filter((p) => isFormatLegal(p.apiName, legal));
+    if (legal) m = m.filter((p) => isFormatLegal(p.apiName, legal, nonLegalFormsForFormat(STATE.format)));
     m.sort((x, y) => {
       const xs = x.name.toLowerCase().startsWith(term);
       const ys = y.name.toLowerCase().startsWith(term);
