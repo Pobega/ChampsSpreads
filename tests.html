@@ -1029,7 +1029,7 @@
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
     import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isFormatLegal } from './src/data/dex.js';
-    import { resolveLegalSet } from './src/data/regulations.js';
+    import { resolveLegalSet, resolveNonLegalForms, NON_LEGAL_FORMS, REGULATIONS } from './src/data/regulations.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -1202,8 +1202,12 @@
         run: () => isFormatLegal('incineroar', new Set(['incineroar', 'charizard'])) === true,
       },
       {
-        name: 'isFormatLegal: a form of a legal base matches (charizard-mega-x)',
-        run: () => isFormatLegal('charizard-mega-x', new Set(['charizard'])) === true,
+        name: 'isFormatLegal: a Mega of a legal base is legal when the regulation re-allows -mega (M-A)',
+        run: () => isFormatLegal('charizard-mega-x', new Set(['charizard']), resolveNonLegalForms(REGULATIONS.regulation_ma)) === true,
+      },
+      {
+        name: 'isFormatLegal: Megas are banned by default (no per-regulation legalForms)',
+        run: () => isFormatLegal('charizard-mega-x', new Set(['charizard'])) === false,
       },
       {
         name: 'isFormatLegal: trailing-hyphen guard — base mew does not match mewtwo',
@@ -1227,6 +1231,40 @@
         name: 'isFormatLegal: null/empty inputs return false',
         run: () => isFormatLegal('incineroar', null) === false
           && isFormatLegal('', new Set(['incineroar'])) === false,
+      },
+      {
+        name: 'isFormatLegal: Eternal Floette + Mega Floette are legal under M-A (re-allows -eternal/-mega)',
+        run: () => {
+          const forms = resolveNonLegalForms(REGULATIONS.regulation_ma);
+          return isFormatLegal('floette', new Set(['floette']), forms) === true
+            && isFormatLegal('floette-eternal', new Set(['floette']), forms) === true
+            && isFormatLegal('floette-mega', new Set(['floette']), forms) === true;
+        },
+      },
+      {
+        name: 'isFormatLegal: re-allowing -mega still bans the more-specific -mega-z',
+        run: () => {
+          const forms = resolveNonLegalForms({ legalForms: ['-mega'] });
+          return isFormatLegal('charizard-mega-x', new Set(['charizard']), forms) === true
+            && isFormatLegal('lucario-mega-z', new Set(['lucario']), forms) === false;
+        },
+      },
+
+      // ---- resolveNonLegalForms (global bans minus the regulation's legalForms) ----
+      {
+        name: 'resolveNonLegalForms: removes the regulation\'s re-allowed suffixes, keeps the rest',
+        run: () => {
+          const forms = resolveNonLegalForms(REGULATIONS.regulation_ma);
+          return !forms.includes('-mega') && !forms.includes('-eternal')
+            && forms.includes('-mega-z') && forms.includes('-gmax');
+        },
+      },
+      {
+        name: 'resolveNonLegalForms: no legalForms returns the full global list',
+        run: () => {
+          const forms = resolveNonLegalForms({});
+          return forms.length === NON_LEGAL_FORMS.length && forms.includes('-mega');
+        },
       },
 
       // ---- resolveLegalSet (roster + per-regulation include/exclude delta) ----

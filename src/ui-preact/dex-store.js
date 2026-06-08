@@ -7,7 +7,7 @@
 import { STATE, CACHE } from '../state.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
-import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat } from '../api/pokeapi.js';
+import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat, nonLegalFormsForFormat } from '../api/pokeapi.js';
 import { getTypeBgClass, getCategoryBadge, TYPE_SHORT } from '../ui/render.js';
 import { getTypeEffectiveness } from '../engine/stats.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
@@ -58,7 +58,7 @@ function buildDexRoster() {
   // legal set the calculator's search uses so the two views stay in sync.
   const legal = legalSetForFormat(STATE.format);
   if (legal) {
-    entries = entries.filter(p => isFormatLegal(p.apiName, legal));
+    entries = entries.filter(p => isFormatLegal(p.apiName, legal, nonLegalFormsForFormat(STATE.format)));
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
 

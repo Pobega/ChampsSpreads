@@ -1,6 +1,7 @@
 // Pure, DOM/fetch-free logic for the Pokédex stats-browser page.
 // Kept side-effect free so it can be unit-tested in tests.html.
 import { ALL_TYPES } from './constants.js';
+import { NON_LEGAL_FORMS } from './regulations.js';
 
 // The six base stats, in canonical Showdown order.
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
@@ -117,27 +118,17 @@ export function isHiddenForm(apiName) {
   return false;
 }
 
-// Forms that PokéAPI lists but that are never selectable in Regulation M-A:
-// Gigantamax, Totem, cosplay/cap Pikachu, Ash-Greninja (Battle Bond), Let's Go
-// starters, the non-canon "-mega-z" forms (absol/garchomp/lucario), etc.
-// Eternal Floette is intentionally NOT here: it's the only pre-Mega form for
-// Mega Floette (and the sole carrier of Light of Ruin), so it stays legal
-// wherever its base species is.
-const NON_LEGAL_FORMS = [
-  '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
-  '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
-  '-mega-z', 'greninja-ash'
-];
-
 // Whether `apiName` is legal under a regulation, given that regulation's legal
-// base-species set (a Set of PokéAPI base names, e.g. from legalSetForFormat()).
-// Pure: the legal set is injected rather than read from module state, so this
-// stays unit-testable and works for any regulation.
-export function isFormatLegal(apiName, legalList) {
+// base-species set (a Set of PokéAPI base names, e.g. from legalSetForFormat()) and
+// its banned form-suffix list (e.g. from nonLegalFormsForFormat() — the global
+// NON_LEGAL_FORMS minus the regulation's re-allowed `legalForms`). Both are injected
+// rather than read from module state, so this stays pure and works for any regulation;
+// `nonLegalForms` defaults to the full global ban list for standalone callers.
+export function isFormatLegal(apiName, legalList, nonLegalForms = NON_LEGAL_FORMS) {
   if (!apiName) return false;
   const name = apiName.toLowerCase();
 
-  if (NON_LEGAL_FORMS.some(f => name.includes(f))) return false;
+  if (nonLegalForms.some(f => name.includes(f))) return false;
   if (!legalList) return false;
 
   // A Pokémon is legal when it IS, or is a form of, a legal base species. PokéAPI
