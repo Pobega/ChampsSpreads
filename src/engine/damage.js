@@ -140,7 +140,7 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
 
   const levelFactor = 22;
-  const baseDamage = Math.floor(Math.floor((levelFactor * effectivePower * effectiveAtk) / 50) / effectiveDef) + 2;
+  const baseDamageFor = (power) => Math.floor(Math.floor((levelFactor * power * effectiveAtk) / 50) / effectiveDef) + 2;
 
   let mod = 1.0;
 
@@ -175,7 +175,7 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
   mod *= stab;
 
-  const typeMult = getTypeEffectiveness(move.type, defender.types);
+  const typeMult = getTypeEffectiveness(move.type, defender.types, { scrappy: attacker.ability === 'scrappy' });
   mod *= typeMult;
 
   if (isPhysical && attacker.ability !== 'guts' && attacker.status === 'burned' && move.apiName !== 'facade') {
@@ -235,11 +235,23 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 0.5;
   }
 
+  // Parental Bond (Mega Kangaskhan) makes the move hit twice, the second hit at
+  // 0.25x power; the two floored hits are summed per roll. Simplification: the
+  // shared `mod` (incl. full-HP defender abilities like Multiscale and the
+  // spread reduction) is applied uniformly to both hits rather than recomputed
+  // against the defender's reduced HP after the first hit — acceptable here.
+  const hitPowers = attacker.ability === 'parental-bond'
+    ? [effectivePower, Math.floor(effectivePower * 0.25)]
+    : [effectivePower];
+
   const rolls = [];
   for (let r = 85; r <= 100; r++) {
-    const rollVal = Math.floor(baseDamage * (r / 100));
-    const finalDamage = Math.floor(rollVal * mod);
-    rolls.push(finalDamage);
+    let total = 0;
+    for (const power of hitPowers) {
+      const rollVal = Math.floor(baseDamageFor(power) * (r / 100));
+      total += Math.floor(rollVal * mod);
+    }
+    rolls.push(total);
   }
 
   return rolls;
