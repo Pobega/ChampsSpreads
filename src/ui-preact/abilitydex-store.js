@@ -119,8 +119,10 @@ export const commitAbdFilter = abdChip.commit;
 export const commitAbdValue = abdChip.commitValue;
 export const removeAbdFilter = abdChip.remove;
 export const clearAbdFilters = abdChip.clear;
-// Backs the Offensive / Defensive preset buttons: each toggles its keyword chip.
-export const toggleAbdTag = abdChip.toggle;
+// Backs the Offensive / Defensive preset buttons. They're mutually exclusive (no
+// ability is both), so toggling one on clears the other.
+const ABD_TAG_GROUP = ['offensive', 'defensive'];
+export const toggleAbdTag = (term) => abdChip.toggle(term, ABD_TAG_GROUP);
 
 // Autocomplete: an ability is filtered by its own name or a holder Pokémon, so
 // suggest from those two kinds. No move kind (abilities can't be filtered by a
