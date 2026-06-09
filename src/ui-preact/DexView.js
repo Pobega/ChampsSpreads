@@ -5,9 +5,8 @@
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { SearchChips } from './SearchChips.js';
-import { STATE } from '../state.js';
+import { RegulationBadge } from './RegulationBadge.js';
 import { bst, sortDex, filterDex } from '../data/dex.js';
-import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass, TYPE_SHORT } from '../ui/render.js';
 import {
   DexStore,
@@ -105,14 +104,6 @@ function SortButton({ col }) {
       onClick=${() => setDexSort(col.key)}>
       ${col.label} <span class="dex-arrow">${arrow}</span>
     </button>`;
-}
-
-function RegulationBadge() {
-  const reg = REGULATIONS[STATE.format];
-  if (reg) {
-    return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50">${reg.label}</span>`;
-  }
-  return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30">National Dex</span>`;
 }
 
 export function DexView() {

@@ -6,8 +6,8 @@
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { SearchChips } from './SearchChips.js';
+import { RegulationBadge } from './RegulationBadge.js';
 import { STATE } from '../state.js';
-import { REGULATIONS } from '../data/regulations.js';
 import { legalNameFilterForFormat } from '../api/pokeapi.js';
 import { sortAbilities, filterAbilities, abilityTag } from '../data/abilities.js';
 import {
@@ -36,16 +36,6 @@ function TagBadge({ apiName }) {
   if (tag === 'def')
     return html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-sky-950/50 text-sky-400 border border-sky-900/40" title="VGC-relevant defensive ability">Def</span>`;
   return html`<span class="text-slate-600 text-[10px]">—</span>`;
-}
-
-// Mirrors the Pokédex badge: shows the active regulation (or National Dex) so it's
-// obvious the ability list is filtered to that format's legal holders.
-function RegulationBadge() {
-  const reg = REGULATIONS[STATE.format];
-  if (reg) {
-    return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50">${reg.label}</span>`;
-  }
-  return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30">National Dex</span>`;
 }
 
 function PlaceholderRow({ row }) {
