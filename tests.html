@@ -2151,6 +2151,38 @@
           return approx(top(MON({ ability: 'punk-rock' }), def, move) / top(MON(), def, move), 1.3);
         },
       },
+      {
+        name: 'analytic: 1.3x when moving last (slower), 1x when faster',
+        run: () => {
+          const slow = MON({ ability: 'analytic', baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 50 } });
+          const slowNone = MON({ baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 50 } });
+          const fastDef = MON({ baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 120 } });
+          const last = top(slow, fastDef, SPEC('Dark')) / top(slowNone, fastDef, SPEC('Dark'));
+          // Explicit movesFirst override: when the user moves first, no boost.
+          const first = top(MON({ ability: 'analytic' }), MON(), SPEC('Dark'), { movesFirst: true })
+            / top(MON(), MON(), SPEC('Dark'), { movesFirst: true });
+          return approx(last, 1.3) && approx(first, 1);
+        },
+      },
+      {
+        name: 'solar-power: 1.5x special in sun only',
+        run: () => {
+          const inSun = top(MON({ ability: 'solar-power' }), MON(), SPEC('Dark'), { weather: 'sun' })
+            / top(MON(), MON(), SPEC('Dark'), { weather: 'sun' });
+          const noSun = top(MON({ ability: 'solar-power' }), MON(), SPEC('Dark')) / top(MON(), MON(), SPEC('Dark'));
+          // Physical moves are unaffected even in sun.
+          const phys = top(MON({ ability: 'solar-power' }), MON(), PHYS('Dark'), { weather: 'sun' })
+            / top(MON(), MON(), PHYS('Dark'), { weather: 'sun' });
+          return approx(inSun, 1.5) && approx(noSun, 1) && approx(phys, 1);
+        },
+      },
+      {
+        name: 'reckless boosts a recoil move (Brave Bird) 1.2x',
+        run: () => {
+          const move = { apiName: 'brave-bird', name: 'Brave Bird', type: 'Flying', power: 120, category: 'physical' };
+          return approx(top(MON({ ability: 'reckless' }), MON(), move) / top(MON(), MON(), move), 1.2);
+        },
+      },
     ];
 
     let abeFail = 0;

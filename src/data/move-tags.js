@@ -361,6 +361,28 @@ export const SOUND_MOVES = new Set([
   'eerie-spell',
 ]);
 
+// Recoil + crash moves boosted 1.2x by Reckless, per Bulbapedia
+// (https://bulbapedia.bulbagarden.net/wiki/Reckless_(Ability)). Struggle and
+// Life-Orb/item recoil are excluded (Reckless ignores them).
+export const RECKLESS_MOVES = new Set([
+  'take-down',
+  'double-edge',
+  'submission',
+  'brave-bird',
+  'flare-blitz',
+  'wood-hammer',
+  'head-smash',
+  'wild-charge',
+  'volt-tackle',
+  'head-charge',
+  'light-of-ruin',
+  'wave-crash',
+  'supercell-slam',
+  'chloroblast',
+  'jump-kick',
+  'high-jump-kick',
+]);
+
 // Biting moves boosted by Strong Jaw, per Bulbapedia
 // (https://bulbapedia.bulbagarden.net/wiki/Strong_Jaw_(Ability)).
 export const BITING_MOVES = new Set([

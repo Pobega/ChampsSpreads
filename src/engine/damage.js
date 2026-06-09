@@ -153,15 +153,16 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   if (move.apiName === 'hex' && defender.status) {
     effectivePower *= 2;
   }
+  // Whether the attacker moves first. Defaults to comparing effective Speed, but
+  // an explicit modifier overrides it (Trick Room, Choice Scarf, switch-ins, …).
+  // Drives Bolt Beak (doubles when first) and the Analytic ability (1.3x when
+  // last); Payback keeps its own strict-< tie handling below.
+  const attackerMovesFirst =
+    modifiers.movesFirst != null
+      ? modifiers.movesFirst
+      : effectiveSpeed(attacker) > effectiveSpeed(defender);
   if (move.apiName === 'bolt-beak' || move.apiName === 'fishious-rend') {
-    // Doubles if the user moves first. Default to comparing effective Speed,
-    // but let an explicit modifier override it (Trick Room, Choice Scarf,
-    // switch-ins, etc.).
-    const movesFirst =
-      modifiers.movesFirst != null
-        ? modifiers.movesFirst
-        : effectiveSpeed(attacker) > effectiveSpeed(defender);
-    if (movesFirst) {
+    if (attackerMovesFirst) {
       effectivePower *= 2;
     }
   }
@@ -249,7 +250,15 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 5461 / 4096;
   }
 
-  const abilityCtx = { move, isPhysical, attacker, defender, typeMult, modifiers };
+  const abilityCtx = {
+    move,
+    isPhysical,
+    attacker,
+    defender,
+    typeMult,
+    modifiers,
+    movesFirst: attackerMovesFirst,
+  };
   mod *= attackerAbilityMultiplier(attacker.ability, abilityCtx);
 
   let screenMod = modifiers.screens ? 0.66 : 1.0;
