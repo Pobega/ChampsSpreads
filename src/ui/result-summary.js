@@ -86,7 +86,17 @@ export function buildMoveLine(attacker, defender, move, modifiers, mode) {
   });
   const info = effectivenessInfo(mult, mode);
   const hitsTwice = attacker.ability === 'parental-bond' ? ' · hits twice' : '';
-  return { text: `${move.name} (${eff.power} BP) · ${info.label}${hitsTwice}`, tone: info.tone };
+  // Spread tag — make the 0.75x state obvious at a glance. Show "Spread (0.75x)"
+  // whenever the multiplier is actually applied (modifiers.spread), and "Non-Spread"
+  // when a spread-capable move (move.spread) currently isn't getting it, so a
+  // toggle/move mismatch is visible. Single-target moves with spread off stay clean.
+  let spread = '';
+  if (modifiers.spread) spread = ' · Spread (0.75x)';
+  else if (move.spread) spread = ' · Non-Spread';
+  return {
+    text: `${move.name} (${eff.power} BP) · ${info.label}${hitsTwice}${spread}`,
+    tone: info.tone,
+  };
 }
 
 // Build the full result-summary model from rolls + state. Pure (no DOM); the

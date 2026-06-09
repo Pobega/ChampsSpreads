@@ -51,6 +51,10 @@ export const STATE = {
     type: 'Normal',
     power: 80,
     category: 'physical',
+    // Whether the selected move is spread-capable (hits multiple targets). Drives
+    // the damage card's Spread/Non-Spread tag; the applied 0.75x lives on
+    // modifiers.spread. Not serialized — re-derived on move selection.
+    spread: false,
   },
 
   modifiers: {

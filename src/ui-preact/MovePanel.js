@@ -27,6 +27,7 @@ async function onSelect(value) {
     update((s) => {
       s.move.apiName = '';
       s.move.name = 'Custom Move';
+      s.move.spread = false;
     });
     return;
   }
@@ -42,8 +43,10 @@ async function onSelect(value) {
       s.move.power = mv.power; // base power; resolved BP is computed for display
       // Sync the Spread Move (0.75x) modifier to the selected move so its 0.75x
       // multiplier follows the choice automatically (#71 follow-up). User can still
-      // override the toggle afterward.
-      s.modifiers.spread = isSpreadMove(mv);
+      // override the toggle afterward; move.spread records capability for the card's
+      // Spread/Non-Spread tag.
+      s.move.spread = isSpreadMove(mv);
+      s.modifiers.spread = s.move.spread;
     });
   } catch (err) {
     console.error('Error fetching move info', err);

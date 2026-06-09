@@ -135,6 +135,7 @@ function setAttackerDetails(details) {
     const firstMove = damagingMoves[0];
     STATE.move.apiName = firstMove.apiName;
     STATE.move.name = firstMove.name;
+    STATE.move.spread = false; // provisional until the learnset resolves below
 
     fetchMoveDetailsMany(damagingMoves.map((m) => m.apiName))
       .then((moveDetails) => {
@@ -155,12 +156,15 @@ function setAttackerDetails(details) {
           STATE.move.category = choice.category.toLowerCase();
           // Sync the Spread Move (0.75x) modifier to the auto-picked move: spread
           // signatures (Glacial Lance, Clanging Scales, …) now default-pick, so the
-          // multiplier should follow without a manual toggle (#71 follow-up).
-          STATE.modifiers.spread = isSpreadMove(choice);
+          // multiplier should follow without a manual toggle (#71 follow-up). Stash
+          // the move's spread-capability for the damage card's Spread/Non-Spread tag.
+          STATE.move.spread = isSpreadMove(choice);
+          STATE.modifiers.spread = STATE.move.spread;
         } else {
           STATE.move.apiName = '';
           STATE.move.name = 'Custom Move';
           STATE.move.power = 80;
+          STATE.move.spread = false;
         }
         updateLiveStats();
       })
@@ -170,12 +174,14 @@ function setAttackerDetails(details) {
         STATE.move.apiName = '';
         STATE.move.name = 'Custom Move';
         STATE.move.power = 80;
+        STATE.move.spread = false;
         updateLiveStats();
       });
   } else if (!isApplyingMatchup) {
     STATE.move.apiName = '';
     STATE.move.name = 'Custom Move';
     STATE.move.power = 80;
+    STATE.move.spread = false;
     updateLiveStats();
   }
 
