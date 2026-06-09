@@ -1025,6 +1025,45 @@
           return l.text === 'Weather Ball (100 BP) · Super Effective' && l.tone === 'red';
         },
       },
+      {
+        // A spread-capable move with the 0.75x applied tags "Spread (0.75x)".
+        // (Normal-typed fixtures keep the effectiveness label "Neutral" so these
+        // assert only the spread tag.)
+        name: 'spread move with spread on tags Spread (0.75x)',
+        run: () => {
+          const SPREAD_MV = { name: 'Boomburst', apiName: 'boomburst', type: 'Normal', power: 140, category: 'special', spread: true };
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, SPREAD_MV, { weather: 'none', spread: true }, 'offensive');
+          return l.text === 'Boomburst (140 BP) · Neutral · Spread (0.75x)';
+        },
+      },
+      {
+        // Same spread move with the toggle off flags the mismatch as "Non-Spread".
+        name: 'spread move with spread off tags Non-Spread',
+        run: () => {
+          const SPREAD_MV = { name: 'Boomburst', apiName: 'boomburst', type: 'Normal', power: 140, category: 'special', spread: true };
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, SPREAD_MV, { weather: 'none', spread: false }, 'offensive');
+          return l.text === 'Boomburst (140 BP) · Neutral · Non-Spread';
+        },
+      },
+      {
+        // A single-target move with spread off stays clean (no tag clutter).
+        name: 'single-target move with spread off shows no spread tag',
+        run: () => {
+          const SINGLE_MV = { name: 'Body Slam', apiName: 'body-slam', type: 'Normal', power: 85, category: 'physical', spread: false };
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, SINGLE_MV, { weather: 'none', spread: false }, 'offensive');
+          return l.text === 'Body Slam (85 BP) · Neutral';
+        },
+      },
+      {
+        // A single-target move with the toggle manually on still reports the active
+        // 0.75x, so the multiplier is never hidden.
+        name: 'single-target move with spread on still tags Spread (0.75x)',
+        run: () => {
+          const SINGLE_MV = { name: 'Body Slam', apiName: 'body-slam', type: 'Normal', power: 85, category: 'physical', spread: false };
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, SINGLE_MV, { weather: 'none', spread: true }, 'offensive');
+          return l.text === 'Body Slam (85 BP) · Neutral · Spread (0.75x)';
+        },
+      },
     ];
 
     let lineFail = 0;
