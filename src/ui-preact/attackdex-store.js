@@ -17,6 +17,7 @@ import { getTypeBgClass } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
+import { makeChipFilter } from './chip-filter.js';
 import { runPool } from './load-pool.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
@@ -26,10 +27,8 @@ export const AdxStore = {
   byName: {}, // apiName -> row (same object refs as roster)
   sortKey: 'name', // 'name' | 'power' | 'pp'
   sortDir: 'asc',
-  query: '',
-  filterType: '', // '' = all, else a type display name (e.g. 'Fire')
-  filterCategory: '', // '' = all, else 'physical' | 'special' | 'status'
-  filterSpread: false, // true = only multi-target (spread) moves
+  filters: [], // committed search terms (the chips); ANDed together
+  draft: '', // uncommitted input text (live-previewed before Enter)
   built: false,
   allLoaded: false, // every roster row has details loaded
   loading: false,
@@ -110,18 +109,6 @@ async function ensureAllLoaded() {
   await loadMoveDetails(AdxStore.roster.map((r) => r.apiName));
 }
 
-// True when the current view depends on loaded move details (anything other than
-// the default name-only browse).
-function needsFullLoad() {
-  return !!(
-    AdxStore.query.trim() ||
-    AdxStore.filterType ||
-    AdxStore.filterCategory ||
-    AdxStore.filterSpread ||
-    AdxStore.sortKey !== 'name'
-  );
-}
-
 // --- Mutators (notify, and force-load details when the new view needs them) ---
 
 export async function setAdxSort(key) {
@@ -137,46 +124,21 @@ export async function setAdxSort(key) {
   }
 }
 
-export async function setAdxQuery(query) {
-  AdxStore.query = query;
-  notifyAdx();
-  // Description search needs every row's details; load them on first query.
-  if (query.trim() && !AdxStore.allLoaded) {
-    await ensureAllLoaded();
-  }
-}
-
-export function clearAdxQuery() {
-  AdxStore.query = '';
-  notifyAdx();
-}
-
-// Filters read attributes the lazy browse hasn't fetched yet — full-load first.
-async function applyFilterChange() {
-  notifyAdx(); // reflect control state immediately
-  if (needsFullLoad() && !AdxStore.allLoaded) {
-    await ensureAllLoaded();
-  }
-  notifyAdx();
-}
-
-export function setAdxType(type) {
-  AdxStore.filterType = type;
-  return applyFilterChange();
-}
-export function setAdxCategory(cat) {
-  AdxStore.filterCategory = cat;
-  return applyFilterChange();
-}
-export function toggleAdxSpread() {
-  AdxStore.filterSpread = !AdxStore.filterSpread;
-  return applyFilterChange();
-}
+// Chip-filter state (committed chips + live draft) uses the shared factory so the
+// Attackdex behaves identically to the Pokédex. The onActivate hook force-loads
+// every move's details the first time a term becomes active, since type /
+// category / spread / description / learner search reads them (no-op once loaded).
+const adxChip = makeChipFilter(AdxStore, notifyAdx, { onActivate: ensureAllLoaded });
+export const setAdxDraft = adxChip.setDraft;
+export const commitAdxFilter = adxChip.commit;
+export const removeAdxFilter = adxChip.remove;
+export const clearAdxFilters = adxChip.clear;
 
 // Build + render the Attackdex the first time it's shown.
 export async function openAttackdexPage() {
   if (!_preserveQuery) {
-    AdxStore.query = '';
+    AdxStore.filters = [];
+    AdxStore.draft = '';
   }
   _preserveQuery = false;
 
@@ -209,13 +171,14 @@ export function getMoveDetails(apiName) {
 }
 
 // Narrow the Attackdex to a single move by name (called when jumping from the
-// Pokédex learnset modal). Sets the query + re-renders.
+// Pokédex learnset modal). Sets the filter chip + re-renders.
 export function jumpToAttackdexMove(apiName) {
   const displayName = AdxStore.byName[apiName]?.name || formatDisplayName(apiName);
   _preserveQuery = true;
-  AdxStore.query = displayName;
+  AdxStore.filters = [displayName];
+  AdxStore.draft = '';
   // Only notify if already built; otherwise openAttackdexPage (triggered by
-  // showPage) will render with the query already set.
+  // showPage) will render with the filter already set.
   if (AdxStore.built) notifyAdx();
 }
 
