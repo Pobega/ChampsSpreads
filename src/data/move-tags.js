@@ -383,6 +383,50 @@ export const RECKLESS_MOVES = new Set([
   'high-jump-kick',
 ]);
 
+// Damaging moves with a chance-based secondary effect, boosted 1.3x by Sheer
+// Force (per https://bulbapedia.bulbagarden.net/wiki/Sheer_Force_(Ability)).
+// Curated to the VGC-relevant staples — moves whose ONLY added effect is
+// guaranteed (e.g. Snarl, Rock Tomb, Breaking Swipe) are excluded, since Sheer
+// Force doesn't boost those. Non-exhaustive; extend as users hit gaps.
+export const SECONDARY_EFFECT_MOVES = new Set([
+  // Fire
+  'flamethrower', 'fire-blast', 'heat-wave', 'lava-plume', 'fire-punch', 'fire-fang',
+  'flame-wheel', 'flare-blitz', 'blaze-kick', 'sacred-fire', 'ember', 'fiery-dance', 'searing-shot',
+  // Water
+  'scald', 'water-pulse', 'liquidation', 'muddy-water', 'razor-shell', 'bubble-beam', 'octazooka',
+  // Electric
+  'thunderbolt', 'thunder', 'thunder-punch', 'thunder-fang', 'discharge', 'volt-tackle',
+  'spark', 'nuzzle', 'zing-zap', 'zap-cannon',
+  // Ice
+  'ice-beam', 'blizzard', 'ice-punch', 'ice-fang', 'icicle-crash', 'freeze-dry', 'powder-snow',
+  // Poison
+  'sludge-bomb', 'sludge-wave', 'poison-jab', 'gunk-shot', 'poison-fang', 'cross-poison', 'sludge', 'smog',
+  // Ground
+  'earth-power', 'mud-shot', 'mud-slap', 'mud-bomb', 'bone-club',
+  // Rock
+  'rock-slide', 'ancient-power',
+  // Flying
+  'air-slash', 'hurricane', 'bounce', 'sky-attack', 'twister', 'gust',
+  // Bug
+  'bug-buzz', 'signal-beam',
+  // Steel
+  'iron-head', 'steel-wing', 'iron-tail', 'metal-claw', 'flash-cannon',
+  // Psychic
+  'psychic', 'zen-headbutt', 'psybeam', 'extrasensory', 'luster-purge', 'mist-ball',
+  // Ghost
+  'shadow-ball', 'shadow-bone', 'ominous-wind', 'astonish',
+  // Dragon
+  'dragon-breath', 'dragon-rush',
+  // Dark
+  'crunch', 'bite', 'dark-pulse', 'night-daze', 'fiery-wrath',
+  // Fairy
+  'play-rough', 'moonblast',
+  // Normal
+  'body-slam', 'headbutt', 'hyper-fang', 'stomp', 'tri-attack', 'secret-power',
+  // Fighting
+  'force-palm', 'rock-smash', 'dynamic-punch', 'focus-blast',
+]);
+
 // Biting moves boosted by Strong Jaw, per Bulbapedia
 // (https://bulbapedia.bulbagarden.net/wiki/Strong_Jaw_(Ability)).
 export const BITING_MOVES = new Set([

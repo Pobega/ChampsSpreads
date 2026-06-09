@@ -2183,6 +2183,62 @@
           return approx(top(MON({ ability: 'reckless' }), MON(), move) / top(MON(), MON(), move), 1.2);
         },
       },
+      {
+        name: 'soundproof is immune to sound moves (0)',
+        run: () => {
+          const move = { apiName: 'boomburst', name: 'Boomburst', type: 'Normal', power: 140, category: 'special' };
+          return top(MON(), MON({ ability: 'soundproof' }), move) === 0;
+        },
+      },
+      {
+        name: 'sheer-force boosts a secondary-effect move (Scald) 1.3x, plain move unaffected',
+        run: () => {
+          const scald = { apiName: 'scald', name: 'Scald', type: 'Water', power: 80, category: 'special' };
+          const plain = { apiName: 'surf', name: 'Surf', type: 'Water', power: 90, category: 'special' };
+          const boosted = top(MON({ ability: 'sheer-force' }), MON(), scald) / top(MON(), MON(), scald);
+          const same = top(MON({ ability: 'sheer-force' }), MON(), plain) / top(MON(), MON(), plain);
+          return approx(boosted, 1.3) && approx(same, 1);
+        },
+      },
+      {
+        name: 'pinch: Overgrow 1.5x Grass only when active; Defeatist 0.5x when active',
+        run: () => {
+          const grass = SPEC('Grass');
+          const og = top(MON({ ability: 'overgrow' }), MON(), grass, { pinchActive: true }) / top(MON(), MON(), grass);
+          const ogOff = top(MON({ ability: 'overgrow' }), MON(), grass) / top(MON(), MON(), grass);
+          const df = top(MON({ ability: 'defeatist' }), MON(), SPEC('Dark'), { pinchActive: true }) / top(MON(), MON(), SPEC('Dark'));
+          return approx(og, 1.5) && approx(ogOff, 1) && approx(df, 0.5);
+        },
+      },
+      {
+        name: 'protosynthesis: 1.3x SpA in sun / via Booster; off otherwise; Speed-highest does nothing',
+        run: () => {
+          const spaBest = (o = {}) => MON({ baseStats: { hp: 100, atk: 80, def: 80, spa: 150, spd: 80, spe: 80 }, ...o });
+          const base = top(spaBest(), MON(), SPEC('Dark'));
+          const sun = top(spaBest({ ability: 'protosynthesis' }), MON(), SPEC('Dark'), { weather: 'sun' })
+            / top(spaBest(), MON(), SPEC('Dark'), { weather: 'sun' });
+          const booster = top(spaBest({ ability: 'protosynthesis' }), MON(), SPEC('Dark'), { boosterActive: true }) / base;
+          const off = top(spaBest({ ability: 'protosynthesis' }), MON(), SPEC('Dark')) / base;
+          // Speed is the highest stat -> no offensive boost even when active.
+          const speBest = MON({ ability: 'protosynthesis', baseStats: { hp: 100, atk: 80, def: 80, spa: 150, spd: 80, spe: 200 } });
+          const speBestNone = MON({ baseStats: { hp: 100, atk: 80, def: 80, spa: 150, spd: 80, spe: 200 } });
+          const speedHighest = top(speBest, MON(), SPEC('Dark'), { boosterActive: true }) / top(speBestNone, MON(), SPEC('Dark'));
+          return approx(sun, 1.3, 0.05) && approx(booster, 1.3, 0.05) && approx(off, 1) && approx(speedHighest, 1);
+        },
+      },
+      {
+        name: 'quark-drive: 1.3x in Electric Terrain; protosynthesis defender raises its bulk',
+        run: () => {
+          const spaBest = (o = {}) => MON({ baseStats: { hp: 100, atk: 80, def: 80, spa: 150, spd: 80, spe: 80 }, ...o });
+          const quark = top(spaBest({ ability: 'quark-drive' }), MON(), SPEC('Dark'), { terrain: 'electric' })
+            / top(spaBest(), MON(), SPEC('Dark'), { terrain: 'electric' });
+          // Defender with SpD highest + Protosynthesis in sun takes ~1/1.3 damage.
+          const spdBest = (o = {}) => MON({ baseStats: { hp: 100, atk: 80, def: 80, spa: 80, spd: 150, spe: 80 }, ...o });
+          const defended = top(MON(), spdBest({ ability: 'protosynthesis' }), SPEC('Dark'), { weather: 'sun' })
+            / top(MON(), spdBest(), SPEC('Dark'), { weather: 'sun' });
+          return approx(quark, 1.3, 0.05) && approx(defended, 1 / 1.3, 0.05);
+        },
+      },
     ];
 
     let abeFail = 0;

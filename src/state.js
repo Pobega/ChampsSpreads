@@ -64,6 +64,8 @@ export const STATE = {
     aura: 'none', // 'none', 'fairy', 'dark'
     tailAtk: false, // attacker Tailwind (2x Speed) — was read off the DOM
     tailDef: false, // defender Tailwind (2x Speed)
+    boosterActive: false, // Protosynthesis/Quark Drive active (Booster Energy / field)
+    pinchActive: false, // pinch abilities (Overgrow/Blaze/Torrent/Swarm/Defeatist) active
     // movesFirst (Bolt Beak / Fishious Rend) is left unset so the engine
     // infers turn order from effective Speed; set it to override that.
   },
