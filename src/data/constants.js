@@ -77,6 +77,7 @@ export const OFFENSIVE_VGC_ABILITIES = [
   { apiName: 'defeatist', name: 'Defeatist (0.5x in pinch)' },
   { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' },
   { apiName: 'fairy-aura', name: 'Fairy Aura (1.33x Fairy moves)' },
+  { apiName: 'dark-aura', name: 'Dark Aura (1.33x Dark moves)' },
   { apiName: 'scrappy', name: 'Scrappy (Hit Ghosts w/ Normal/Fighting)' },
   { apiName: 'parental-bond', name: 'Parental Bond (Hits twice, 2nd at 0.25x)' },
 ];

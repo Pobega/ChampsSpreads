@@ -70,9 +70,9 @@ let isApplyingMatchup = false;
 // this, a slow learnset for an earlier pick could clobber a newer attacker's move.
 let attackerSelectToken = 0;
 
-// Tracks whether the field aura is currently force-locked to Fairy by the
-// attacker's Fairy Aura ability, so releasing the ability can revert it to none.
-let auraLockedByFairyAura = false;
+// Tracks whether the field aura is currently force-locked by the attacker's
+// Fairy Aura / Dark Aura ability, so releasing the ability can revert it to none.
+let auraLockedByAbility = false;
 
 // burn lives on attacker.status (the rest, incl. tailAtk/tailDef, are already on
 // STATE.modifiers), so fold burn into the modifiers slice for export.
@@ -221,10 +221,13 @@ function setDefenderDetails(details) {
 function updateLiveStats() {
   if (STATE.attacker.ability === 'fairy-aura') {
     STATE.modifiers.aura = 'fairy';
-    auraLockedByFairyAura = true;
-  } else if (auraLockedByFairyAura) {
+    auraLockedByAbility = true;
+  } else if (STATE.attacker.ability === 'dark-aura') {
+    STATE.modifiers.aura = 'dark';
+    auraLockedByAbility = true;
+  } else if (auraLockedByAbility) {
     STATE.modifiers.aura = 'none';
-    auraLockedByFairyAura = false;
+    auraLockedByAbility = false;
   }
 
   runOptimizations();
@@ -529,6 +532,8 @@ async function applyMatchup(parsed) {
     STATE.attacker.status = mod.burn ? 'burned' : null;
     STATE.modifiers.tailAtk = mod.tailAtk;
     STATE.modifiers.tailDef = mod.tailDef;
+    STATE.modifiers.boosterActive = mod.boosterActive;
+    STATE.modifiers.pinchActive = mod.pinchActive;
     STATE.modifiers.weather = mod.weather;
     STATE.modifiers.terrain = mod.terrain;
     STATE.modifiers.aura = mod.aura;

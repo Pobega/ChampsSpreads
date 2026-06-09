@@ -341,10 +341,16 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
   mod *= terrainMod;
 
+  // Auras (1.33x their type) come from the field toggle OR the attacker's own
+  // Fairy Aura / Dark Aura ability, so the ability is self-contained in the engine
+  // (the field toggle still covers an opponent's aura). A move is a single type,
+  // so at most one applies — no stacking.
+  const fairyAura = modifiers.aura === 'fairy' || attacker.ability === 'fairy-aura';
+  const darkAura = modifiers.aura === 'dark' || attacker.ability === 'dark-aura';
   let auraMod = 1.0;
-  if (modifiers.aura === 'fairy' && move.type === 'Fairy') {
+  if (fairyAura && move.type === 'Fairy') {
     auraMod = 1.33;
-  } else if (modifiers.aura === 'dark' && move.type === 'Dark') {
+  } else if (darkAura && move.type === 'Dark') {
     auraMod = 1.33;
   }
   mod *= auraMod;
