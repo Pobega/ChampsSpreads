@@ -81,10 +81,10 @@ export function ModifiersPanel() {
       <div class="bg-slate-900/45 border border-slate-700 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-y divide-slate-700 shadow-inner">
         ${CELLS.map(
           ([key, label, theme]) => html`
-          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
+          <label class="relative cursor-pointer select-none h-8 flex items-center justify-center">
             <input type="checkbox" class="sr-only peer" checked=${isChecked(key)}
               onChange=${(e) => toggle(key, e.target.checked)} />
-            <div class=${`w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 ${theme} hover:bg-slate-800/35 transition-all duration-150 font-bold`}>
+            <div class=${`w-full h-full flex items-center justify-center text-[10px] sm:text-[11px] text-slate-400 ${theme} hover:bg-slate-800/35 transition-all duration-150 font-bold`}>
               ${label}
             </div>
           </label>`
