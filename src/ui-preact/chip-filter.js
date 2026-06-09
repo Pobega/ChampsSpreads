@@ -47,17 +47,21 @@ export function makeChipFilter(store, notify, { onActivate } = {}) {
 
     // Add the term as a chip, or remove it if already present (case-insensitive).
     // Backs preset filter buttons that map a label to a keyword chip (e.g. the
-    // Abilitydex Offensive / Defensive toggles).
-    async toggle(value) {
+    // Abilitydex Offensive / Defensive toggles). When `group` is given, the term
+    // belongs to a mutually-exclusive set: turning it on first clears any other
+    // active group member (so Offensive / Defensive can't both be on — no ability
+    // is both).
+    async toggle(value, group) {
       const term = (value || '').trim();
       if (!term) return;
-      const idx = store.filters.findIndex((f) => f.toLowerCase() === term.toLowerCase());
-      if (idx >= 0) {
-        store.filters = store.filters.filter((_, i) => i !== idx);
+      const lower = term.toLowerCase();
+      if (store.filters.some((f) => f.toLowerCase() === lower)) {
+        store.filters = store.filters.filter((f) => f.toLowerCase() !== lower);
         notify();
         return;
       }
-      store.filters = [...store.filters, term];
+      const groupLower = new Set((group || []).map((g) => g.toLowerCase()));
+      store.filters = [...store.filters.filter((f) => !groupLower.has(f.toLowerCase())), term];
       notify();
       await maybeActivate();
     },
