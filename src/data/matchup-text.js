@@ -130,6 +130,8 @@ export function exportMatchup(state) {
   if (mod.burn) field.push('Burn');
   if (mod.tailAtk) field.push('Tailwind (Atk)');
   if (mod.tailDef) field.push('Tailwind (Def)');
+  if (mod.boosterActive) field.push('Paradox Boost');
+  if (mod.pinchActive) field.push('Pinch');
   if (mod.weather && WEATHER_LABELS[mod.weather]) field.push(WEATHER_LABELS[mod.weather]);
   if (mod.terrain && TERRAIN_LABELS[mod.terrain]) field.push(TERRAIN_LABELS[mod.terrain]);
   if (mod.aura && AURA_LABELS[mod.aura]) field.push(AURA_LABELS[mod.aura]);
@@ -197,6 +199,8 @@ export function importMatchup(text) {
     burn: false,
     tailAtk: false,
     tailDef: false,
+    boosterActive: false,
+    pinchActive: false,
     weather: 'none',
     terrain: 'none',
     aura: 'none',
@@ -259,6 +263,8 @@ export function importMatchup(text) {
         else if (tl === 'burn') modifiers.burn = true;
         else if (tl === 'tailwind (atk)') modifiers.tailAtk = true;
         else if (tl === 'tailwind (def)') modifiers.tailDef = true;
+        else if (tl === 'paradox boost') modifiers.boosterActive = true;
+        else if (tl === 'pinch') modifiers.pinchActive = true;
         else if (WEATHER_KEYS[tl]) modifiers.weather = WEATHER_KEYS[tl];
         else if (TERRAIN_KEYS[tl]) modifiers.terrain = TERRAIN_KEYS[tl];
         else if (AURA_KEYS[tl]) modifiers.aura = AURA_KEYS[tl];

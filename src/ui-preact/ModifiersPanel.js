@@ -62,8 +62,15 @@ function toggle(key, checked) {
 
 export function ModifiersPanel() {
   const m = STATE.modifiers;
-  const auraLocked = STATE.attacker.ability === 'fairy-aura';
-  const auraVal = auraLocked ? 'fairy' : m.aura;
+  // Fairy Aura / Dark Aura lock the field aura to their type (the ability sets it).
+  const auraAbility =
+    STATE.attacker.ability === 'fairy-aura'
+      ? 'fairy'
+      : STATE.attacker.ability === 'dark-aura'
+        ? 'dark'
+        : null;
+  const auraLocked = auraAbility !== null;
+  const auraVal = auraLocked ? auraAbility : m.aura;
 
   return html`
     <div class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-5 flex flex-col gap-3.5 pokemon-card">
