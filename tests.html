@@ -1372,6 +1372,162 @@
     recordSuite('dex', { pass: DEX_CASES.length - dexFail, fail: dexFail });
   </script>
 
+  <!-- Attackdex pure-logic tests (sortMoves / filterMoves / spreadKind) -->
+  <script type="module">
+    import { sortMoves, filterMoves, spreadKind, isSpreadMove } from './src/data/moves.js';
+
+    const results = document.getElementById('results');
+
+    // Row factory: details=null means "not yet loaded". Carries the move fields
+    // the filters/sorts read (type, category, power, pp, desc, target, learnedBy).
+    const moveRow = (name, details) => ({
+      apiName: name.toLowerCase().replace(/ /g, '-'),
+      name,
+      details: details ? { name, ...details } : null,
+    });
+    const names = (rows) => rows.map(r => r.name);
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+    const MOVE_CASES = [
+      {
+        name: 'sortMoves by power desc, then asc reverses (nulls sink either way)',
+        run: () => {
+          const rows = [
+            moveRow('Ember', { power: 40 }),
+            moveRow('Flamethrower', { power: 90 }),
+            moveRow('Growl', { power: null }),
+          ];
+          const desc = names(sortMoves(rows, 'power', 'desc'));
+          const asc = names(sortMoves(rows, 'power', 'asc'));
+          return eq(desc, ['Flamethrower', 'Ember', 'Growl'])
+            && asc[asc.length - 1] === 'Growl' && asc[0] === 'Ember';
+        },
+      },
+      {
+        name: 'filterMoves matches by name',
+        run: () => {
+          const rows = [moveRow('Fire Punch', { type: 'Fire' }), moveRow('Ice Punch', { type: 'Ice' })];
+          return eq(names(filterMoves(rows, 'ice')), ['Ice Punch']);
+        },
+      },
+      {
+        name: 'filterMoves matches by description',
+        run: () => {
+          const rows = [
+            moveRow('Scald', { type: 'Water', desc: 'May leave the target with a burn.' }),
+            moveRow('Surf', { type: 'Water', desc: 'Hits all adjacent Pokémon.' }),
+          ];
+          return eq(names(filterMoves(rows, ['burn'])), ['Scald']);
+        },
+      },
+      {
+        name: 'filterMoves matches by learner name (inverse search-by-move)',
+        run: () => {
+          const rows = [
+            moveRow('Spikes', { type: 'Ground', learnedBy: ['garchomp', 'skarmory'] }),
+            moveRow('Roost', { type: 'Flying', learnedBy: ['skarmory'] }),
+          ];
+          return eq(names(filterMoves(rows, ['garchomp'])), ['Spikes']);
+        },
+      },
+      {
+        name: 'filterMoves learner match normalizes hyphens to spaces',
+        run: () => {
+          const rows = [moveRow('Fake Out', { type: 'Normal', learnedBy: ['iron-hands'] })];
+          return eq(names(filterMoves(rows, ['iron hands'])), ['Fake Out']);
+        },
+      },
+      {
+        name: 'filterMoves type keyword filters by move type, not name/desc text',
+        run: () => {
+          const rows = [
+            moveRow('Flamethrower', { type: 'Fire', desc: 'Burns sometimes.' }),
+            // Normal-type whose name/desc mention "fire" must NOT match the "fire" type chip.
+            moveRow('Fire Fang Copy', { type: 'Normal', desc: 'A fiery-looking fire bite.' }),
+          ];
+          return eq(names(filterMoves(rows, ['fire'])), ['Flamethrower']);
+        },
+      },
+      {
+        name: 'filterMoves category keyword filters by category',
+        run: () => {
+          const rows = [
+            moveRow('Thunder Wave', { type: 'Electric', category: 'status' }),
+            moveRow('Thunderbolt', { type: 'Electric', category: 'special' }),
+          ];
+          return eq(names(filterMoves(rows, ['status'])), ['Thunder Wave']);
+        },
+      },
+      {
+        name: 'filterMoves spread keyword keeps multi-target moves',
+        run: () => {
+          const rows = [
+            moveRow('Rock Slide', { type: 'Rock', target: 'all-opponents' }),
+            moveRow('Earthquake', { type: 'Ground', target: 'all-other-pokemon' }),
+            moveRow('Tackle', { type: 'Normal', target: 'selected-pokemon' }),
+          ];
+          return eq(names(filterMoves(rows, ['spread'])), ['Rock Slide', 'Earthquake']);
+        },
+      },
+      {
+        name: 'filterMoves ANDs multiple terms across fields',
+        run: () => {
+          const rows = [
+            moveRow('Heat Wave', { type: 'Fire', category: 'special', target: 'all-opponents' }),
+            moveRow('Flamethrower', { type: 'Fire', category: 'special', target: 'selected-pokemon' }),
+            moveRow('Rock Slide', { type: 'Rock', category: 'physical', target: 'all-opponents' }),
+          ];
+          return eq(names(filterMoves(rows, ['fire', 'spread'])), ['Heat Wave']);
+        },
+      },
+      {
+        name: 'filterMoves falls back to name-only when details absent',
+        run: () => {
+          const rows = [moveRow('Pending Move', null), moveRow('Tackle', null)];
+          return filterMoves(rows, 'fire').length === 0
+            && filterMoves(rows, ['spread']).length === 0
+            && eq(names(filterMoves(rows, 'pend')), ['Pending Move']);
+        },
+      },
+      {
+        name: 'filterMoves returns all rows for empty/blank terms',
+        run: () => {
+          const rows = [moveRow('Tackle', { type: 'Normal' }), moveRow('Growl', { type: 'Normal' })];
+          return filterMoves(rows, '   ').length === 2
+            && filterMoves(rows, []).length === 2
+            && filterMoves(rows, ['  ', '']).length === 2;
+        },
+      },
+      {
+        name: 'spreadKind distinguishes opponents-only from ally-hitting, isSpreadMove agrees',
+        run: () => {
+          const opp = { target: 'all-opponents' };
+          const ally = { target: 'all-other-pokemon' };
+          const single = { target: 'selected-pokemon' };
+          return spreadKind(opp) === 'opponents' && spreadKind(ally) === 'ally'
+            && spreadKind(single) === null && spreadKind(null) === null
+            && isSpreadMove(opp) && isSpreadMove(ally) && !isSpreadMove(single);
+        },
+      },
+    ];
+
+    let moveFail = 0;
+    for (const c of MOVE_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [moves] ${c.name}</div>`
+        : `<div class="name">✗ [moves] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) moveFail++;
+    }
+
+    recordSuite('moves', { pass: MOVE_CASES.length - moveFail, fail: moveFail });
+  </script>
+
   <!-- Abilitydex pure-logic tests (filterAbilities / sortAbilities / vgcTag) -->
   <script type="module">
     import { filterAbilities, sortAbilities, vgcTag, isVgcAbility } from './src/data/abilities.js';
