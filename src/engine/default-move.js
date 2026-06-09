@@ -21,8 +21,12 @@ const SIGNATURE_BONUS = 1.3; // only orders among signatures now (they're force-
 function scoreMove(move, baseStats) {
   const offStat = move.category.toLowerCase() === 'physical' ? baseStats.atk : baseStats.spa;
   const accuracy = move.accuracy == null ? 1 : move.accuracy / 100; // null = never misses
-  const drawback = DRAWBACK_MOVES.has(move.apiName) ? DRAWBACK_PENALTY : 1;
-  const signature = SIGNATURE_MOVES.has(move.apiName) ? SIGNATURE_BONUS : 1;
+  const isDrawback = DRAWBACK_MOVES.has(move.apiName);
+  const drawback = isDrawback ? DRAWBACK_PENALTY : 1;
+  // A signature that's also a drawback move (issue #71) is exempt from the force
+  // path AND from the bonus here — otherwise the nudge would outweigh the penalty
+  // and still float a recharge move like Roar of Time to the top of the fallthrough.
+  const signature = SIGNATURE_MOVES.has(move.apiName) && !isDrawback ? SIGNATURE_BONUS : 1;
   return move.power * accuracy * offStat * drawback * signature;
 }
 
@@ -52,12 +56,17 @@ function bestByScore(pool, baseStats) {
 //   3. preferred category (any type)    4. any damaging move
 export function pickDefaultMove({ moves, types, baseStats }) {
   // Signature attacks are forced (issue #68 pt 4): if the attacker learns one it
-  // wins outright, overriding every rule below — STAB/category, the drawback
-  // penalty, and even the spread exclusion (Glacial Lance, Astral Barrage and the
-  // therian storms are spread signatures and still take precedence). The only
-  // guard is power > 0, a data-sanity floor since a 0/variable-BP move can't be a
-  // usable damage default. Multiple signatures break by the usual score.
-  const signature = (moves || []).filter((m) => m && m.power > 0 && SIGNATURE_MOVES.has(m.apiName));
+  // wins outright, overriding the rules below — STAB/category and even the spread
+  // exclusion (Glacial Lance, Astral Barrage and the therian storms are spread
+  // signatures and still take precedence). Two guards: power > 0, a data-sanity
+  // floor since a 0/variable-BP move can't be a usable damage default; and NOT a
+  // DRAWBACK_MOVES entry (issue #71) — a signature with a turn-cost drawback like
+  // recharge Roar of Time isn't a sane lead, so it falls through to the normal
+  // tiered pick where the drawback penalty applies. Multiple signatures break by
+  // the usual score.
+  const signature = (moves || []).filter(
+    (m) => m && m.power > 0 && SIGNATURE_MOVES.has(m.apiName) && !DRAWBACK_MOVES.has(m.apiName)
+  );
   if (signature.length > 0) return bestByScore(signature, baseStats);
 
   const typeSet = new Set((types || []).map((t) => t.toLowerCase()));

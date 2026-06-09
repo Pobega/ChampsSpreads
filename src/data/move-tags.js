@@ -618,8 +618,16 @@ export const DRAWBACK_MOVES = new Set([
 
 // Signature attacking moves — strong, often unique to one Pokémon — that should
 // win the default pick over a marginally higher-BP generic move when the species
-// has one. The picker (engine/default-move.js) gives these a small score nudge.
-// Add new moves as users hit them.
+// has one. The picker (engine/default-move.js) force-picks these (overriding
+// STAB/category and the spread exclusion), except those also tagged
+// DRAWBACK_MOVES, which fall through to the normal tiered pick.
+//
+// Scope is *attacking* signatures only (status signatures don't belong here), and
+// kept to species-exclusive moves with usable base power — shared-origin moves
+// (e.g. Mystical Fire, Darkest Lariat, Triple Axel), low-BP signatures (Salt Cure,
+// Mortal Spin, Water Shuriken), and form-only moves not learnable by the roster's
+// base form (e.g. Hisuian Decidueye's Triple Arrows — base Decidueye uses
+// Spirit Shackle) are deliberately omitted. Add new moves as users hit them.
 export const SIGNATURE_MOVES = new Set([
   'behemoth-blade',
   'behemoth-bash',
@@ -651,6 +659,25 @@ export const SIGNATURE_MOVES = new Set([
   'matcha-gotcha',
   'psyblade',
   'tachyon-cutter',
+  // Champions-roster signatures (issue #71)
+  'jet-punch', // Palafin
+  'aura-wheel', // Morpeko
+  'bitter-blade', // Ceruledge
+  'lumina-crash', // Espathra
+  'dire-claw', // Sneasler
+  'dragon-darts', // Dragapult
+  'psyshield-bash', // Wyrdeer
+  'grav-apple', // Flapple
+  'apple-acid', // Appletun
+  'fickle-beam', // Hydrapple
+  'trop-kick', // Tsareena
+  'flying-press', // Hawlucha
+  'raging-bull', // Tauros
+  'gigaton-hammer', // Tinkaton
+  'armor-cannon', // Armarouge
+  'spirit-shackle', // Decidueye (base)
+  'clanging-scales', // Kommo-o (spread)
+  'sparkling-aria', // Primarina (spread)
 ]);
 
 // Moves that faint the user as a cost — never a sensible default pick no matter
