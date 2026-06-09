@@ -12,6 +12,7 @@ import {
   PUNCHING_MOVES,
   PULSE_MOVES,
   SOUND_MOVES,
+  RECKLESS_MOVES,
 } from '../data/move-tags.js';
 
 // Context shape passed to every entry:
@@ -27,6 +28,7 @@ export const ATTACKER_DAMAGE_ABILITIES = {
   'iron-fist': ({ move }) => (PUNCHING_MOVES.has(move.apiName) ? 1.2 : 1),
   'mega-launcher': ({ move }) => (PULSE_MOVES.has(move.apiName) ? 1.5 : 1),
   'punk-rock': ({ move }) => (SOUND_MOVES.has(move.apiName) ? 1.3 : 1),
+  reckless: ({ move }) => (RECKLESS_MOVES.has(move.apiName) ? 1.2 : 1),
   transistor: ({ move }) => (move.type === 'Electric' ? 1.3 : 1),
   steelworker: ({ move }) => (move.type === 'Steel' ? 1.5 : 1),
   'steely-spirit': ({ move }) => (move.type === 'Steel' ? 1.5 : 1),
@@ -51,6 +53,11 @@ export const ATTACKER_DAMAGE_ABILITIES = {
     (move.type === 'Rock' || move.type === 'Ground' || move.type === 'Steel')
       ? 1.3
       : 1,
+  // Solar Power pumps the user's special moves 1.5x in harsh sunlight.
+  'solar-power': ({ isPhysical, modifiers }) =>
+    !isPhysical && modifiers && modifiers.weather === 'sun' ? 1.5 : 1,
+  // Analytic boosts 1.3x when the user moves last.
+  analytic: ({ movesFirst }) => (movesFirst ? 1 : 1.3),
   // Flare Boost pumps the user's special moves 1.5x while burned (burn is the
   // only status the calc models; Toxic Boost is deferred until a poison status
   // exists to trigger it).
