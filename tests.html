@@ -1528,6 +1528,96 @@
     recordSuite('moves', { pass: MOVE_CASES.length - moveFail, fail: moveFail });
   </script>
 
+  <!-- Search-suggestion ranking tests (buildSuggestions) -->
+  <script type="module">
+    import { buildSuggestions } from './src/ui-preact/suggestions.js';
+
+    const results = document.getElementById('results');
+    const vals = (s) => s.map((x) => x.value);
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+    // Sources mirror the real shape: ordered { kind, label, items } by priority.
+    const SOURCES = [
+      { kind: 'type', label: 'type', items: ['Dark', 'Dragon', 'Fire'] },
+      { kind: 'pokemon', label: 'pokemon', items: ['Darkrai', 'Darmanitan', 'Charizard'] },
+      { kind: 'ability', label: 'ability', items: ['Dark Aura', 'Levitate'] },
+      { kind: 'move', label: 'move', items: ['Dark Pulse', 'Darkest Lariat', 'Tackle'] },
+    ];
+
+    const SUGGEST_CASES = [
+      {
+        name: 'empty / blank query returns nothing',
+        run: () => buildSuggestions('', SOURCES).length === 0
+          && buildSuggestions('   ', SOURCES).length === 0,
+      },
+      {
+        name: 'round-robins one of each kind for "dark" (type, pokemon, ability)',
+        run: () => {
+          const s = buildSuggestions('dark', SOURCES);
+          return eq(vals(s), ['Dark', 'Darkrai', 'Dark Aura'])
+            && eq(s.map((x) => x.kind), ['type', 'pokemon', 'ability']);
+        },
+      },
+      {
+        name: 'respects the limit',
+        run: () => buildSuggestions('dark', SOURCES, { limit: 2 }).length === 2,
+      },
+      {
+        name: 'is case-insensitive',
+        run: () => eq(vals(buildSuggestions('DARK', SOURCES, { limit: 1 })), ['Dark']),
+      },
+      {
+        name: 'prefix matches rank above interior substring matches',
+        run: () => {
+          // "ar" is interior in Darkrai/Charizard but prefix in nothing here;
+          // "char" is a prefix of Charizard only.
+          const s = buildSuggestions('char', SOURCES, { limit: 3 });
+          return eq(vals(s), ['Charizard']);
+        },
+      },
+      {
+        name: 'excludes already-committed values (case-insensitive)',
+        run: () => {
+          const s = buildSuggestions('dark', SOURCES, { exclude: new Set(['dark']) });
+          // 'Dark' (type) is filtered out, so the type slot yields nothing and the
+          // round-robin starts with the pokemon + ability picks.
+          return !vals(s).includes('Dark') && vals(s).includes('Darkrai');
+        },
+      },
+      {
+        name: 'falls back to a single kind when only it matches',
+        run: () => {
+          const s = buildSuggestions('tackle', SOURCES);
+          return eq(vals(s), ['Tackle']) && s[0].kind === 'move';
+        },
+      },
+      {
+        name: 'within a kind, shorter match wins the slot then alphabetical',
+        run: () => {
+          // Both pokemon start with "dar"; Darkrai (7) is shorter than Darmanitan (10).
+          const s = buildSuggestions('dar', [SOURCES[1]], { limit: 2 });
+          return eq(vals(s), ['Darkrai', 'Darmanitan']);
+        },
+      },
+    ];
+
+    let sugFail = 0;
+    for (const c of SUGGEST_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [suggest] ${c.name}</div>`
+        : `<div class="name">✗ [suggest] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) sugFail++;
+    }
+
+    recordSuite('suggest', { pass: SUGGEST_CASES.length - sugFail, fail: sugFail });
+  </script>
+
   <!-- Abilitydex pure-logic tests (filterAbilities / sortAbilities / vgcTag) -->
   <script type="module">
     import { filterAbilities, sortAbilities, vgcTag, isVgcAbility } from './src/data/abilities.js';
