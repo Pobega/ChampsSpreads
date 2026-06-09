@@ -34,7 +34,7 @@ export const ATTACKER_DAMAGE_ABILITIES = {
   steelworker: ({ move }) => (move.type === 'Steel' ? 1.5 : 1),
   'steely-spirit': ({ move }) => (move.type === 'Steel' ? 1.5 : 1),
   'rocky-payload': ({ move }) => (move.type === 'Rock' ? 1.5 : 1),
-  "dragons-maw": ({ move }) => (move.type === 'Dragon' ? 1.5 : 1),
+  'dragons-maw': ({ move }) => (move.type === 'Dragon' ? 1.5 : 1),
   // Water Bubble is dual-purpose: as the attacker it doubles the user's Water
   // moves (its defensive Fire-halving lives in DEFENDER_DAMAGE_ABILITIES).
   'water-bubble': ({ move }) => (move.type === 'Water' ? 2 : 1),
@@ -50,7 +50,8 @@ export const ATTACKER_DAMAGE_ABILITIES = {
   neuroforce: ({ typeMult }) => (typeMult > 1 ? 1.25 : 1),
   // Sand Force boosts Rock / Ground / Steel moves 1.3x in a sandstorm.
   'sand-force': ({ move, modifiers }) =>
-    modifiers && modifiers.weather === 'sandstorm' &&
+    modifiers &&
+    modifiers.weather === 'sandstorm' &&
     (move.type === 'Rock' || move.type === 'Ground' || move.type === 'Steel')
       ? 1.3
       : 1,

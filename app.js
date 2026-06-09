@@ -36,10 +36,7 @@ import {
   getMoveDetails,
 } from './src/ui-preact/attackdex-store.js';
 import { AttackdexView } from './src/ui-preact/AttackdexView.js';
-import {
-  initAbilitydexStore,
-  openAbilitydexPage,
-} from './src/ui-preact/abilitydex-store.js';
+import { initAbilitydexStore, openAbilitydexPage } from './src/ui-preact/abilitydex-store.js';
 import { AbilitydexView } from './src/ui-preact/AbilitydexView.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
 import { DetailModal } from './src/ui-preact/DetailModal.js';
