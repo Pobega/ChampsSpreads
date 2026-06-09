@@ -80,6 +80,20 @@ ci/
 - A few PokeAPI 404/CORS console warnings during data fetches are expected and
   handled — they don't indicate a broken page.
 
+## AI Disclosure
+
+This tool is built using Claude Code. This repository exists mostly as an
+experiment for how far I could take creating a website completely vibe coded.
+
+If you are morally against that, feel free to not use the tooling. I am
+providing this disclosure to make sure no one feels cheated, or believes that
+I am taking 'stolen valor' from work created by an LLM.
+
+Generally I try to attribute commits to Claude in the Git history so that it's
+extremely obvious AI was used in generating it. Occasionally you will see a
+commit without Claude, which may mean that it's something I did manually --
+but it could also mean Claude was just not attributed for some reason.
+
 ## License
 
 [Apache License 2.0](LICENSE).
