@@ -6,8 +6,8 @@
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { SearchChips } from './SearchChips.js';
+import { RegulationBadge } from './RegulationBadge.js';
 import { STATE } from '../state.js';
-import { REGULATIONS } from '../data/regulations.js';
 import { legalNameFilterForFormat } from '../api/pokeapi.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
@@ -78,16 +78,6 @@ const SORT_COLS = [
   { key: 'power', label: 'Power' },
   { key: 'pp', label: 'PP' },
 ];
-
-// Mirrors the Pokédex badge: shows the active regulation (or National Dex) so it's
-// obvious the move list is filtered to that format's legal learners.
-function RegulationBadge() {
-  const reg = REGULATIONS[STATE.format];
-  if (reg) {
-    return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50">${reg.label}</span>`;
-  }
-  return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30">National Dex</span>`;
-}
 
 function SortButton({ col }) {
   const active = AdxStore.sortKey === col.key;
