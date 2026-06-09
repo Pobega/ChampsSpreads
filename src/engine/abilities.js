@@ -13,6 +13,7 @@ import {
   PULSE_MOVES,
   SOUND_MOVES,
   RECKLESS_MOVES,
+  SECONDARY_EFFECT_MOVES,
 } from '../data/move-tags.js';
 
 // Context shape passed to every entry:
@@ -63,6 +64,21 @@ export const ATTACKER_DAMAGE_ABILITIES = {
   // exists to trigger it).
   'flare-boost': ({ attacker, isPhysical }) =>
     attacker.status === 'burned' && !isPhysical ? 1.5 : 1,
+  // Sheer Force boosts moves that have a chance-based secondary effect 1.3x.
+  'sheer-force': ({ move }) => (SECONDARY_EFFECT_MOVES.has(move.apiName) ? 1.3 : 1),
+  // Pinch abilities: 1.5x the user's own type when below ~1/3 HP. The calc
+  // assumes full HP by default, so these gate on the explicit "pinch active"
+  // modifier rather than a tracked HP value.
+  overgrow: ({ move, modifiers }) =>
+    modifiers && modifiers.pinchActive && move.type === 'Grass' ? 1.5 : 1,
+  blaze: ({ move, modifiers }) =>
+    modifiers && modifiers.pinchActive && move.type === 'Fire' ? 1.5 : 1,
+  torrent: ({ move, modifiers }) =>
+    modifiers && modifiers.pinchActive && move.type === 'Water' ? 1.5 : 1,
+  swarm: ({ move, modifiers }) =>
+    modifiers && modifiers.pinchActive && move.type === 'Bug' ? 1.5 : 1,
+  // Defeatist halves the user's damage while in pinch range (below half HP).
+  defeatist: ({ modifiers }) => (modifiers && modifiers.pinchActive ? 0.5 : 1),
 };
 
 export const DEFENDER_DAMAGE_ABILITIES = {
@@ -92,6 +108,8 @@ export const DEFENDER_DAMAGE_ABILITIES = {
   'water-absorb': ({ move }) => (move.type === 'Water' ? 0 : 1),
   'storm-drain': ({ move }) => (move.type === 'Water' ? 0 : 1),
   'sap-sipper': ({ move }) => (move.type === 'Grass' ? 0 : 1),
+  // Soundproof is immune to sound-based moves.
+  soundproof: ({ move }) => (SOUND_MOVES.has(move.apiName) ? 0 : 1),
   // Wonder Guard: only super-effective hits land at all.
   'wonder-guard': ({ typeMult }) => (typeMult > 1 ? 1 : 0),
 };

@@ -19,6 +19,12 @@ const CELLS = [
   ['helpingHand', 'Helping Hand (1.5x)', 'peer-checked:bg-rose-950/30 peer-checked:text-rose-300'],
   ['tailAtk', 'Atk Tailwind (2.0x)', 'peer-checked:bg-blue-950/30 peer-checked:text-blue-300'],
   ['tailDef', 'Def Tailwind (2.0x)', 'peer-checked:bg-blue-950/30 peer-checked:text-blue-300'],
+  [
+    'boosterActive',
+    'Paradox Boost (1.3x)',
+    'peer-checked:bg-purple-950/30 peer-checked:text-purple-300',
+  ],
+  ['pinchActive', 'Pinch / Low HP', 'peer-checked:bg-red-950/30 peer-checked:text-red-300'],
 ];
 
 // Per-value select color classes (mirrors updateDropdownColors in render.js).

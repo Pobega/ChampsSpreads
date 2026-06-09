@@ -9,6 +9,39 @@ function effectiveSpeed(mon) {
   return calculateStatBoost(base, mon.boosts.spe || 0);
 }
 
+// The mon's highest battle stat key (excluding HP), used by the paradox abilities.
+// Ties resolve in the game's stat order (Atk > Def > SpA > SpD > Spe) via the
+// strict `>` comparison over this ordering.
+const PARADOX_STAT_KEYS = ['atk', 'def', 'spa', 'spd', 'spe'];
+function highestBattleStat(mon) {
+  let bestKey = 'atk';
+  let bestVal = -Infinity;
+  for (const k of PARADOX_STAT_KEYS) {
+    const v = calculateStat(k, mon.baseStats[k], mon.sps[k], mon.nature, false);
+    if (v > bestVal) {
+      bestVal = v;
+      bestKey = k;
+    }
+  }
+  return bestKey;
+}
+
+// Protosynthesis / Quark Drive boost the mon's single highest stat by 1.3x (1.5x
+// for Speed, which doesn't affect damage). They activate in their field (sun /
+// Electric Terrain) or whenever Booster Energy is flagged active. Returns true
+// when `statKey` is the boosted stat — i.e. the move's offensive or the
+// defender's defensive stat lines up with the mon's highest stat.
+function paradoxBoosted(mon, statKey, modifiers) {
+  const ab = mon.ability;
+  if (ab !== 'protosynthesis' && ab !== 'quark-drive') return false;
+  const active =
+    !!modifiers.boosterActive ||
+    (ab === 'protosynthesis' && modifiers.weather === 'sun') ||
+    (ab === 'quark-drive' && modifiers.terrain === 'electric');
+  if (!active) return false;
+  return highestBattleStat(mon) === statKey;
+}
+
 // Resolve a move's effective type/power from battle state. This is the single
 // source of truth for variable-type/-power moves so the damage calc and the UI
 // (the Attack card's type badge + BP) can never drift. Currently only Weather
@@ -121,10 +154,22 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     effectiveAtk = Math.floor(effectiveAtk * ATK_STAT_ABILITY[attacker.ability]);
   }
 
+  // Protosynthesis / Quark Drive 1.3x the user's highest stat; apply when that's
+  // the offensive stat this move uses. Skipped for borrowed-stat moves (Foul Play).
+  if (offMon === attacker && paradoxBoosted(attacker, atkStatName, modifiers)) {
+    effectiveAtk = Math.floor(effectiveAtk * 1.3);
+  }
+
   if (defender.item === 'assault_vest' && defStatName === 'spd') {
     effectiveDef = Math.floor(effectiveDef * 1.5);
   } else if (defender.item === 'eviolite') {
     effectiveDef = Math.floor(effectiveDef * 1.5);
+  }
+
+  // Protosynthesis / Quark Drive on the defender boost its highest stat; apply
+  // when that's the defensive stat this move targets.
+  if (paradoxBoosted(defender, defStatName, modifiers)) {
+    effectiveDef = Math.floor(effectiveDef * 1.3);
   }
 
   if (
