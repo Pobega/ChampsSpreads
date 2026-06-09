@@ -17,6 +17,19 @@ export function makeChipFilter(store, notify, { onActivate } = {}) {
     if (onActivate && hasActiveTerm()) await onActivate();
   };
 
+  // Lock a specific value in as a chip (skipping blanks + case-insensitive dupes)
+  // and clear the draft. Used both for the typed draft (commit) and for a picked
+  // autocomplete suggestion (commitValue), so the two stay consistent.
+  async function commitValue(value) {
+    const term = (value || '').trim();
+    store.draft = '';
+    if (term && !store.filters.some((f) => f.toLowerCase() === term.toLowerCase())) {
+      store.filters = [...store.filters, term];
+    }
+    notify();
+    await maybeActivate();
+  }
+
   return {
     hasActiveTerm,
 
@@ -26,15 +39,11 @@ export function makeChipFilter(store, notify, { onActivate } = {}) {
       await maybeActivate();
     },
 
-    async commit() {
-      const term = store.draft.trim();
-      store.draft = '';
-      if (term && !store.filters.some((f) => f.toLowerCase() === term.toLowerCase())) {
-        store.filters = [...store.filters, term];
-      }
-      notify();
-      await maybeActivate();
+    commit() {
+      return commitValue(store.draft);
     },
+
+    commitValue,
 
     remove(index) {
       store.filters = store.filters.filter((_, i) => i !== index);
