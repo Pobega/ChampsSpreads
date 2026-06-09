@@ -1,6 +1,7 @@
 // Pure, DOM/fetch-free logic for the Attackdex move-browser page. Mirrors the
 // shape of dex.js (rows are { apiName, name, details|null }) so it can be unit
 // tested and reasoned about without touching the network or the DOM.
+import { ALL_TYPES } from './constants.js';
 
 // PokéAPI `target` values that hit more than one Pokémon — i.e. spread moves —
 // split by whether they also catch your own side. In VGC doubles this is a real
@@ -64,36 +65,52 @@ export function sortMoves(rows, key, dir = 'desc') {
     .map((e) => e.row);
 }
 
-// Filters the roster by any combination of: free-text query (matched against the
-// move name and its description), exact type, exact category, and the spread
-// flag. Rows without loaded details can only match the name (their type /
-// category / desc / target are unknown), mirroring the lazy-load behaviour of
-// filterDex.
-export function filterMoves(rows, { query = '', type = '', category = '', spread = false } = {}) {
-  const q = (query || '').trim().toLowerCase();
-  const wantType = (type || '').toLowerCase();
-  const wantCategory = (category || '').toLowerCase();
+// Lowercased type names, used to recognize a search term that should filter by
+// the move's type (an exact match) rather than as a loose substring. Built once.
+const TYPE_NAMES = new Set(ALL_TYPES.map((t) => t.toLowerCase()));
 
-  return rows.filter((row) => {
-    const d = row.details;
+// The three move categories, recognized as exact keyword terms (so 'status'
+// filters to status moves rather than substring-matching any "status" in text).
+const CATEGORY_NAMES = new Set(['physical', 'special', 'status']);
 
-    if (q) {
-      const inName = row.name.toLowerCase().includes(q);
-      const inDesc = d && d.desc && d.desc.toLowerCase().includes(q);
-      if (!inName && !inDesc) return false;
-    }
+// Does a single, already-lowercased term match a move row? Smart keywords mirror
+// the dropdown filters the stackable chips replaced:
+//   - a term that exactly names a type ('fire') filters by the move's type
+//   - 'physical' / 'special' / 'status' filter by category
+//   - 'spread' keeps multi-target (spread) moves
+//   - anything else is a substring match on the move name, its description, or a
+//     learner's name — so 'garchomp' surfaces the moves it learns, the inverse of
+//     the Pokédex's search-by-move.
+// Rows without loaded details can only match on name (their type / category /
+// desc / learnedBy are unknown), preserving the lazy-load fallback.
+function moveTermMatches(row, term) {
+  const d = row.details;
+  if (TYPE_NAMES.has(term)) {
+    return !!(d && d.type && d.type.toLowerCase() === term);
+  }
+  if (CATEGORY_NAMES.has(term)) {
+    return !!(d && d.category && d.category.toLowerCase() === term);
+  }
+  if (term === 'spread') {
+    return isSpreadMove(d);
+  }
+  if (row.name.toLowerCase().includes(term)) return true;
+  if (!d) return false;
+  if (d.desc && d.desc.toLowerCase().includes(term)) return true;
+  // learnedBy holds raw PokéAPI apiNames (e.g. 'landorus-therian'); normalize the
+  // hyphens to spaces so a typed 'iron hands' matches 'iron-hands'.
+  if (d.learnedBy && d.learnedBy.some((n) => n.replace(/-/g, ' ').includes(term))) return true;
+  return false;
+}
 
-    // The attribute filters need loaded details; unloaded rows can't satisfy them.
-    if (wantType) {
-      if (!d || d.type.toLowerCase() !== wantType) return false;
-    }
-    if (wantCategory) {
-      if (!d || d.category.toLowerCase() !== wantCategory) return false;
-    }
-    if (spread) {
-      if (!isSpreadMove(d)) return false;
-    }
-
-    return true;
-  });
+// Case-insensitive filter over a list of search terms which are ANDed: a move is
+// kept only when it satisfies every term. `terms` may be a single string (legacy
+// single-search callers) or an array of strings (the stackable chip search).
+// Empty/whitespace terms are ignored; no terms returns every row. Mirrors filterDex.
+export function filterMoves(rows, terms) {
+  const list = (Array.isArray(terms) ? terms : [terms])
+    .map((t) => (t || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (list.length === 0) return rows;
+  return rows.filter((row) => list.every((term) => moveTermMatches(row, term)));
 }
