@@ -33,6 +33,7 @@ export const DexStore = {
   byName: {}, // apiName -> row (same object refs as roster)
   sortKey: 'bst',
   sortDir: 'desc',
+  view: 'stats', // 'stats' (base stats + BST) | 'speed' (computed speed tiers)
   filters: [], // committed search terms (the chips); ANDed together
   draft: '', // uncommitted input text (live-previewed before Enter)
   pinned: [], // apiNames pinned to the top, in pin order; shown regardless of filter
@@ -145,6 +146,26 @@ export async function setDexSort(key) {
   if (key !== 'name' && !DexStore.allLoaded) {
     await ensureDexFullyLoaded();
   }
+}
+
+// Switch between the base-stats table and the speed-tier table. Swaps the default
+// sort so each view opens on a sensible column (speed: Max+ desc; stats: BST desc)
+// only when the current sort belongs to the other view, preserving an explicit
+// column the user picked within a view. Speed sorting, like any stat sort, needs
+// every lazy row loaded.
+export async function setDexView(mode) {
+  if (DexStore.view === mode) return;
+  DexStore.view = mode;
+  const isSpeedKey = DexStore.sortKey.startsWith('spe_');
+  if (mode === 'speed' && !isSpeedKey) {
+    DexStore.sortKey = 'spe_maxp';
+    DexStore.sortDir = 'desc';
+  } else if (mode === 'stats' && isSpeedKey) {
+    DexStore.sortKey = 'bst';
+    DexStore.sortDir = 'desc';
+  }
+  notifyDex();
+  if (!DexStore.allLoaded) await ensureDexFullyLoaded();
 }
 
 // Chip-filter state (committed chips + live draft) uses the shared factory so the
