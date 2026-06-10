@@ -1084,7 +1084,7 @@
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
-    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isFormatLegal } from './src/data/dex.js';
+    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isFormatLegal, SPEED_TIERS, speedTier } from './src/data/dex.js';
     import { resolveLegalSet, resolveNonLegalForms, NON_LEGAL_FORMS, REGULATIONS } from './src/data/regulations.js';
 
     const results = document.getElementById('results');
@@ -1163,6 +1163,32 @@
             row('High', stats(100, 100, 100, 100, 100, 100)), // 600
           ];
           return eq(names(sortDex(rows, 'bst', 'desc')), ['High', 'Low']);
+        },
+      },
+      {
+        // Lvl-50 Champions speed: floor((base + sp + 20) * nature), scarf *1.5.
+        // Flutter Mane (base Spe 135): Min 155, Max 187, Max+ 205, Scarf 307.
+        name: 'speedTier computes the four Lvl-50 tiers',
+        run: () => {
+          const s = stats(1, 1, 1, 1, 1, 135);
+          const by = Object.fromEntries(SPEED_TIERS.map(t => [t.key, speedTier(s, t)]));
+          return by.spe_min === 155 && by.spe_max === 187
+            && by.spe_maxp === 205 && by.spe_scarf === 307;
+        },
+      },
+      {
+        name: 'speedTier handles missing base stats',
+        run: () => speedTier(null, SPEED_TIERS[0]) === null,
+      },
+      {
+        name: 'sortDex by a speed-tier key orders by computed speed',
+        run: () => {
+          const rows = [
+            row('Slow', stats(100, 100, 100, 100, 100, 60)),
+            row('Fast', stats(100, 100, 100, 100, 100, 120)),
+          ];
+          return eq(names(sortDex(rows, 'spe_scarf', 'desc')), ['Fast', 'Slow'])
+            && eq(names(sortDex(rows, 'spe_scarf', 'asc')), ['Slow', 'Fast']);
         },
       },
       {

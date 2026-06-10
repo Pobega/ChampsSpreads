@@ -2,9 +2,33 @@
 // Kept side-effect free so it can be unit-tested in tests.html.
 import { ALL_TYPES } from './constants.js';
 import { NON_LEGAL_FORMS } from './regulations.js';
+import { calculateStat } from '../engine/stats.js';
 
 // The six base stats, in canonical Showdown order.
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+// Speed-tier presets for the Pokédex's speed-tier view. Champions has no EVs/IVs
+// (just SP, 0–32 per stat) and boost-only natures, so each tier is a fixed SP +
+// nature pair fed through the shared Lvl-50 stat formula. Scarf multiplies the
+// resulting (max +Spe) speed by 1.5, mirroring the calculator cards. Min is just
+// 0 SP / neutral — there is no speed-reducing nature to model a slower row.
+export const SPEED_TIERS = [
+  { key: 'spe_min', label: 'Min', sp: 0, nature: 'neutral' },
+  { key: 'spe_max', label: 'Max', sp: 32, nature: 'neutral' },
+  { key: 'spe_maxp', label: 'Max+', sp: 32, nature: '+spe' },
+  { key: 'spe_scarf', label: 'Scarf', sp: 32, nature: '+spe', scarf: true },
+];
+
+const SPEED_TIER_BY_KEY = Object.fromEntries(SPEED_TIERS.map((t) => [t.key, t]));
+
+// Computed Lvl-50 speed for a base-stat block under one SPEED_TIERS preset, or
+// null when base stats are missing.
+export function speedTier(baseStats, tier) {
+  if (!baseStats) return null;
+  let v = calculateStat('spe', baseStats.spe || 0, tier.sp, tier.nature, false);
+  if (tier.scarf) v = Math.floor(v * 1.5);
+  return v;
+}
 
 // Lowercased type names, used to recognize a search term that should filter by
 // type (an exact match) rather than as a loose substring. Built once.
@@ -23,6 +47,8 @@ export function bst(baseStats) {
 function statValue(row, key) {
   if (!row.details) return null;
   if (key === 'bst') return bst(row.details.baseStats);
+  const tier = SPEED_TIER_BY_KEY[key];
+  if (tier) return speedTier(row.details.baseStats, tier);
   return row.details.baseStats ? (row.details.baseStats[key] ?? null) : null;
 }
 
