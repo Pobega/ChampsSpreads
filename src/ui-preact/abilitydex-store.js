@@ -202,6 +202,15 @@ export function jumpToAbilitydexAbility(apiName) {
 
 const HOLDER_CAP = 150;
 
+// Modal header: the ability's effect text — the same description the column and
+// free-text search read. Abilities carry no stats, so it's just the prose.
+// Returns null when there's no description (no empty bordered box).
+function buildAbilitySummary(d) {
+  if (!d.desc) return null;
+  return html`
+    <p class="text-[11px] text-slate-300 leading-snug pb-3 border-b border-slate-700">${d.desc}</p>`;
+}
+
 function buildPokemonItem(n, pd, onClick) {
   const name = formatDisplayName(n);
   if (!pd) {
@@ -270,6 +279,7 @@ export async function handleAbilitydexRowClick(apiName) {
   const session = openDetailModal({
     title: `Pokémon with ${details.name}`,
     subtitle: `${holders.length} Pokémon · ${formatLabel}`,
+    header: buildAbilitySummary(details),
     items: buildItems(),
   });
 
