@@ -10,6 +10,7 @@ import {
   initAllMovesList,
   formatDisplayName,
   legalSetForFormat,
+  nonLegalFormsForFormat,
 } from '../api/pokeapi.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
@@ -285,7 +286,10 @@ export async function handleAttackdexRowClick(apiName) {
   let learners = (details.learnedBy || []).filter((n) => !isHiddenForm(n));
   const legal = legalSetForFormat(STATE.format);
   if (legal) {
-    learners = learners.filter((n) => isFormatLegal(n, legal));
+    // Pass the regulation's banned-form list so forms it re-allows (e.g. Megas
+    // under M-A) aren't dropped by isFormatLegal's default full ban list.
+    const nonLegal = nonLegalFormsForFormat(STATE.format);
+    learners = learners.filter((n) => isFormatLegal(n, legal, nonLegal));
   }
   learners.sort((a, b) => a.localeCompare(b));
 

@@ -10,6 +10,7 @@ import {
   initAllAbilitiesList,
   formatDisplayName,
   legalSetForFormat,
+  nonLegalFormsForFormat,
 } from '../api/pokeapi.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
@@ -251,7 +252,11 @@ export async function handleAbilitydexRowClick(apiName) {
   let holders = (details.pokemon || []).filter((n) => !isHiddenForm(n));
   const legal = legalSetForFormat(STATE.format);
   if (legal) {
-    holders = holders.filter((n) => isFormatLegal(n, legal));
+    // Pass the regulation's banned-form list so forms it re-allows (e.g. Megas
+    // under M-A) aren't dropped by isFormatLegal's default full ban list — which
+    // would otherwise strip every holder like 'pinsir-mega'.
+    const nonLegal = nonLegalFormsForFormat(STATE.format);
+    holders = holders.filter((n) => isFormatLegal(n, legal, nonLegal));
   }
   holders.sort((a, b) => a.localeCompare(b));
 
