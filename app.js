@@ -1,7 +1,8 @@
 // Pokemon Champions VGC SP Optimizer & Damage Calculator
 // Pure Client-Side JavaScript ES6+
 
-import { calculateDamageRolls } from './src/engine/damage.js';
+import { calculateDamageRolls, multiHitDistribution } from './src/engine/damage.js';
+import { calculateStat } from './src/engine/stats.js';
 import {
   optimizeSurvivalEVsWithNatures,
   optimizeOffensiveEVsWithNatures,
@@ -257,6 +258,27 @@ function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
   DERIVED.rolls = rolls;
 
+  // Per-hit-independent damage distribution for multi-hit moves (null otherwise),
+  // feeding the gauge's likely-band + the distribution-aware KO chance.
+  let dist = null;
+  if (STATE.attacker.name && STATE.defender.name) {
+    const finalHp = calculateStat(
+      'hp',
+      STATE.defender.baseStats.hp,
+      STATE.defender.sps.hp,
+      STATE.defender.nature,
+      true
+    );
+    dist = multiHitDistribution(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      finalHp
+    );
+  }
+  DERIVED.dist = dist;
+
   const key = JSON.stringify([
     STATE.mode,
     STATE.targetKO,
@@ -272,7 +294,7 @@ function runOptimizations() {
   DERIVED.optimizer = _optCacheVal;
 
   // Headline result model for both HUD views (rendered by the ResultsHUD island).
-  DERIVED.model = buildResultModel(rolls, STATE);
+  DERIVED.model = buildResultModel(rolls, STATE, dist);
 }
 
 function computeOptimizer() {

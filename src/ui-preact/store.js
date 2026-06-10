@@ -17,6 +17,9 @@ export { STATE, CACHE };
 // the controller writing innerHTML. recompute fills this, then notify() fires.
 export const DERIVED = {
   rolls: [],
+  // Per-hit-independent damage distribution for a multi-hit move (else null);
+  // see multiHitDistribution. Feeds the gauge likely-band + distribution-aware KO.
+  dist: null,
   // Optimizer suggestions for the active mode: { notPossible, cards: [...] }.
   // Each card is either an option { type, theme, title, nature, ...applyData }
   // or an impossible placeholder { impossible:true, theme, title, nature }.
