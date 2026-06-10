@@ -108,7 +108,50 @@ export function buildMoveLine(attacker, defender, move, modifiers, mode) {
 // Build the full result-summary model from rolls + state. Pure (no DOM); the
 // ResultsHUD island renders both views from this. tone fields are semantic keys
 // (emerald/amber/sky/red/slate) the renderer maps to classes.
-export function buildResultModel(rolls, state = STATE) {
+// Format a probability (0–1) as a compact percentage string ("12%", "0.3%",
+// "100%"), matching the koChanceLabel style.
+function pctOf(p) {
+  return `${(p * 100).toFixed(1).replace(/\.0$/, '')}%`;
+}
+
+// Representative RGB for each gauge tier (matches gaugeTier's hue) so the
+// multi-hit density gradient is tinted by KO severity.
+const TIER_RGB = {
+  red: '248,113,113', // red-400
+  amber: '251,191,36', // amber-400
+  green: '52,211,153', // emerald-400
+};
+
+// Paint the damage distribution as a CSS gradient across the 0–100% HP gauge:
+// alpha tracks probability density, so the bar is brightest where the outcome
+// actually clusters and fades to nothing at the unlikely min/max tails — the
+// "▓░█░▓" shape. Returns null if there's nothing to draw.
+function buildDensityGradient(outcomes, finalHp, rgb) {
+  const bins = 60;
+  const dens = new Array(bins + 1).fill(0);
+  for (const [dmg, p] of outcomes) {
+    const idx = Math.round((Math.min(100, (dmg / finalHp) * 100) / 100) * bins);
+    dens[idx] += p;
+  }
+  // Light 3-tap smoothing so discrete damage values read as a continuous curve.
+  const sm = dens.map((d, i) => 0.25 * (dens[i - 1] || 0) + 0.5 * d + 0.25 * (dens[i + 1] || 0));
+  const lo = sm.findIndex((d) => d > 0);
+  let hi = bins;
+  while (hi > 0 && sm[hi] === 0) hi--;
+  if (lo < 0) return null;
+  const max = Math.max(...sm);
+  const stops = [];
+  for (let i = 0; i <= bins; i++) {
+    const pos = ((i / bins) * 100).toFixed(1);
+    // Within the distribution's support, keep a 0.25 floor so faint tails stay
+    // visible (no interior gaps); outside it, fully transparent.
+    const a = i >= lo && i <= hi ? (0.25 + 0.75 * (sm[i] / max)).toFixed(3) : '0';
+    stops.push(`rgba(${rgb},${a}) ${pos}%`);
+  }
+  return `linear-gradient(90deg, ${stops.join(',')})`;
+}
+
+export function buildResultModel(rolls, state = STATE, dist = null) {
   const minDamage = rolls[0] || 0;
   const maxDamage = rolls[rolls.length - 1] || 0;
   const survival = state.mode === 'survival';
@@ -135,7 +178,16 @@ export function buildResultModel(rolls, state = STATE) {
     const minPct = (minDamage / finalHp) * 100;
     const maxPct = (maxDamage / finalHp) * 100;
     const verdict = computeVerdict(state.mode, minDamage, maxDamage, finalHp);
-    verdict.chance = koChanceLabel(state.mode, rolls, finalHp, verdict);
+    // Distribution-aware verdict: the label tiers stay driven by the true
+    // min/max extremes, but for a multi-hit move the displayed odds come from the
+    // real per-hit-independent (and hit-count-weighted) distribution rather than
+    // the shared-roll approximation.
+    if (dist && verdict.roll && dist.koChance != null) {
+      verdict.chance =
+        state.mode === 'survival' ? pctOf(1 - dist.koChance) : pctOf(dist.koChance);
+    } else {
+      verdict.chance = koChanceLabel(state.mode, rolls, finalHp, verdict);
+    }
     const line = buildMoveLine(
       state.attacker,
       state.defender,
@@ -152,6 +204,29 @@ export function buildResultModel(rolls, state = STATE) {
       minFill: Math.min(100, minPct),
       maxFill: Math.min(100, maxPct),
     };
+
+    // Multi-hit: paint the true distribution as a density gradient on the gauge,
+    // plus a slim inline strip under it. Damage units → %HP for display.
+    if (dist) {
+      const tierKey = maxPct >= 100 ? 'red' : maxPct >= 50 ? 'amber' : 'green';
+      model.densityGradient = buildDensityGradient(dist.outcomes, finalHp, TIER_RGB[tierKey]);
+      // The lowest possible total (every hit at its min, fewest hits) is the
+      // guaranteed floor — drawn as a solid flat fill like the other calcs, with
+      // the density fading out above it.
+      model.floorFill = Math.min(100, (dist.outcomes[0][0] / finalHp) * 100);
+      const band = `Likely ${((dist.likely.lo / finalHp) * 100).toFixed(0)}–${(
+        (dist.likely.hi / finalHp) *
+        100
+      ).toFixed(0)}%`;
+      const counts = dist.perCount
+        ? dist.perCount.map((c) => ({
+            count: c.count,
+            prob: pctOf(c.prob),
+            ko: c.koChance != null ? pctOf(c.koChance) : null,
+          }))
+        : null;
+      model.multiHit = { band, counts };
+    }
   }
 
   // Mode-driven identity icon + roll-gauge tier (shared across both views).

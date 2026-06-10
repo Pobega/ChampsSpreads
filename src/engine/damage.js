@@ -233,6 +233,10 @@ const MULTI_HIT_MOVES = {
   'population-bomb': { hits: 10, max: 10 },
 };
 
+// In-game hit-count odds for a 2–5 move (modern gens): 2/3 hits at 35% each,
+// 4/5 at 15% each. Skill Link locks to 5, so this only drives the variable case.
+const HIT_COUNT_PROBS = { 2: 0.35, 3: 0.35, 4: 0.15, 5: 0.15 };
+
 // Per-hit base powers for a move. Parental Bond (any move hits twice, the second
 // at 0.25x) and the multi-hit moves both decompose a single calc into several
 // floored hits summed per roll; everything else is a single hit. Skill Link
@@ -262,7 +266,12 @@ export function multiHitCount(move, attacker) {
   return spec.max && attacker.ability === 'skill-link' ? spec.max : spec.hits;
 }
 
-export function calculateDamageRolls(attacker, defender, move, modifiers) {
+// Resolve all the shared inputs to a damage calc (stats, effective power, the
+// full `mod` chain) once, returning a `hitVals(power)` closure that yields a
+// single hit's 16 floored damage values (r = 85..100). Both the flat-roll array
+// (calculateDamageRolls) and the per-hit-independent distribution
+// (multiHitDistribution) build on this so they share one source of truth.
+function damageContext(attacker, defender, move, modifiers) {
   move = resolveEffectiveMove(attacker, move, modifiers, defender);
 
   const baseIsPhysical = move.category.toLowerCase() === 'physical';
@@ -559,23 +568,144 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 0.5;
   }
 
+  // A single hit's 16 floored damage values across the r = 85..100 roll range.
+  const hitVals = (power) => {
+    const vals = [];
+    for (let r = 85; r <= 100; r++) {
+      vals.push(Math.floor(Math.floor(baseDamageFor(power) * (r / 100)) * mod));
+    }
+    return vals;
+  };
+
+  return { move, attacker, effectivePower, hitVals };
+}
+
+export function calculateDamageRolls(attacker, defender, move, modifiers) {
+  const ctx = damageContext(attacker, defender, move, modifiers);
+
   // Parental Bond and multi-hit moves decompose into several floored hits summed
   // per roll (see hitPowers). Simplification: the shared `mod` (incl. full-HP
   // defender abilities like Multiscale and the spread reduction) is applied
   // uniformly to every hit rather than recomputed against the defender's reduced
   // HP after each hit, and one damage roll is shared across the hits — acceptable
-  // for a calculator.
-  const powers = hitPowers(move, effectivePower, attacker);
+  // for a calculator. (multiHitDistribution rolls each hit independently.)
+  const powers = hitPowers(ctx.move, ctx.effectivePower, ctx.attacker);
+  const perHit = powers.map(ctx.hitVals);
 
   const rolls = [];
-  for (let r = 85; r <= 100; r++) {
+  for (let i = 0; i < 16; i++) {
     let total = 0;
-    for (const power of powers) {
-      const rollVal = Math.floor(baseDamageFor(power) * (r / 100));
-      total += Math.floor(rollVal * mod);
-    }
+    for (const h of perHit) total += h[i];
     rolls.push(total);
   }
 
   return rolls;
+}
+
+// --- Multi-hit distribution (issue #87) ------------------------------------
+// A "distribution" is a Map<damage, probability>. The flat 16-roll array shares
+// one roll across every hit; here each hit rolls its own 85–100, so we build the
+// true summed distribution by convolving the per-hit value distributions. For
+// the 2–5 family the hit count is itself random, so we mix the per-count
+// distributions by HIT_COUNT_PROBS.
+
+function singleHitDist(vals) {
+  const m = new Map();
+  const p = 1 / vals.length;
+  for (const v of vals) m.set(v, (m.get(v) || 0) + p);
+  return m;
+}
+
+function convolve(a, b) {
+  const m = new Map();
+  for (const [va, pa] of a) {
+    for (const [vb, pb] of b) {
+      const s = va + vb;
+      m.set(s, (m.get(s) || 0) + pa * pb);
+    }
+  }
+  return m;
+}
+
+function koChanceOf(dist, finalHp) {
+  if (!finalHp) return null;
+  let p = 0;
+  for (const [v, pr] of dist) if (v >= finalHp) p += pr;
+  return p;
+}
+
+// Lowest/highest damage carrying nonzero probability.
+function rangeOf(dist) {
+  const keys = [...dist.keys()];
+  return { min: Math.min(...keys), max: Math.max(...keys) };
+}
+
+// Central probability band: the damage values straddling the 10th–90th
+// percentiles, i.e. where the outcome realistically lands.
+function likelyBand(dist) {
+  const sorted = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+  let cdf = 0;
+  let lo = sorted[0][0];
+  let hi = sorted[sorted.length - 1][0];
+  let setLo = false;
+  for (const [v, p] of sorted) {
+    cdf += p;
+    if (!setLo && cdf >= 0.1) {
+      lo = v;
+      setLo = true;
+    }
+    if (cdf >= 0.9) {
+      hi = v;
+      break;
+    }
+  }
+  return { lo, hi };
+}
+
+// True per-hit-independent damage distribution for a multi-hit move. Returns
+// null for single-hit moves. `finalHp` is optional; when given, KO chances are
+// computed (else null). Mirrors hitPowers/multiHitCount for hit-count semantics.
+export function multiHitDistribution(attacker, defender, move, modifiers, finalHp) {
+  const ctx = damageContext(attacker, defender, move, modifiers);
+  const spec = MULTI_HIT_MOVES[ctx.move.apiName];
+  const parentalBond = attacker.ability === 'parental-bond';
+  if (!spec && !parentalBond) return null;
+
+  const power = ctx.effectivePower;
+  const distForPowers = (powers) =>
+    powers.map((pw) => singleHitDist(ctx.hitVals(pw))).reduce((a, b) => convolve(a, b));
+
+  const variable = !!(spec && spec.max && attacker.ability !== 'skill-link') && !parentalBond;
+
+  let combined;
+  let perCount = null;
+  if (parentalBond) {
+    combined = distForPowers([power, Math.floor(power * 0.25)]);
+  } else if (variable) {
+    combined = new Map();
+    perCount = [];
+    for (const n of [2, 3, 4, 5]) {
+      const w = HIT_COUNT_PROBS[n];
+      const d = distForPowers(Array(n).fill(power));
+      for (const [v, p] of d) combined.set(v, (combined.get(v) || 0) + p * w);
+      const { min, max } = rangeOf(d);
+      perCount.push({ count: n, prob: w, min, max, koChance: koChanceOf(d, finalHp) });
+    }
+  } else {
+    const count = spec.max && attacker.ability === 'skill-link' ? spec.max : spec.hits;
+    const powers = spec.escalating
+      ? Array.from({ length: count }, (_, i) => power * (i + 1))
+      : Array(count).fill(power);
+    combined = distForPowers(powers);
+  }
+
+  return {
+    variable,
+    koChance: koChanceOf(combined, finalHp),
+    likely: likelyBand(combined),
+    // Sorted [damage, probability] pairs — the full distribution shape, used to
+    // paint the gauge's density gradient.
+    outcomes: [...combined.entries()].sort((a, b) => a[0] - b[0]),
+    perCount,
+  };
 }
