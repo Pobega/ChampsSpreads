@@ -47,7 +47,7 @@ function PinButton({ row, pinned }) {
         e.stopPropagation();
         toggleDexPin(row.apiName);
       }}
-      class=${`justify-self-center transition leading-none ${pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-slate-300'}`}
+      class=${`justify-self-center transition leading-none p-2 -m-2 ${pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-slate-300'}`}
       title=${pinned ? 'Unpin' : 'Pin to top'} aria-label=${pinned ? `Unpin ${row.name}` : `Pin ${row.name}`} aria-pressed=${pinned ? 'true' : 'false'}>
       <i class="fa-solid fa-thumbtack text-[11px]"></i>
     </button>`;
