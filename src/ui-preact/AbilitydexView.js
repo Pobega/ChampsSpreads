@@ -88,10 +88,12 @@ export function AbilitydexView() {
   // (with the amber/sky accent echoing the row Tag badges) while that chip is on.
   const offOn = AbdStore.filters.includes('offensive');
   const defOn = AbdStore.filters.includes('defensive');
+  // Styled to match the Pokédex view toggle: a segmented pill (shared border via
+  // the wrapper) with py-2 + leading-4 so it lines up with the search input. The
+  // amber (Offensive) / sky (Defensive) active accents are kept since they echo the
+  // row Tag badges.
   const tagBtnCls = (on, accent) =>
-    on
-      ? `shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition ${accent}`
-      : 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-slate-900 text-slate-400 border border-slate-700 hover:text-white';
+    `text-[10px] leading-4 font-extrabold uppercase tracking-wider py-2 px-3 transition ${on ? accent : 'text-slate-400 hover:text-slate-200'}`;
 
   return html`
     <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">
@@ -104,16 +106,18 @@ export function AbilitydexView() {
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
         <div class="flex flex-wrap items-start gap-2 w-full sm:w-auto">
-          <button type="button" aria-pressed=${offOn ? 'true' : 'false'}
-            class=${tagBtnCls(offOn, 'bg-amber-950/40 text-amber-400 border border-amber-900/50')}
-            onClick=${() => toggleAbdTag('offensive')}>
-            Offensive
-          </button>
-          <button type="button" aria-pressed=${defOn ? 'true' : 'false'}
-            class=${tagBtnCls(defOn, 'bg-sky-950/40 text-sky-400 border border-sky-900/50')}
-            onClick=${() => toggleAbdTag('defensive')}>
-            Defensive
-          </button>
+          <div class="inline-flex self-start rounded-xl border border-slate-700 overflow-hidden shrink-0">
+            <button type="button" aria-pressed=${offOn ? 'true' : 'false'}
+              class=${tagBtnCls(offOn, 'bg-amber-500/20 text-amber-300')}
+              onClick=${() => toggleAbdTag('offensive')}>
+              Offensive
+            </button>
+            <button type="button" aria-pressed=${defOn ? 'true' : 'false'}
+              class=${`border-l border-slate-700 ${tagBtnCls(defOn, 'bg-sky-500/20 text-sky-300')}`}
+              onClick=${() => toggleAbdTag('defensive')}>
+              Defensive
+            </button>
+          </div>
           <${SearchChips}
             draft=${AbdStore.draft}
             filters=${AbdStore.filters}
