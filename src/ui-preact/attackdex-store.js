@@ -13,7 +13,7 @@ import {
 } from '../api/pokeapi.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
-import { getTypeBgClass } from '../ui/render.js';
+import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
@@ -223,6 +223,28 @@ export function jumpToAttackdexMove(apiName) {
 
 const LEARNER_CAP = 150;
 
+// Modal header: the move's vitals at a glance (mirrors the Pokédex's type-matchup
+// header). Type + category badges, then Power / Priority / PP, then the same
+// effect text the description column and free-text search read.
+function buildMoveSummary(d) {
+  const cat = getCategoryBadge(d.category);
+  const prio = d.priority > 0 ? `+${d.priority}` : `${d.priority ?? 0}`;
+  const stat = (label, value) => html`
+    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500"
+      >${label}<span class="text-slate-200 font-mono ml-1">${value}</span></span>`;
+  return html`
+    <div class="flex flex-col gap-2 pb-3 border-b border-slate-700">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <span class=${`text-[9px] px-1.5 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(d.type)} text-white`}>${d.type}</span>
+        <span class=${`text-[9px] px-1.5 py-0.5 font-black uppercase rounded ${cat.cls}`}>${cat.label}</span>
+        ${stat('Power', d.power || '—')}
+        ${stat('Prio', prio)}
+        ${stat('PP', d.pp ?? '—')}
+      </div>
+      ${d.desc && html`<p class="text-[11px] text-slate-300 leading-snug">${d.desc}</p>`}
+    </div>`;
+}
+
 function buildPokemonItem(n, pd, onClick) {
   const name = formatDisplayName(n);
   if (!pd) {
@@ -291,6 +313,7 @@ export async function handleAttackdexRowClick(apiName) {
   const session = openDetailModal({
     title: `Who learns ${details.name}`,
     subtitle: `${learners.length} Pokémon · ${formatLabel}`,
+    header: buildMoveSummary(details),
     items: buildItems(),
   });
 
