@@ -11,7 +11,14 @@
 // "ensure every row's details are loaded" routine here, since type/category/move
 // search reads attributes the lazy browse hasn't fetched yet; the hook is expected
 // to be a no-op once everything is loaded.
-export function makeChipFilter(store, notify, { onActivate } = {}) {
+//
+// `primaryKeyMatch` is an optional predicate identifying a term that names one of
+// the page's primary entities (a species on the Pokédex, a move on the Attackdex,
+// an ability on the Abilitydex). These are single-subject searches, so committing
+// a new one replaces any existing primary-key chip — searching "Sableye" after
+// "Mega Floette" swaps the term rather than ANDing the two (which would match
+// nothing). Secondary filters (type, ability, move chips) are left untouched.
+export function makeChipFilter(store, notify, { onActivate, primaryKeyMatch } = {}) {
   const hasActiveTerm = () => store.filters.length > 0 || store.draft.trim() !== '';
   const maybeActivate = async () => {
     if (onActivate && hasActiveTerm()) await onActivate();
@@ -24,6 +31,13 @@ export function makeChipFilter(store, notify, { onActivate } = {}) {
     const term = (value || '').trim();
     store.draft = '';
     if (term && !store.filters.some((f) => f.toLowerCase() === term.toLowerCase())) {
+      // A primary-key term (a species / move / ability name) is a single-subject
+      // search, so drop any existing primary-key chip before adding this one —
+      // the new subject replaces the old. Non-primary chips (type, ability, etc.)
+      // stay so they keep narrowing alongside the new subject.
+      if (primaryKeyMatch && primaryKeyMatch(term)) {
+        store.filters = store.filters.filter((f) => !primaryKeyMatch(f));
+      }
       store.filters = [...store.filters, term];
     }
     notify();

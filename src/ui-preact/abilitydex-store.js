@@ -132,7 +132,16 @@ export function onAbilitydexFormatChange() {
 // force-loads every ability's details the first time a term becomes active, since
 // effect-text and holder search read them — and even a VGC-keyword chip benefits,
 // filling the desc column for the narrowed list (it's a no-op once loaded).
-const abdChip = makeChipFilter(AbdStore, notifyAbd, { onActivate: ensureAllLoaded });
+// A term is "primary" when it names an ability in the roster (the page's subject),
+// as opposed to a holder Pokémon chip that narrows the list.
+const isAbdAbilityName = (term) => {
+  const lower = term.toLowerCase();
+  return AbdStore.roster.some((r) => r.name.toLowerCase() === lower);
+};
+const abdChip = makeChipFilter(AbdStore, notifyAbd, {
+  onActivate: ensureAllLoaded,
+  primaryKeyMatch: isAbdAbilityName,
+});
 export const setAbdDraft = abdChip.setDraft;
 export const commitAbdFilter = abdChip.commit;
 export const commitAbdValue = abdChip.commitValue;

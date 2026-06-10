@@ -148,7 +148,16 @@ export async function setAdxSort(key) {
 // Attackdex behaves identically to the Pokédex. The onActivate hook force-loads
 // every move's details the first time a term becomes active, since type /
 // category / spread / description / learner search reads them (no-op once loaded).
-const adxChip = makeChipFilter(AdxStore, notifyAdx, { onActivate: ensureAllLoaded });
+// A term is "primary" when it names a move in the roster (the page's subject), as
+// opposed to a type / learner chip that narrows the list.
+const isAdxMoveName = (term) => {
+  const lower = term.toLowerCase();
+  return AdxStore.roster.some((r) => r.name.toLowerCase() === lower);
+};
+const adxChip = makeChipFilter(AdxStore, notifyAdx, {
+  onActivate: ensureAllLoaded,
+  primaryKeyMatch: isAdxMoveName,
+});
 export const setAdxDraft = adxChip.setDraft;
 export const commitAdxFilter = adxChip.commit;
 export const commitAdxValue = adxChip.commitValue;
