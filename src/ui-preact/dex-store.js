@@ -172,7 +172,16 @@ export async function setDexView(mode) {
 // Pokédex behaves identically to the other dex pages. The onActivate hook
 // force-loads the lazy National Dex the first time a term becomes active, since
 // type/ability/move search reads every row's details (it's a no-op once loaded).
-const dexChip = makeChipFilter(DexStore, notifyDex, { onActivate: ensureDexFullyLoaded });
+// A term is "primary" when it names a species in the current roster (the page's
+// subject), as opposed to a type / ability / move chip that narrows the list.
+const isDexSpeciesName = (term) => {
+  const lower = term.toLowerCase();
+  return DexStore.roster.some((r) => r.name.toLowerCase() === lower);
+};
+const dexChip = makeChipFilter(DexStore, notifyDex, {
+  onActivate: ensureDexFullyLoaded,
+  primaryKeyMatch: isDexSpeciesName,
+});
 export const setDexDraft = dexChip.setDraft;
 export const commitDexFilter = dexChip.commit;
 export const commitDexValue = dexChip.commitValue;
