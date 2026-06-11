@@ -3,9 +3,9 @@
 // DERIVED.optimizer (filled by runOptimizations); "Apply All" writes the spread
 // to STATE. Replaces createOptionCardHTML/createImpossibleOptionCardHTML +
 // bindApplyButtonsListeners.
-import { html } from './preact.js';
-import { STATE, DERIVED, update } from './store.js';
-import { formatNatureDisplayName } from '../ui/render.js';
+import { html } from './Preact.js';
+import { STATE, DERIVED, update } from './Store.js';
+import { formatNatureDisplayName } from '../ui/Render.js';
 
 function applyCard(card) {
   update((s) => {
@@ -147,7 +147,7 @@ export function OptimizerPanel() {
 // CenterPanel wrapper — the three sub-panels mounted into #panel-center.
 import { ModifiersPanel } from './ModifiersPanel.js';
 import { MovePanel } from './MovePanel.js';
-import { useStore } from './preact.js';
+import { useStore } from './Preact.js';
 export function CenterPanel() {
   useStore();
   return html`<${ModifiersPanel} /><${MovePanel} /><${OptimizerPanel} />`;

@@ -1,9 +1,9 @@
 // EV/nature optimization search. Given a matchup, brute-force the cheapest SP
 // (and nature) spread that hits a survival or KO goal. Pure: depends only on the
 // stat/damage engine and the NATURES table, so it's unit-testable in isolation.
-import { calculateStat } from './stats.js';
-import { calculateDamageRolls } from './damage.js';
-import { NATURES } from '../data/constants.js';
+import { calculateStat } from './Stats.js';
+import { calculateDamageRolls } from './Damage.js';
+import { NATURES } from '../data/Constants.js';
 
 // Cheapest HP/Def(SpD) spread (and nature) that lets `defender` survive the
 // attacker's max roll. Returns { hp, def, nature, total } or null if no spread

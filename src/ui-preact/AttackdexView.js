@@ -1,18 +1,18 @@
 // Attackdex page (Preact) — the sortable/searchable/filterable move table mounted
-// into the existing #page-attackdex container. Reads the reactive AdxStore and
-// re-renders on notifyAdx(); all data + loading logic lives in attackdex-store.js.
+// into the existing #page-attackdex container. Reads the reactive AttackdexStore and
+// re-renders on notifyAdx(); all data + loading logic lives in AttackdexStore.js.
 // Row click opens the shared vanilla detail modal ("Who learns …"). Lazy rows via
 // an IntersectionObserver, mirroring DexView.
-import { html, useRef } from './preact.js';
-import { useSubscription, useLazyRowLoader } from './reactive.js';
+import { html, useRef } from './Preact.js';
+import { useSubscription, useLazyRowLoader } from './Reactive.js';
 import { SearchChips } from './SearchChips.js';
 import { RegulationBadge } from './RegulationBadge.js';
-import { STATE } from '../state.js';
-import { legalNameFilterForFormat } from '../api/pokeapi.js';
-import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
-import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
+import { STATE } from '../State.js';
+import { legalNameFilterForFormat } from '../api/PokeApi.js';
+import { sortMoves, filterMoves, spreadKind } from '../data/Moves.js';
+import { getTypeBgClass, getCategoryBadge } from '../ui/Render.js';
 import {
-  AdxStore,
+  AttackdexStore,
   subscribeAdx,
   attackdexStatusText,
   setAdxSort,
@@ -24,7 +24,7 @@ import {
   adxSuggest,
   handleAttackdexRowClick,
   loadMoveDetails,
-} from './attackdex-store.js';
+} from './AttackdexStore.js';
 
 const ROW_GRID =
   'grid grid-cols-[minmax(140px,1.4fr)_72px_72px_48px_40px_minmax(220px,2.8fr)] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
@@ -133,18 +133,18 @@ const SORT_COLS = [
 // phones. A select over the sortable columns plus a direction toggle (mirrors
 // DexView; Attackdex has no view toggle, so this sits on its own row).
 function MobileSortControl() {
-  const desc = AdxStore.sortDir === 'desc';
+  const desc = AttackdexStore.sortDir === 'desc';
   return html`
     <div class="sm:hidden flex items-center gap-1.5">
       <select
         class="flex-1 min-w-0 rounded-xl bg-slate-900 border border-slate-700 px-2 py-2 text-xs text-slate-200"
-        value=${AdxStore.sortKey}
+        value=${AttackdexStore.sortKey}
         onChange=${(e) => setAdxSort(e.target.value)}
         aria-label="Sort by">
         ${SORT_COLS.map((c) => html`<option value=${c.key}>Sort: ${c.label}</option>`)}
       </select>
       <button
-        onClick=${() => setAdxSort(AdxStore.sortKey)}
+        onClick=${() => setAdxSort(AttackdexStore.sortKey)}
         class="shrink-0 rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white transition"
         title=${desc ? 'Descending — tap for ascending' : 'Ascending — tap for descending'}
         aria-label=${desc ? 'Sort descending, tap for ascending' : 'Sort ascending, tap for descending'}>
@@ -154,8 +154,8 @@ function MobileSortControl() {
 }
 
 function SortButton({ col }) {
-  const active = AdxStore.sortKey === col.key;
-  const arrow = active ? (AdxStore.sortDir === 'desc' ? '▼' : '▲') : '';
+  const active = AttackdexStore.sortKey === col.key;
+  const arrow = active ? (AttackdexStore.sortDir === 'desc' ? '▼' : '▲') : '';
   return html`
     <button class=${`attackdex-sort uppercase text-left hover:text-white transition ${active ? 'text-amber-400' : ''}`}
       onClick=${() => setAdxSort(col.key)}>
@@ -167,20 +167,22 @@ export function AttackdexView() {
   useSubscription(subscribeAdx);
 
   // Committed chips plus the live draft (so typing previews before Enter).
-  const draft = AdxStore.draft.trim();
-  const terms = draft ? [...AdxStore.filters, draft] : AdxStore.filters;
+  const draft = AttackdexStore.draft.trim();
+  const terms = draft ? [...AttackdexStore.filters, draft] : AttackdexStore.filters;
   // Always-on regulation gate: under a regulation, keep only moves with a legal
   // learner. Null in National Dex view (no gate). The store force-loads every row's
   // details under a regulation so the gate sees complete learner lists.
   const regGate = legalNameFilterForFormat(STATE.format);
-  const filtered = filterMoves(AdxStore.roster, terms, regGate);
-  const sorted = sortMoves(filtered, AdxStore.sortKey, AdxStore.sortDir);
+  const filtered = filterMoves(AttackdexStore.roster, terms, regGate);
+  const sorted = sortMoves(filtered, AttackdexStore.sortKey, AttackdexStore.sortDir);
   const statusText =
-    AdxStore.loading && AdxStore.roster.length === 0 ? 'loading moves…' : attackdexStatusText();
+    AttackdexStore.loading && AttackdexStore.roster.length === 0
+      ? 'loading moves…'
+      : attackdexStatusText();
 
   // Lazy loading: fetch placeholder rows as they scroll into view (mirrors DexView).
   const rowsRef = useRef(null);
-  useLazyRowLoader(rowsRef, AdxStore, loadMoveDetails);
+  useLazyRowLoader(rowsRef, AttackdexStore, loadMoveDetails);
 
   return html`
     <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">
@@ -193,8 +195,8 @@ export function AttackdexView() {
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
         <${SearchChips}
-          draft=${AdxStore.draft}
-          filters=${AdxStore.filters}
+          draft=${AttackdexStore.draft}
+          filters=${AttackdexStore.filters}
           placeholder="Search name, type, category, spread, learner… (Enter to add)"
           onDraft=${setAdxDraft}
           onCommit=${commitAdxFilter}

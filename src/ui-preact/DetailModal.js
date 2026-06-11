@@ -8,8 +8,8 @@
 // refresh for free: the scroll container element persists across renders, so
 // only its children reconcile (the vanilla version had to save/restore scrollTop
 // because it rebuilt innerHTML).
-import { html } from './preact.js';
-import { createEmitter, useSubscription } from './reactive.js';
+import { html } from './Preact.js';
+import { createEmitter, useSubscription } from './Reactive.js';
 
 // Reactive modal state with its own emitter. `session` bumps on every open/close
 // so an async worker streaming rows into a modal it opened can tell when it's

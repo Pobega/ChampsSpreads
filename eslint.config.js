@@ -29,7 +29,7 @@ export default [
 
   // Browser code: the app and all UI/engine/data modules run in the browser.
   {
-    files: ['app.js', 'src/**/*.js'],
+    files: ['App.js', 'src/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

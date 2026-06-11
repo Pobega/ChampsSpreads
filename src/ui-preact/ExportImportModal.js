@@ -2,9 +2,9 @@
 // glue in app.js + the #ei-modal markup. Opened via openExportImport() (called by
 // the header's Export/Import button); reads/writes the matchup as shareable text
 // through props the app wires in (augmentedState + applyMatchup live in app.js).
-import { html, useState, useLayoutEffect, useRef } from './preact.js';
-import { createEmitter, useSubscription } from './reactive.js';
-import { exportMatchup, importMatchup } from '../data/matchup-text.js';
+import { html, useState, useLayoutEffect, useRef } from './Preact.js';
+import { createEmitter, useSubscription } from './Reactive.js';
+import { exportMatchup, importMatchup } from '../data/MatchupText.js';
 
 // Tiny open-state store so the header button can trigger the modal from afar.
 const ei = { open: false };

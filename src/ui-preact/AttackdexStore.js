@@ -1,9 +1,9 @@
 // Attackdex page store — DOM-free move-roster + loading logic for the Preact
 // AttackdexView, lifted from the old vanilla src/ui/attackdex-page.js. Mirrors
-// dex-store.js (own subscribe/notify set so loaders re-render the view) but adds
+// DexStore.js (own subscribe/notify set so loaders re-render the view) but adds
 // the move-specific filter controls (type / category / spread). Row click opens
 // the shared vanilla detail modal (converted to Preact in 3b).
-import { STATE, CACHE } from '../state.js';
+import { STATE, CACHE } from '../State.js';
 import {
   fetchMoveDetails,
   fetchPokemonDetails,
@@ -11,21 +11,21 @@ import {
   formatDisplayName,
   legalSetForFormat,
   nonLegalFormsForFormat,
-} from '../api/pokeapi.js';
-import { isHiddenForm, isFormatLegal } from '../data/dex.js';
-import { REGULATIONS } from '../data/regulations.js';
-import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
+} from '../api/PokeApi.js';
+import { isHiddenForm, isFormatLegal } from '../data/Dex.js';
+import { REGULATIONS } from '../data/Regulations.js';
+import { getTypeBgClass, getCategoryBadge } from '../ui/Render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
-import { html } from './preact.js';
-import { createEmitter } from './reactive.js';
-import { makeChipFilter } from './chip-filter.js';
-import { makeSuggester } from './suggestions.js';
-import { runPool } from './load-pool.js';
+import { html } from './Preact.js';
+import { createEmitter } from './Reactive.js';
+import { makeChipFilter } from './ChipFilter.js';
+import { makeSuggester } from './Suggestions.js';
+import { runPool } from './LoadPool.js';
 import { RegulationBadge } from './RegulationBadge.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
 // re-renders on notifyAdx(). Same shape/semantics as the old vanilla AttackdexPage.
-export const AdxStore = {
+export const AttackdexStore = {
   roster: [], // [{ apiName, name, details|null }]
   byName: {}, // apiName -> row (same object refs as roster)
   sortKey: 'name', // 'name' | 'power' | 'priority'
@@ -56,34 +56,36 @@ export function initAttackdexStore({ onPokemonClick = null, getPokemonDetails = 
 // Build the roster once from the loaded move-name cache.
 function buildMovesRoster() {
   const entries = (CACHE.allMoves || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-  AdxStore.roster = entries.map((e) => ({ apiName: e.apiName, name: e.name, details: null }));
-  AdxStore.byName = {};
-  AdxStore.roster.forEach((r) => {
-    AdxStore.byName[r.apiName] = r;
+  AttackdexStore.roster = entries.map((e) => ({ apiName: e.apiName, name: e.name, details: null }));
+  AttackdexStore.byName = {};
+  AttackdexStore.roster.forEach((r) => {
+    AttackdexStore.byName[r.apiName] = r;
   });
-  AdxStore.built = true;
-  AdxStore.allLoaded = false;
+  AttackdexStore.built = true;
+  AttackdexStore.allLoaded = false;
 }
 
 export function attackdexStatusText() {
-  const total = AdxStore.roster.length;
-  const loaded = AdxStore.roster.filter((r) => r.details).length;
+  const total = AttackdexStore.roster.length;
+  const loaded = AttackdexStore.roster.filter((r) => r.details).length;
   if (loaded < total) return `${total} moves · loaded ${loaded}/${total}…`;
   return `${total} moves`;
 }
 
 // Concurrency-limited loader. Resolves once every requested name is fetched.
 export async function loadMoveDetails(apiNames, { rerenderEachBatch = true } = {}) {
-  const queue = apiNames.filter((n) => AdxStore.byName[n] && !AdxStore.byName[n].details);
+  const queue = apiNames.filter(
+    (n) => AttackdexStore.byName[n] && !AttackdexStore.byName[n].details
+  );
   if (queue.length === 0) return;
-  AdxStore.loading = true;
+  AttackdexStore.loading = true;
 
   await runPool(
     queue,
     async (apiName) => {
       try {
         const details = await fetchMoveDetails(apiName);
-        const row = AdxStore.byName[apiName];
+        const row = AttackdexStore.byName[apiName];
         if (row) row.details = details;
       } catch (err) {
         console.error(`Attackdex: failed to load ${apiName}`, err);
@@ -92,8 +94,8 @@ export async function loadMoveDetails(apiNames, { rerenderEachBatch = true } = {
     { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyAdx }
   );
 
-  AdxStore.loading = false;
-  AdxStore.allLoaded = AdxStore.roster.every((r) => r.details);
+  AttackdexStore.loading = false;
+  AttackdexStore.allLoaded = AttackdexStore.roster.every((r) => r.details);
   notifyAdx();
 }
 
@@ -104,12 +106,12 @@ export async function loadMoveDetails(apiNames, { rerenderEachBatch = true } = {
 // whatever's still missing — otherwise a filter fired while the observer is busy
 // would leave most rows permanently unloaded.
 async function ensureAllLoaded() {
-  if (AdxStore.allLoaded) return;
-  while (AdxStore.loading) {
+  if (AttackdexStore.allLoaded) return;
+  while (AttackdexStore.loading) {
     await new Promise((resolve) => setTimeout(resolve, 50));
-    if (AdxStore.allLoaded) return;
+    if (AttackdexStore.allLoaded) return;
   }
-  await loadMoveDetails(AdxStore.roster.map((r) => r.apiName));
+  await loadMoveDetails(AttackdexStore.roster.map((r) => r.apiName));
 }
 
 // Under a regulation the Attackdex filters to moves with a legal learner, which
@@ -125,7 +127,7 @@ function maybeLoadForFormat() {
 // can be applied. When the page is hidden, openAttackdexPage handles the load on
 // the next open instead.
 export function onAttackdexFormatChange() {
-  if (!AdxStore.built) return;
+  if (!AttackdexStore.built) return;
   notifyAdx();
   const pageEl = document.getElementById('page-attackdex');
   if (pageEl && !pageEl.classList.contains('hidden')) maybeLoadForFormat();
@@ -134,14 +136,14 @@ export function onAttackdexFormatChange() {
 // --- Mutators (notify, and force-load details when the new view needs them) ---
 
 export async function setAdxSort(key) {
-  if (AdxStore.sortKey === key) {
-    AdxStore.sortDir = AdxStore.sortDir === 'desc' ? 'asc' : 'desc';
+  if (AttackdexStore.sortKey === key) {
+    AttackdexStore.sortDir = AttackdexStore.sortDir === 'desc' ? 'asc' : 'desc';
   } else {
-    AdxStore.sortKey = key;
-    AdxStore.sortDir = key === 'name' ? 'asc' : 'desc';
+    AttackdexStore.sortKey = key;
+    AttackdexStore.sortDir = key === 'name' ? 'asc' : 'desc';
   }
   notifyAdx(); // reflect arrow immediately
-  if (key !== 'name' && !AdxStore.allLoaded) {
+  if (key !== 'name' && !AttackdexStore.allLoaded) {
     await ensureAllLoaded();
   }
 }
@@ -154,9 +156,9 @@ export async function setAdxSort(key) {
 // opposed to a type / learner chip that narrows the list.
 const isAdxMoveName = (term) => {
   const lower = term.toLowerCase();
-  return AdxStore.roster.some((r) => r.name.toLowerCase() === lower);
+  return AttackdexStore.roster.some((r) => r.name.toLowerCase() === lower);
 };
-const adxChip = makeChipFilter(AdxStore, notifyAdx, {
+const adxChip = makeChipFilter(AttackdexStore, notifyAdx, {
   onActivate: ensureAllLoaded,
   primaryKeyMatch: isAdxMoveName,
 });
@@ -174,18 +176,18 @@ export const adxSuggest = makeSuggester(['type', 'pokemon', 'move'], { onReady: 
 // Build + render the Attackdex the first time it's shown.
 export async function openAttackdexPage() {
   if (!_preserveQuery) {
-    AdxStore.filters = [];
-    AdxStore.draft = '';
+    AttackdexStore.filters = [];
+    AttackdexStore.draft = '';
   }
   _preserveQuery = false;
 
-  if (AdxStore.built && AdxStore.roster.length > 0) {
+  if (AttackdexStore.built && AttackdexStore.roster.length > 0) {
     notifyAdx();
     maybeLoadForFormat();
     return;
   }
 
-  AdxStore.loading = true;
+  AttackdexStore.loading = true;
   notifyAdx(); // show "loading moves…"
   try {
     if (!CACHE.allMoves || CACHE.allMoves.length === 0) {
@@ -193,12 +195,12 @@ export async function openAttackdexPage() {
     }
     buildMovesRoster();
   } catch (err) {
-    // Leave AdxStore.built unset so reopening retries; clear the flag in finally
+    // Leave AttackdexStore.built unset so reopening retries; clear the flag in finally
     // so the page isn't wedged on "loading moves…" after a network failure.
     console.error('Attackdex: failed to load move roster', err);
     return;
   } finally {
-    AdxStore.loading = false;
+    AttackdexStore.loading = false;
     notifyAdx();
   }
   maybeLoadForFormat();
@@ -206,19 +208,19 @@ export async function openAttackdexPage() {
 
 // Look up already-loaded move details by apiName (used by dex-store via app.js).
 export function getMoveDetails(apiName) {
-  return AdxStore.byName[apiName]?.details ?? null;
+  return AttackdexStore.byName[apiName]?.details ?? null;
 }
 
 // Narrow the Attackdex to a single move by name (called when jumping from the
 // Pokédex learnset modal). Sets the filter chip + re-renders.
 export function jumpToAttackdexMove(apiName) {
-  const displayName = AdxStore.byName[apiName]?.name || formatDisplayName(apiName);
+  const displayName = AttackdexStore.byName[apiName]?.name || formatDisplayName(apiName);
   _preserveQuery = true;
-  AdxStore.filters = [displayName];
-  AdxStore.draft = '';
+  AttackdexStore.filters = [displayName];
+  AttackdexStore.draft = '';
   // Only notify if already built; otherwise openAttackdexPage (triggered by
   // showPage) will render with the filter already set.
-  if (AdxStore.built) notifyAdx();
+  if (AttackdexStore.built) notifyAdx();
 }
 
 // --- Row-click detail modal (reuses the shared vanilla detail-modal.js) ---
@@ -267,7 +269,7 @@ function buildPokemonItem(n, pd, onClick) {
 }
 
 export async function handleAttackdexRowClick(apiName) {
-  const row = AdxStore.byName[apiName];
+  const row = AttackdexStore.byName[apiName];
   if (!row) return;
 
   if (!row.details) {

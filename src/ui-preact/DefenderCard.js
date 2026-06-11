@@ -1,15 +1,15 @@
 // Defender card — Preact island mirroring AttackerCard, mounted into
 // #panel-defender. Differs in: HP/Def/SpD/Spe dashboard (HP has no boost),
 // defensive item/ability lists, four EV sliders, and the bulk presets.
-import { html, useState, useEffect, useRef, useStore } from './preact.js';
-import { STATE, CACHE, update } from './store.js';
-import { calculateStat, calculateStatBoost } from '../engine/stats.js';
-import { getTypeBgClass } from '../ui/render.js';
-import { NATURES, DEF_VGC_ABILITIES_HELPER } from '../data/constants.js';
-import { REGULATIONS } from '../data/regulations.js';
-import { isHiddenForm, isFormatLegal } from '../data/dex.js';
-import { legalSetForFormat, nonLegalFormsForFormat, fetchPokemonDetails } from '../api/pokeapi.js';
-import { GHOST_SPRITE, BOOST_STAGES, regulationTag } from './card-common.js';
+import { html, useState, useEffect, useRef, useStore } from './Preact.js';
+import { STATE, CACHE, update } from './Store.js';
+import { calculateStat, calculateStatBoost } from '../engine/Stats.js';
+import { getTypeBgClass } from '../ui/Render.js';
+import { NATURES, DEF_VGC_ABILITIES_HELPER } from '../data/Constants.js';
+import { REGULATIONS } from '../data/Regulations.js';
+import { isHiddenForm, isFormatLegal } from '../data/Dex.js';
+import { legalSetForFormat, nonLegalFormsForFormat, fetchPokemonDetails } from '../api/PokeApi.js';
+import { GHOST_SPRITE, BOOST_STAGES, regulationTag } from './CardCommon.js';
 
 // Mirror of the defender preset matcher in app.js.
 function matchedPreset(sps) {

@@ -1,16 +1,16 @@
 // Attacker card — the first Preact island. Renders the attacker profile, search,
 // stat dashboard, and SP-allocation sliders from STATE, mounted into the existing
 // #panel-attacker container. Everything else on the calculator page is still
-// vanilla; this island bridges through src/ui-preact/store.js.
-import { html, useState, useEffect, useRef, useStore } from './preact.js';
-import { STATE, CACHE, update } from './store.js';
-import { calculateStat, calculateStatBoost } from '../engine/stats.js';
-import { getTypeBgClass } from '../ui/render.js';
-import { NATURES, OFF_VGC_ABILITIES_HELPER } from '../data/constants.js';
-import { REGULATIONS } from '../data/regulations.js';
-import { isHiddenForm, isFormatLegal } from '../data/dex.js';
-import { legalSetForFormat, nonLegalFormsForFormat, fetchPokemonDetails } from '../api/pokeapi.js';
-import { GHOST_SPRITE, BOOST_STAGES, regulationTag } from './card-common.js';
+// vanilla; this island bridges through src/ui-preact/Store.js.
+import { html, useState, useEffect, useRef, useStore } from './Preact.js';
+import { STATE, CACHE, update } from './Store.js';
+import { calculateStat, calculateStatBoost } from '../engine/Stats.js';
+import { getTypeBgClass } from '../ui/Render.js';
+import { NATURES, OFF_VGC_ABILITIES_HELPER } from '../data/Constants.js';
+import { REGULATIONS } from '../data/Regulations.js';
+import { isHiddenForm, isFormatLegal } from '../data/Dex.js';
+import { legalSetForFormat, nonLegalFormsForFormat, fetchPokemonDetails } from '../api/PokeApi.js';
+import { GHOST_SPRITE, BOOST_STAGES, regulationTag } from './CardCommon.js';
 
 // Which preset (if any) the current attacker spread matches — mirrors app.js.
 function matchedPreset(sps, nature) {

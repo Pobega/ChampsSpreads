@@ -1,8 +1,8 @@
 // Pure, DOM/fetch-free logic for the Pokédex stats-browser page.
 // Kept side-effect free so it can be unit-tested in tests.html.
-import { ALL_TYPES } from './constants.js';
-import { NON_LEGAL_FORMS } from './regulations.js';
-import { calculateStat } from '../engine/stats.js';
+import { ALL_TYPES } from './Constants.js';
+import { NON_LEGAL_FORMS } from './Regulations.js';
+import { calculateStat } from '../engine/Stats.js';
 
 // The six base stats, in canonical Showdown order.
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];

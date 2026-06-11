@@ -1,17 +1,17 @@
 // Abilitydex page (Preact) — the searchable/filterable ability table mounted into
-// the persistent #page-abilitydex container. Reads the reactive AbdStore and
-// re-renders on notifyAbd(); all data + loading logic lives in abilitydex-store.js.
+// the persistent #page-abilitydex container. Reads the reactive AbilitydexStore and
+// re-renders on notifyAbd(); all data + loading logic lives in AbilitydexStore.js.
 // Row click opens the shared detail modal ("Pokémon with …"). Lazy rows via an
 // IntersectionObserver, mirroring AttackdexView.
-import { html, useRef } from './preact.js';
-import { useSubscription, useLazyRowLoader } from './reactive.js';
+import { html, useRef } from './Preact.js';
+import { useSubscription, useLazyRowLoader } from './Reactive.js';
 import { SearchChips } from './SearchChips.js';
 import { RegulationBadge } from './RegulationBadge.js';
-import { STATE } from '../state.js';
-import { legalNameFilterForFormat } from '../api/pokeapi.js';
-import { sortAbilities, filterAbilities, abilityTag } from '../data/abilities.js';
+import { STATE } from '../State.js';
+import { legalNameFilterForFormat } from '../api/PokeApi.js';
+import { sortAbilities, filterAbilities, abilityTag } from '../data/Abilities.js';
 import {
-  AbdStore,
+  AbilitydexStore,
   subscribeAbd,
   abilitydexStatusText,
   setAbdDraft,
@@ -23,7 +23,7 @@ import {
   abdSuggest,
   handleAbilitydexRowClick,
   loadAbilityDetails,
-} from './abilitydex-store.js';
+} from './AbilitydexStore.js';
 
 const ROW_GRID =
   'grid grid-cols-[minmax(160px,1.6fr)_56px_minmax(240px,3fr)] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
@@ -83,27 +83,27 @@ export function AbilitydexView() {
   useSubscription(subscribeAbd);
 
   // Committed chips plus the live draft (so typing previews before Enter).
-  const draft = AbdStore.draft.trim();
-  const terms = draft ? [...AbdStore.filters, draft] : AbdStore.filters;
+  const draft = AbilitydexStore.draft.trim();
+  const terms = draft ? [...AbilitydexStore.filters, draft] : AbilitydexStore.filters;
   // Always-on regulation gate: under a regulation, keep only abilities with a legal
   // holder. Null in National Dex view (no gate). The store force-loads every row's
   // details under a regulation so the gate sees complete holder lists.
   const regGate = legalNameFilterForFormat(STATE.format);
-  const filtered = filterAbilities(AbdStore.roster, terms, regGate);
+  const filtered = filterAbilities(AbilitydexStore.roster, terms, regGate);
   const sorted = sortAbilities(filtered, 'asc');
   const statusText =
-    AbdStore.loading && AbdStore.roster.length === 0
+    AbilitydexStore.loading && AbilitydexStore.roster.length === 0
       ? 'loading abilities…'
       : abilitydexStatusText();
 
   // Lazy loading: fetch placeholder rows as they scroll into view.
   const rowsRef = useRef(null);
-  useLazyRowLoader(rowsRef, AbdStore, loadAbilityDetails);
+  useLazyRowLoader(rowsRef, AbilitydexStore, loadAbilityDetails);
 
   // Offensive / Defensive presets: each toggles its keyword chip, and lights up
   // (with the amber/sky accent echoing the row Tag badges) while that chip is on.
-  const offOn = AbdStore.filters.includes('offensive');
-  const defOn = AbdStore.filters.includes('defensive');
+  const offOn = AbilitydexStore.filters.includes('offensive');
+  const defOn = AbilitydexStore.filters.includes('defensive');
   // Styled to match the Pokédex view toggle: a segmented pill (shared border via
   // the wrapper) with py-2 + leading-4 so it lines up with the search input. The
   // amber (Offensive) / sky (Defensive) active accents are kept since they echo the
@@ -135,8 +135,8 @@ export function AbilitydexView() {
             </button>
           </div>
           <${SearchChips}
-            draft=${AbdStore.draft}
-            filters=${AbdStore.filters}
+            draft=${AbilitydexStore.draft}
+            filters=${AbilitydexStore.filters}
             placeholder="Search ability, effect, Pokémon… (Enter to add)"
             onDraft=${setAbdDraft}
             onCommit=${commitAbdFilter}

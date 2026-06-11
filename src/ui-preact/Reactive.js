@@ -4,7 +4,7 @@
 // notify, and each view re-implemented the same "force a re-render on notify"
 // hook. createEmitter() and useSubscription() are the one copy of each.
 //
-// Imports straight from preact/hooks (not ./preact.js) on purpose: this is a
+// Imports straight from preact/hooks (not ./Preact.js) on purpose: this is a
 // leaf module, so the stores can depend on it without forming an import cycle
 // with preact.js (which itself imports the calculator store).
 import { useState, useEffect, useLayoutEffect, useRef } from 'preact/hooks';

@@ -2,14 +2,14 @@
 // input (with a clear-input button), an optional autocomplete dropdown, and the
 // row of committed filter chips (each removable, with a "Clear all" when more than
 // one). Purely presentational — the caller owns the state (a chip-filter from
-// chip-filter.js) and passes it in via the value props + handlers, so the Pokédex,
+// ChipFilter.js) and passes it in via the value props + handlers, so the Pokédex,
 // Attackdex, and any future page all share one UI.
 //
 // Suggestions are opt-in: pass `suggest(draft, excludeLowercased)` (typically a
 // makeSuggester from suggestions.js) and `onPick(value)`. They are never
 // auto-selected — nothing is highlighted until the user arrows into the list, so
 // Enter always commits the typed draft unless they deliberately picked one.
-import { html, useState } from './preact.js';
+import { html, useState } from './Preact.js';
 
 export function SearchChips({
   draft,

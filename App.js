@@ -1,14 +1,14 @@
 // Pokemon Champions VGC SP Optimizer & Damage Calculator
 // Pure Client-Side JavaScript ES6+
 
-import { calculateDamageRolls, multiHitDistribution } from './src/engine/damage.js';
-import { calculateStat } from './src/engine/stats.js';
+import { calculateDamageRolls, multiHitDistribution } from './src/engine/Damage.js';
+import { calculateStat } from './src/engine/Stats.js';
 import {
   optimizeSurvivalEVsWithNatures,
   optimizeOffensiveEVsWithNatures,
-} from './src/engine/optimize.js';
-import { OFF_VGC_ABILITIES_HELPER, DEF_VGC_ABILITIES_HELPER } from './src/data/constants.js';
-import { STATE, CACHE } from './src/state.js';
+} from './src/engine/Optimize.js';
+import { OFF_VGC_ABILITIES_HELPER, DEF_VGC_ABILITIES_HELPER } from './src/data/Constants.js';
+import { STATE, CACHE } from './src/State.js';
 import {
   initPokemonList,
   initStatusMovesList,
@@ -18,44 +18,44 @@ import {
   fetchPokemonDetails,
   fetchMoveDetails,
   fetchMoveDetailsMany,
-} from './src/api/pokeapi.js';
-import { pickDefaultMove } from './src/engine/default-move.js';
-import { isSpreadMove } from './src/data/moves.js';
-import { pickAttackerSpread, pickDefenderSpread } from './src/engine/default-spread.js';
-import { pruneOldCaches } from './src/api/cache.js';
-import { buildResultModel } from './src/ui/result-summary.js';
+} from './src/api/PokeApi.js';
+import { pickDefaultMove } from './src/engine/DefaultMove.js';
+import { isSpreadMove } from './src/data/Moves.js';
+import { pickAttackerSpread, pickDefenderSpread } from './src/engine/DefaultSpread.js';
+import { pruneOldCaches } from './src/api/Cache.js';
+import { buildResultModel } from './src/ui/ResultSummary.js';
 import {
   initDexStore,
   openDexPage,
   jumpToDexPokemon,
   getPokemonDetails,
-} from './src/ui-preact/dex-store.js';
+} from './src/ui-preact/DexStore.js';
 import { DexView } from './src/ui-preact/DexView.js';
 import {
   initAttackdexStore,
   openAttackdexPage,
   jumpToAttackdexMove,
   getMoveDetails,
-} from './src/ui-preact/attackdex-store.js';
+} from './src/ui-preact/AttackdexStore.js';
 import { AttackdexView } from './src/ui-preact/AttackdexView.js';
-import { initAbilitydexStore, openAbilitydexPage } from './src/ui-preact/abilitydex-store.js';
+import { initAbilitydexStore, openAbilitydexPage } from './src/ui-preact/AbilitydexStore.js';
 import { AbilitydexView } from './src/ui-preact/AbilitydexView.js';
-import { registerPage, showPage } from './src/ui/page-nav.js';
+import { registerPage, showPage } from './src/ui/PageNav.js';
 import { DetailModal } from './src/ui-preact/DetailModal.js';
 import { render, h } from 'preact';
-import { ErrorBoundary } from './src/ui-preact/preact.js';
+import { ErrorBoundary } from './src/ui-preact/Preact.js';
 import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
 import { CenterPanel } from './src/ui-preact/OptimizerPanel.js';
 import { ResultsHUD } from './src/ui-preact/ResultsHUD.js';
 import { Brand, HeaderControls } from './src/ui-preact/HeaderControls.js';
 import { ExportImportModal } from './src/ui-preact/ExportImportModal.js';
-import { setRecompute, notify, DERIVED } from './src/ui-preact/store.js';
+import { setRecompute, notify, DERIVED } from './src/ui-preact/Store.js';
 
 // ==========================================
 // 2. APPLICATION STATE & GLOBAL CACHE
 // ==========================================
-// STATE and CACHE now live in ./src/state.js (imported at the top of this file)
+// STATE and CACHE now live in ./src/State.js (imported at the top of this file)
 // so UI modules can share them without importing app.js.
 
 // While applying an imported matchup we set many DOM inputs in sequence and
@@ -516,7 +516,7 @@ async function loadSampleVGCScenario() {
   updateLiveStats();
 }
 
-// Rebuild a matchup from an imported text block (see src/data/matchup-text.js).
+// Rebuild a matchup from an imported text block (see src/data/MatchupText.js).
 // Mirrors loadSampleVGCScenario: fetch both Pokémon by the apiName derived from
 // their names, run the detail setters to populate option lists, then write every
 // input. Returns true on success, false if a Pokémon couldn't be fetched.

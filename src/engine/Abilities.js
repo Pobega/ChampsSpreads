@@ -3,7 +3,7 @@
 //   1. Add an entry here (or, for stat / STAB / type-changing abilities, inline
 //      in damage.js where those are applied).
 //   2. Add the apiName to OFFENSIVE_VGC_ABILITIES or DEFENSIVE_VGC_ABILITIES in
-//      src/data/constants.js so it appears in the calculator dropdown + Abilitydex.
+//      src/data/Constants.js so it appears in the calculator dropdown + Abilitydex.
 
 import {
   SLICING_MOVES,
@@ -14,7 +14,7 @@ import {
   SOUND_MOVES,
   RECKLESS_MOVES,
   SECONDARY_EFFECT_MOVES,
-} from '../data/move-tags.js';
+} from '../data/MoveTags.js';
 
 // Context shape passed to every entry:
 //   { move, isPhysical, attacker, defender, typeMult, modifiers }

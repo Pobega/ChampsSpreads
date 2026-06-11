@@ -4,9 +4,9 @@
 // (separate from the calculator store in store.js) so the concurrency-limited
 // loaders trigger a DexView re-render instead of calling a renderDex() that
 // touches the DOM. The row-click detail modal is the shared Preact DetailModal.
-import { STATE, CACHE } from '../state.js';
-import { isHiddenForm, isFormatLegal } from '../data/dex.js';
-import { REGULATIONS } from '../data/regulations.js';
+import { STATE, CACHE } from '../State.js';
+import { isHiddenForm, isFormatLegal } from '../data/Dex.js';
+import { REGULATIONS } from '../data/Regulations.js';
 import {
   fetchPokemonDetails,
   fetchMoveDetails,
@@ -15,16 +15,16 @@ import {
   initChampionsRoster,
   legalSetForFormat,
   nonLegalFormsForFormat,
-} from '../api/pokeapi.js';
-import { getTypeBgClass, getCategoryBadge, TYPE_SHORT } from '../ui/render.js';
-import { getTypeEffectiveness } from '../engine/stats.js';
+} from '../api/PokeApi.js';
+import { getTypeBgClass, getCategoryBadge, TYPE_SHORT } from '../ui/Render.js';
+import { getTypeEffectiveness } from '../engine/Stats.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
-import { spreadKind } from '../data/moves.js';
-import { html } from './preact.js';
-import { createEmitter } from './reactive.js';
-import { makeChipFilter } from './chip-filter.js';
-import { makeSuggester } from './suggestions.js';
-import { runPool } from './load-pool.js';
+import { spreadKind } from '../data/Moves.js';
+import { html } from './Preact.js';
+import { createEmitter } from './Reactive.js';
+import { makeChipFilter } from './ChipFilter.js';
+import { makeSuggester } from './Suggestions.js';
+import { runPool } from './LoadPool.js';
 import { RegulationBadge } from './RegulationBadge.js';
 
 // Shared, reactive Pokédex state. DexView reads these fields directly and

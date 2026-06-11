@@ -4,8 +4,8 @@
 // header Rotom form + tagline swap, and hiding the calculator-only damage HUDs
 // when a dex view is active. Pulling this out of the dex page logic lets any
 // number of views coexist instead of a hard-coded two-way toggle.
-import { STATE } from '../state.js';
-import { notify } from '../ui-preact/store.js';
+import { STATE } from '../State.js';
+import { notify } from '../ui-preact/Store.js';
 
 const ACTIVE_CLS =
   'text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow';

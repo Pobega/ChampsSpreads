@@ -1,14 +1,14 @@
 // Bridge between the still-vanilla controller (app.js) and the Preact islands.
 //
 // During the page-by-page migration the single source of truth stays the plain
-// `STATE` object in src/state.js, so vanilla code and components read/write the
+// `STATE` object in src/State.js, so vanilla code and components read/write the
 // same data. Components mutate via `update()`, which runs the shared recompute
 // pipeline (the vanilla updateLiveStats, registered by app.js) and then notifies
 // subscribers so every mounted island re-renders. Vanilla code calls notify()
 // at the end of updateLiveStats so islands also refresh on vanilla-driven edits
 // (e.g. toggling Tailwind in the still-vanilla modifiers panel).
-import { STATE, CACHE } from '../state.js';
-import { createEmitter } from './reactive.js';
+import { STATE, CACHE } from '../State.js';
+import { createEmitter } from './Reactive.js';
 
 export { STATE, CACHE };
 

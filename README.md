@@ -32,28 +32,28 @@ npm test
 
 ```
 index.html          Page shell + CDN importmap (Tailwind, Preact, htm)
-app.js              Entry point: wiring, initialization, page registration
+App.js              Entry point: wiring, initialization, page registration
 tests.html          In-browser golden-case test runner for the damage engine
 champions_dex.json  Champions-format species roster
 
 src/
-  state.js          Shared STATE + CACHE singletons
+  State.js          Shared STATE + CACHE singletons
   engine/           Pure calc core (no DOM)
-    damage.js         Damage roll formula
-    optimize.js       EV/nature survival + offensive optimizers
-    stats.js          Stat calculation
-    abilities.js      Ability hooks into the damage pipeline
+    Damage.js         Damage roll formula
+    Optimize.js       EV/nature survival + offensive optimizers
+    Stats.js          Stat calculation
+    Abilities.js      Ability hooks into the damage pipeline
   data/             Static data + rules
-    constants.js, dex.js, moves.js, move-tags.js,
-    regulations.js, matchup-text.js
+    Constants.js, Dex.js, Moves.js, MoveTags.js,
+    Regulations.js, MatchupText.js
   api/              PokeAPI fetching + local cache
-    pokeapi.js, cache.js
+    PokeApi.js, Cache.js
   ui/               Vanilla UI helpers (page nav, rendering)
-    page-nav.js, render.js, result-summary.js
+    PageNav.js, Render.js, ResultSummary.js
   ui-preact/        Preact + htm islands (see Preact migration below)
     AttackerCard.js, DefenderCard.js, CenterPanel/OptimizerPanel.js,
     ResultsHUD.js, HeaderControls.js, DexView.js, AttackdexView.js,
-    store.js, reactive.js, ...
+    Store.js, Reactive.js, ...
 
 ci/
   run-tests.mjs     Headless test driver
@@ -62,20 +62,20 @@ ci/
 
 ## Where to add things
 
-- **New ability** — add its damage-pipeline hook in `src/engine/abilities.js`
-  and register it in the ability helper lists in `src/data/constants.js`.
-- **Damage formula change** — `src/engine/damage.js`; add/adjust a golden case
+- **New ability** — add its damage-pipeline hook in `src/engine/Abilities.js`
+  and register it in the ability helper lists in `src/data/Constants.js`.
+- **Damage formula change** — `src/engine/Damage.js`; add/adjust a golden case
   in `tests.html` to lock the expected rolls.
-- **Species / move data** — `src/data/dex.js`, `src/data/moves.js`,
-  `champions_dex.json`. Fetched details come through `src/api/pokeapi.js`.
-- **Format / regulation rules** — `src/data/regulations.js`.
+- **Species / move data** — `src/data/Dex.js`, `src/data/Moves.js`,
+  `champions_dex.json`. Fetched details come through `src/api/PokeApi.js`.
+- **Format / regulation rules** — `src/data/Regulations.js`.
 
 ## Notes
 
 - The UI is mid-migration to buildless Preact + htm, page by page. Newer panels
   live in `src/ui-preact/`; some vanilla code in `src/ui/` remains. Both styles
   coexist by design.
-- `app.js` and `index.html` carry a `?v=…` cache-buster on the script tag; bump
+- `App.js` and `index.html` carry a `?v=…` cache-buster on the script tag; bump
   it when shipping changes if a stale GitHub Pages cache bites you.
 - A few PokeAPI 404/CORS console warnings during data fetches are expected and
   handled — they don't indicate a broken page.

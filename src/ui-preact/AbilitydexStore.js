@@ -1,9 +1,9 @@
 // Abilitydex page store — DOM-free ability-roster + loading logic for the Preact
-// AbilitydexView. Mirrors attackdex-store.js (own subscribe/notify set so loaders
+// AbilitydexView. Mirrors AttackdexStore.js (own subscribe/notify set so loaders
 // re-render the view) but for abilities: the only filter controls are free-text
 // search and a "VGC only" toggle. Row click opens the shared detail modal
 // ("Pokémon with …"), reusing the same cross-nav-to-Pokédex flow as the Attackdex.
-import { STATE, CACHE } from '../state.js';
+import { STATE, CACHE } from '../State.js';
 import {
   fetchAbilityDetails,
   fetchPokemonDetails,
@@ -11,21 +11,21 @@ import {
   formatDisplayName,
   legalSetForFormat,
   nonLegalFormsForFormat,
-} from '../api/pokeapi.js';
-import { isHiddenForm, isFormatLegal } from '../data/dex.js';
-import { REGULATIONS } from '../data/regulations.js';
-import { getTypeBgClass } from '../ui/render.js';
+} from '../api/PokeApi.js';
+import { isHiddenForm, isFormatLegal } from '../data/Dex.js';
+import { REGULATIONS } from '../data/Regulations.js';
+import { getTypeBgClass } from '../ui/Render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
-import { html } from './preact.js';
-import { createEmitter } from './reactive.js';
-import { makeChipFilter } from './chip-filter.js';
-import { makeSuggester } from './suggestions.js';
-import { runPool } from './load-pool.js';
+import { html } from './Preact.js';
+import { createEmitter } from './Reactive.js';
+import { makeChipFilter } from './ChipFilter.js';
+import { makeSuggester } from './Suggestions.js';
+import { runPool } from './LoadPool.js';
 import { RegulationBadge } from './RegulationBadge.js';
 
 // Shared, reactive Abilitydex state. AbilitydexView reads these directly and
 // re-renders on notifyAbd().
-export const AbdStore = {
+export const AbilitydexStore = {
   roster: [], // [{ apiName, name, details|null }]
   byName: {}, // apiName -> row (same object refs as roster)
   filters: [], // committed search terms (the chips); ANDed together
@@ -54,34 +54,40 @@ export function initAbilitydexStore({ onPokemonClick = null, getPokemonDetails =
 // Build the roster once from the loaded ability-name cache.
 function buildAbilitiesRoster() {
   const entries = (CACHE.allAbilities || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-  AbdStore.roster = entries.map((e) => ({ apiName: e.apiName, name: e.name, details: null }));
-  AbdStore.byName = {};
-  AbdStore.roster.forEach((r) => {
-    AbdStore.byName[r.apiName] = r;
+  AbilitydexStore.roster = entries.map((e) => ({
+    apiName: e.apiName,
+    name: e.name,
+    details: null,
+  }));
+  AbilitydexStore.byName = {};
+  AbilitydexStore.roster.forEach((r) => {
+    AbilitydexStore.byName[r.apiName] = r;
   });
-  AbdStore.built = true;
-  AbdStore.allLoaded = false;
+  AbilitydexStore.built = true;
+  AbilitydexStore.allLoaded = false;
 }
 
 export function abilitydexStatusText() {
-  const total = AbdStore.roster.length;
-  const loaded = AbdStore.roster.filter((r) => r.details).length;
+  const total = AbilitydexStore.roster.length;
+  const loaded = AbilitydexStore.roster.filter((r) => r.details).length;
   if (loaded < total) return `${total} abilities · loaded ${loaded}/${total}…`;
   return `${total} abilities`;
 }
 
 // Concurrency-limited loader. Resolves once every requested name is fetched.
 export async function loadAbilityDetails(apiNames, { rerenderEachBatch = true } = {}) {
-  const queue = apiNames.filter((n) => AbdStore.byName[n] && !AbdStore.byName[n].details);
+  const queue = apiNames.filter(
+    (n) => AbilitydexStore.byName[n] && !AbilitydexStore.byName[n].details
+  );
   if (queue.length === 0) return;
-  AbdStore.loading = true;
+  AbilitydexStore.loading = true;
 
   await runPool(
     queue,
     async (apiName) => {
       try {
         const details = await fetchAbilityDetails(apiName);
-        const row = AbdStore.byName[apiName];
+        const row = AbilitydexStore.byName[apiName];
         if (row) row.details = details;
       } catch (err) {
         console.error(`Abilitydex: failed to load ${apiName}`, err);
@@ -90,8 +96,8 @@ export async function loadAbilityDetails(apiNames, { rerenderEachBatch = true } 
     { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyAbd }
   );
 
-  AbdStore.loading = false;
-  AbdStore.allLoaded = AbdStore.roster.every((r) => r.details);
+  AbilitydexStore.loading = false;
+  AbilitydexStore.allLoaded = AbilitydexStore.roster.every((r) => r.details);
   notifyAbd();
 }
 
@@ -100,12 +106,12 @@ export async function loadAbilityDetails(apiNames, { rerenderEachBatch = true } 
 // into view. Must not bail when a partial (lazy) load is mid-flight — it waits
 // that out, then loads whatever's still missing.
 async function ensureAllLoaded() {
-  if (AbdStore.allLoaded) return;
-  while (AbdStore.loading) {
+  if (AbilitydexStore.allLoaded) return;
+  while (AbilitydexStore.loading) {
     await new Promise((resolve) => setTimeout(resolve, 50));
-    if (AbdStore.allLoaded) return;
+    if (AbilitydexStore.allLoaded) return;
   }
-  await loadAbilityDetails(AbdStore.roster.map((r) => r.apiName));
+  await loadAbilityDetails(AbilitydexStore.roster.map((r) => r.apiName));
 }
 
 // Under a regulation the Abilitydex filters to abilities with a legal holder, which
@@ -121,7 +127,7 @@ function maybeLoadForFormat() {
 // can be applied. When the page is hidden, openAbilitydexPage handles the load on
 // the next open instead.
 export function onAbilitydexFormatChange() {
-  if (!AbdStore.built) return;
+  if (!AbilitydexStore.built) return;
   notifyAbd();
   const pageEl = document.getElementById('page-abilitydex');
   if (pageEl && !pageEl.classList.contains('hidden')) maybeLoadForFormat();
@@ -138,9 +144,9 @@ export function onAbilitydexFormatChange() {
 // as opposed to a holder Pokémon chip that narrows the list.
 const isAbdAbilityName = (term) => {
   const lower = term.toLowerCase();
-  return AbdStore.roster.some((r) => r.name.toLowerCase() === lower);
+  return AbilitydexStore.roster.some((r) => r.name.toLowerCase() === lower);
 };
-const abdChip = makeChipFilter(AbdStore, notifyAbd, {
+const abdChip = makeChipFilter(AbilitydexStore, notifyAbd, {
   onActivate: ensureAllLoaded,
   primaryKeyMatch: isAbdAbilityName,
 });
@@ -162,18 +168,18 @@ export const abdSuggest = makeSuggester(['ability', 'pokemon'], { onReady: notif
 // Build + render the Abilitydex the first time it's shown.
 export async function openAbilitydexPage() {
   if (!_preserveQuery) {
-    AbdStore.filters = [];
-    AbdStore.draft = '';
+    AbilitydexStore.filters = [];
+    AbilitydexStore.draft = '';
   }
   _preserveQuery = false;
 
-  if (AbdStore.built && AbdStore.roster.length > 0) {
+  if (AbilitydexStore.built && AbilitydexStore.roster.length > 0) {
     notifyAbd();
     maybeLoadForFormat();
     return;
   }
 
-  AbdStore.loading = true;
+  AbilitydexStore.loading = true;
   notifyAbd(); // show "loading abilities…"
   try {
     if (!CACHE.allAbilities || CACHE.allAbilities.length === 0) {
@@ -184,7 +190,7 @@ export async function openAbilitydexPage() {
     console.error('Abilitydex: failed to load ability roster', err);
     return;
   } finally {
-    AbdStore.loading = false;
+    AbilitydexStore.loading = false;
     notifyAbd();
   }
   maybeLoadForFormat();
@@ -193,11 +199,11 @@ export async function openAbilitydexPage() {
 // Narrow the Abilitydex to a single ability by name (called when jumping from
 // elsewhere). Sets the filter chip + re-renders.
 export function jumpToAbilitydexAbility(apiName) {
-  const displayName = AbdStore.byName[apiName]?.name || formatDisplayName(apiName);
+  const displayName = AbilitydexStore.byName[apiName]?.name || formatDisplayName(apiName);
   _preserveQuery = true;
-  AbdStore.filters = [displayName];
-  AbdStore.draft = '';
-  if (AbdStore.built) notifyAbd();
+  AbilitydexStore.filters = [displayName];
+  AbilitydexStore.draft = '';
+  if (AbilitydexStore.built) notifyAbd();
 }
 
 // --- Row-click detail modal (reuses the shared Preact detail modal) ---
@@ -233,7 +239,7 @@ function buildPokemonItem(n, pd, onClick) {
 }
 
 export async function handleAbilitydexRowClick(apiName) {
-  const row = AbdStore.byName[apiName];
+  const row = AbilitydexStore.byName[apiName];
   if (!row) return;
 
   if (!row.details) {

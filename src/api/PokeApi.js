@@ -3,11 +3,11 @@
 // deduplication, or a test mock) without dragging in UI concerns. The only
 // shared state it touches is CACHE; callers own any DOM the results drive.
 // Every cache key flows through cacheKey() so a single CACHE_VERSION bump
-// invalidates all cached resources at once (see cache.js).
-import { CACHE } from '../state.js';
-import { Storage, cacheKey } from './cache.js';
-import { REGULATIONS, resolveLegalSet, resolveNonLegalForms } from '../data/regulations.js';
-import { isFormatLegal } from '../data/dex.js';
+// invalidates all cached resources at once (see Cache.js).
+import { CACHE } from '../State.js';
+import { Storage, cacheKey } from './Cache.js';
+import { REGULATIONS, resolveLegalSet, resolveNonLegalForms } from '../data/Regulations.js';
+import { isFormatLegal } from '../data/Dex.js';
 
 export const API_BASE = 'https://pokeapi.co/api/v2';
 

@@ -1,10 +1,10 @@
 // Pieces shared verbatim by AttackerCard and DefenderCard. The rest of the two
 // cards (presets, boost UI, stat dashboards, item/ability lists) genuinely
 // differs, so only the context-free bits live here.
-import { STATE } from './store.js';
-import { REGULATIONS } from '../data/regulations.js';
-import { isFormatLegal } from '../data/dex.js';
-import { legalSetForFormat, nonLegalFormsForFormat } from '../api/pokeapi.js';
+import { STATE } from './Store.js';
+import { REGULATIONS } from '../data/Regulations.js';
+import { isFormatLegal } from '../data/Dex.js';
+import { legalSetForFormat, nonLegalFormsForFormat } from '../api/PokeApi.js';
 
 // Ghost (Spiritomb artwork) shown in the empty "select a Pokémon" slot.
 export const GHOST_SPRITE =

@@ -1,9 +1,9 @@
 // Battle Modifiers — Preact sub-panel of the center column. 8 checkbox toggles
 // + weather/terrain/aura selects. Replaces updateDropdownColors (the select color
 // maps) and the Fairy-Aura aura lock; burn lives on STATE.attacker.status.
-import { html } from './preact.js';
-import { STATE, update } from './store.js';
-import { BOOST_STAGES } from './card-common.js';
+import { html } from './Preact.js';
+import { STATE, update } from './Store.js';
+import { BOOST_STAGES } from './CardCommon.js';
 
 // Checkbox cells: [statePath, label, checkedTheme]. burned reads/writes
 // attacker.status; the rest are STATE.modifiers booleans.

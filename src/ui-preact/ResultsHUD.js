@@ -1,9 +1,9 @@
 // Results HUD — Preact island rendering the headline result in two layouts from
 // the shared DERIVED.model (built by buildResultModel): the desktop pinned bar
 // (#results-hud) and the mobile bottom overlay (#mobile-floating-overlay). Mounted
-// twice, once per variant. Replaces the DOM-mirroring half of result-summary.js.
-import { html, useStore } from './preact.js';
-import { DERIVED } from './store.js';
+// twice, once per variant. Replaces the DOM-mirroring half of ResultSummary.js.
+import { html, useStore } from './Preact.js';
+import { DERIVED } from './Store.js';
 
 // Badge bg/text/border per verdict tone; speed/move use just a text color.
 const BADGE_TONES = {

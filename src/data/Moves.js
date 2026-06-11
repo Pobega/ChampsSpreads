@@ -1,7 +1,7 @@
 // Pure, DOM/fetch-free logic for the Attackdex move-browser page. Mirrors the
 // shape of dex.js (rows are { apiName, name, details|null }) so it can be unit
 // tested and reasoned about without touching the network or the DOM.
-import { ALL_TYPES } from './constants.js';
+import { ALL_TYPES } from './Constants.js';
 
 // PokéAPI `target` values that hit more than one Pokémon — i.e. spread moves —
 // split by whether they also catch your own side. In VGC doubles this is a real

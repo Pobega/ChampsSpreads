@@ -5,8 +5,8 @@
 // The function is pure and fetch-free: callers resolve each damaging move's
 // details first (engine-agnostic { apiName, name, type, power, category,
 // accuracy }) and pass them in, so the heuristic can be unit-tested directly.
-import { DRAWBACK_MOVES, SIGNATURE_MOVES, SELF_KO_MOVES } from '../data/move-tags.js';
-import { isSpreadMove } from '../data/moves.js';
+import { DRAWBACK_MOVES, SIGNATURE_MOVES, SELF_KO_MOVES } from '../data/MoveTags.js';
+import { isSpreadMove } from '../data/Moves.js';
 
 // The drawback / signature nudges, kept as named constants so the scoring reads
 // declaratively (and the tests can reason about the ordering they enforce).
