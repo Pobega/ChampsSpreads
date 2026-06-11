@@ -49,7 +49,7 @@ export function Brand() {
   const offset = ROTOM_OFFSET_BY_PAGE[STATE.page] || '0px';
   return html`
     <img src=${sprite}
-      alt="Rotom" class="w-11 h-11 object-contain transition-[filter,transform]"
+      alt="Rotom" class="w-14 h-14 sm:w-11 sm:h-11 object-contain transition-[filter,transform]"
       style=${{ filter: `drop-shadow(0 0 5px ${t.glow})`, transform: `translateY(${offset})` }} />`;
 }
 
@@ -90,7 +90,7 @@ export function HeaderControls({ onLoadSample }) {
   return html`
     <!-- Load a ready-made VGC sample matchup -->
     <button onClick=${onLoadSample} title="Load VGC Sample Matchup"
-      class="sm:order-3 bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white text-sm sm:text-[10px] font-extrabold py-2.5 sm:py-1.5 px-3 sm:px-2.5 rounded-lg transition flex items-center justify-center gap-1.5 shadow">
+      class="sm:order-3 bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white text-sm sm:text-[10px] font-extrabold py-2.5 sm:py-1.5 px-3 sm:px-2.5 rounded-lg transition hidden sm:flex items-center justify-center gap-1.5 shadow">
       <i class="fa-solid fa-wand-magic-sparkles"></i>
       <span class="hidden md:inline">Load Sample</span>
     </button>
