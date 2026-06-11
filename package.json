@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "test": "python3 -m http.server 8765 >/dev/null 2>&1 & sleep 2 && node ci/run-tests.mjs; kill %1",
     "smoke": "node ci/smoke.mjs",
     "lint": "eslint .",
