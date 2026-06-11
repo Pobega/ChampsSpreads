@@ -66,31 +66,38 @@ function onFormatChange(value) {
   onAbilitydexFormatChange();
 }
 
-export function HeaderControls({ onLoadSample }) {
+// Format selector pill, tinted to the active Rotom form. Split out from
+// HeaderControls so it can mount on the brand row (top row) on mobile while Load
+// Sample + Export/Import ride the nav row; on desktop both islands flatten back
+// onto the single header row (see index.html's sm:contents wrappers + sm:order).
+export function FormatSelector() {
   useStore();
   const t = themeFor(STATE.format);
-
   return html`
-    <!-- Format selector pill, tinted to the active Rotom form -->
-    <div class=${`flex items-center gap-1.5 bg-slate-900 border rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`}>
+    <div class=${`flex items-center gap-1.5 bg-slate-900 border rounded-lg px-3 sm:px-2.5 py-2 sm:py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`}>
       <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Regulation:</span>
       <select value=${STATE.format} onChange=${(e) => onFormatChange(e.target.value)}
-        class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]">
+        class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-xs sm:text-[10px]">
         ${Object.entries(REGULATIONS).map(([format, reg]) => html`<option value=${format} class="bg-slate-800">${reg.short}</option>`)}
         <option value="all" class="bg-slate-800">None</option>
       </select>
-    </div>
+    </div>`;
+}
 
+export function HeaderControls({ onLoadSample }) {
+  useStore();
+
+  return html`
     <!-- Load a ready-made VGC sample matchup -->
     <button onClick=${onLoadSample} title="Load VGC Sample Matchup"
-      class="bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white text-[10px] font-extrabold py-1.5 px-2.5 rounded-lg transition flex items-center gap-1.5 shadow">
+      class="sm:order-3 bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white text-sm sm:text-[10px] font-extrabold py-2.5 sm:py-1.5 px-3 sm:px-2.5 rounded-lg transition flex items-center justify-center gap-1.5 shadow">
       <i class="fa-solid fa-wand-magic-sparkles"></i>
       <span class="hidden md:inline">Load Sample</span>
     </button>
 
     <!-- Export / Import the current matchup as shareable text -->
     <button onClick=${openExportImport} title="Export or import a matchup as text"
-      class="bg-cyan-700 hover:bg-cyan-600 border border-cyan-500/30 text-white text-[10px] font-extrabold py-1.5 px-2.5 rounded-lg transition flex items-center gap-1.5 shadow">
+      class="sm:order-3 bg-cyan-700 hover:bg-cyan-600 border border-cyan-500/30 text-white text-sm sm:text-[10px] font-extrabold py-2.5 sm:py-1.5 px-3 sm:px-2.5 rounded-lg transition flex items-center justify-center gap-1.5 shadow">
       <i class="fa-solid fa-right-left"></i>
       <span class="hidden md:inline">Export / Import</span>
     </button>`;

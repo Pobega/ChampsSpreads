@@ -7,10 +7,13 @@
 import { STATE } from '../State.js';
 import { notify } from '../ui-preact/Store.js';
 
-const ACTIVE_CLS =
-  'text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow';
-const IDLE_CLS =
-  'text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white';
+// These are reassigned wholesale on every showPage, so the bigger mobile tap-target
+// sizing (flex-1, taller, larger glyph) lives here too; sm: resets to the compact
+// inline look on desktop.
+const NAV_BASE_CLS =
+  'flex-1 sm:flex-none flex items-center justify-center text-sm sm:text-[10px] font-extrabold uppercase tracking-wider py-2.5 sm:py-1.5 px-2 sm:px-2.5 rounded-md transition';
+const ACTIVE_CLS = `${NAV_BASE_CLS} bg-amber-950/40 text-amber-400 shadow`;
+const IDLE_CLS = `${NAV_BASE_CLS} text-slate-400 hover:text-white`;
 
 // Per-view header tagline. The matching Rotom form swap lives on the Brand island
 // (src/ui-preact/HeaderControls.js), keyed off STATE.page; showPage sets that and
