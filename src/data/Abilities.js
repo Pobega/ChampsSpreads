@@ -1,7 +1,7 @@
 // Pure, DOM/fetch-free logic for the Abilitydex ability-browser page. Mirrors the
 // shape of moves.js / dex.js (rows are { apiName, name, details|null }) so it can
 // be unit tested and reasoned about without touching the network or the DOM.
-import { OFFENSIVE_VGC_ABILITIES, DEFENSIVE_VGC_ABILITIES } from './constants.js';
+import { OFFENSIVE_VGC_ABILITIES, DEFENSIVE_VGC_ABILITIES } from './Constants.js';
 
 // The curated VGC lists keyed by apiName, so the Abilitydex can both filter to
 // "VGC-relevant" abilities and tag each row Offensive / Defensive. Built once.

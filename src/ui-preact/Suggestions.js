@@ -6,10 +6,10 @@
 // Suggestions are intentionally shallow (a few across categories) and never
 // auto-selected — they hint what a term will filter ("Dark (type)" vs
 // "Darkrai (pokemon)" vs "Dark Aura (ability)"), they don't drive the search.
-import { ALL_TYPES } from '../data/constants.js';
-import { CACHE } from '../state.js';
-import { initPokemonList, initAllMovesList, initAllAbilitiesList } from '../api/pokeapi.js';
-import { isHiddenForm } from '../data/dex.js';
+import { ALL_TYPES } from '../data/Constants.js';
+import { CACHE } from '../State.js';
+import { initPokemonList, initAllMovesList, initAllAbilitiesList } from '../api/PokeApi.js';
+import { isHiddenForm } from '../data/Dex.js';
 
 // Pure suggestion ranking. `query` is the raw draft; `sources` is an ordered list
 // of { kind, label, items } (items are display strings) in priority order;

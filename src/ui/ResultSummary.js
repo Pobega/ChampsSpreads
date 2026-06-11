@@ -2,14 +2,14 @@
 // views (the desktop pinned HUD + the mobile bottom overlay), so verdict/speed/
 // percentages never drift between layouts. The rendering now lives in the Preact
 // ResultsHUD island (src/ui-preact/ResultsHUD.js); this module is DOM-free.
-import { STATE } from '../state.js';
+import { STATE } from '../State.js';
 import {
   calculateStat,
   calculateStatBoost,
   getMoveEffectiveness,
   effectivenessInfo,
-} from '../engine/stats.js';
-import { resolveEffectiveMove, multiHitRange } from '../engine/damage.js';
+} from '../engine/Stats.js';
+import { resolveEffectiveMove, multiHitRange } from '../engine/Damage.js';
 
 // Map raw damage vs effective HP to a KO/survival verdict for the active mode.
 function computeVerdict(mode, minDamage, maxDamage, finalHp) {

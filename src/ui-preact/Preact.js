@@ -41,8 +41,8 @@ export class ErrorBoundary extends Component {
 // Re-render-on-store-change hook: subscribes the component to the calculator
 // bridge so it refreshes whenever STATE changes (from this island or vanilla
 // code). Thin wrapper over the shared useSubscription primitive.
-import { subscribe } from './store.js';
-import { useSubscription } from './reactive.js';
+import { subscribe } from './Store.js';
+import { useSubscription } from './Reactive.js';
 export function useStore() {
   useSubscription(subscribe);
 }

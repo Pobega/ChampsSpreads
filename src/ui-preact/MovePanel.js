@@ -2,13 +2,13 @@
 // from the attacker's learnset minus status moves) + type/category/power. A named
 // move shows resolved badges (read-only); "Custom Move" exposes editable inputs.
 // Replaces the move-select handler + updateMoveDetailsVisuals/setMoveTypeBadge.
-import { html } from './preact.js';
-import { STATE, CACHE, update } from './store.js';
-import { getTypeBgClass } from '../ui/render.js';
-import { ALL_TYPES } from '../data/constants.js';
-import { resolveEffectiveMove } from '../engine/damage.js';
-import { isSpreadMove } from '../data/moves.js';
-import { fetchMoveDetails } from '../api/pokeapi.js';
+import { html } from './Preact.js';
+import { STATE, CACHE, update } from './Store.js';
+import { getTypeBgClass } from '../ui/Render.js';
+import { ALL_TYPES } from '../data/Constants.js';
+import { resolveEffectiveMove } from '../engine/Damage.js';
+import { isSpreadMove } from '../data/Moves.js';
+import { fetchMoveDetails } from '../api/PokeApi.js';
 
 function damagingMoves() {
   return (STATE.attacker.moves || [])

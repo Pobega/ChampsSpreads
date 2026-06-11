@@ -1,13 +1,13 @@
 // Pokédex page (Preact) — the sortable/searchable species table mounted into the
 // existing #page-pokedex container. Reads the reactive DexStore and re-renders on
-// notifyDex(); all data + loading logic lives in dex-store.js. Row click opens the
+// notifyDex(); all data + loading logic lives in DexStore.js. Row click opens the
 // shared vanilla detail modal. (Lazy National-Dex loading is restored in 2b.)
-import { html, useRef } from './preact.js';
-import { useSubscription, useLazyRowLoader } from './reactive.js';
+import { html, useRef } from './Preact.js';
+import { useSubscription, useLazyRowLoader } from './Reactive.js';
 import { SearchChips } from './SearchChips.js';
 import { RegulationBadge } from './RegulationBadge.js';
-import { bst, sortDex, filterDex, SPEED_TIERS, speedTier } from '../data/dex.js';
-import { getTypeBgClass, TYPE_SHORT } from '../ui/render.js';
+import { bst, sortDex, filterDex, SPEED_TIERS, speedTier } from '../data/Dex.js';
+import { getTypeBgClass, TYPE_SHORT } from '../ui/Render.js';
 import {
   DexStore,
   subscribeDex,
@@ -23,7 +23,7 @@ import {
   toggleDexPin,
   handleDexRowClick,
   loadDexDetails,
-} from './dex-store.js';
+} from './DexStore.js';
 
 // Column tracks shared by the header + every row. Stats view: name, type,
 // abilities, 6 stats, BST, pin. Speed view swaps the 6 stats + BST for the 4

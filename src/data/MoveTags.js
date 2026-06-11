@@ -549,7 +549,7 @@ export const PUNCHING_MOVES = new Set([
 // Moves with a turn-cost drawback that makes them a poor *default* pick even when
 // their raw base power is the highest in a learnset: recharge moves (skip the
 // next turn), two-turn charge moves (do nothing turn one), and once-per-stretch
-// moves. The smart default-move picker (engine/default-move.js) deprioritizes
+// moves. The smart default-move picker (engine/DefaultMove.js) deprioritizes
 // these so e.g. a Pokémon doesn't default to Hyper Beam over a strong STAB move.
 // Add new moves as users hit them.
 export const DRAWBACK_MOVES = new Set([
@@ -618,7 +618,7 @@ export const DRAWBACK_MOVES = new Set([
 
 // Signature attacking moves — strong, often unique to one Pokémon — that should
 // win the default pick over a marginally higher-BP generic move when the species
-// has one. The picker (engine/default-move.js) force-picks these (overriding
+// has one. The picker (engine/DefaultMove.js) force-picks these (overriding
 // STAB/category and the spread exclusion), except those also tagged
 // DRAWBACK_MOVES, which fall through to the normal tiered pick.
 //
@@ -681,7 +681,7 @@ export const SIGNATURE_MOVES = new Set([
 ]);
 
 // Moves that faint the user as a cost — never a sensible default pick no matter
-// how high their base power. The smart default-move picker (engine/default-move.js)
+// how high their base power. The smart default-move picker (engine/DefaultMove.js)
 // excludes these from the candidate pool entirely (unlike DRAWBACK_MOVES, which
 // are only deprioritized). Final Gambit has null power so it's already filtered;
 // the self-KO blast moves are listed here because their raw BP is huge.

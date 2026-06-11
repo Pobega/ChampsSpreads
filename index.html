@@ -212,17 +212,17 @@
 
     <!-- POKÉDEX PAGE (full-width species stats browser; hidden until toggled) -->
     <!-- Pokédex page: rendered by the Preact DexView island (src/ui-preact/DexView.js),
-       mounted here by app.js. page-nav keeps toggling this container's visibility. -->
+       mounted here by App.js. PageNav keeps toggling this container's visibility. -->
     <main id="page-pokedex" class="hidden max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6"></main>
 
     <!-- Attackdex: a move browser parallel to the Pokédex. Rendered by the Preact
        AttackdexView island (src/ui-preact/AttackdexView.js), mounted here by
-       app.js. Hidden by default; toggled via #nav-attackdex through page-nav. -->
+       App.js. Hidden by default; toggled via #nav-attackdex through PageNav. -->
     <main id="page-attackdex" class="hidden max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6"></main>
 
     <!-- Abilitydex: an ability browser parallel to the Attackdex. Rendered by the
        Preact AbilitydexView island (src/ui-preact/AbilitydexView.js), mounted here
-       by app.js. Hidden by default; toggled via #nav-abilitydex through page-nav. -->
+       by App.js. Hidden by default; toggled via #nav-abilitydex through PageNav. -->
     <main
       id="page-abilitydex"
       class="hidden max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6"
@@ -281,10 +281,10 @@
     <div id="ei-modal-root"></div>
 
     <!-- Detail modal (learnset / learned-by): rendered by the Preact DetailModal
-       island (src/ui-preact/DetailModal.js), mounted here by app.js. -->
+       island (src/ui-preact/DetailModal.js), mounted here by App.js. -->
     <div id="detail-modal-root"></div>
 
     <!-- Script imports -->
-    <script type="module" src="app.js?v=1.0.30"></script>
+    <script type="module" src="App.js?v=1.0.31"></script>
   </body>
 </html>

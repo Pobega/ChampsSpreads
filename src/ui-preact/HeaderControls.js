@@ -7,13 +7,13 @@
 //     buttons (rendered into a `display:contents` mount so they stay direct flex
 //     children of the header bar). The nav buttons stay vanilla (page-nav owns
 //     their active/idle classes), so they're left in index.html untouched.
-import { html, useStore } from './preact.js';
-import { STATE } from '../state.js';
-import { REGULATIONS, NATIONAL_THEME } from '../data/regulations.js';
-import { update } from './store.js';
-import { onDexFormatChange } from './dex-store.js';
-import { onAttackdexFormatChange } from './attackdex-store.js';
-import { onAbilitydexFormatChange } from './abilitydex-store.js';
+import { html, useStore } from './Preact.js';
+import { STATE } from '../State.js';
+import { REGULATIONS, NATIONAL_THEME } from '../data/Regulations.js';
+import { update } from './Store.js';
+import { onDexFormatChange } from './DexStore.js';
+import { onAttackdexFormatChange } from './AttackdexStore.js';
+import { onAbilitydexFormatChange } from './AbilitydexStore.js';
 import { openExportImport } from './ExportImportModal.js';
 
 const themeFor = (format) => REGULATIONS[format]?.theme || NATIONAL_THEME;

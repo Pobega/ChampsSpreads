@@ -1,7 +1,7 @@
 // Damage roll calculator for Pokemon Champions rules.
 
-import { calculateStat, calculateStatBoost, getMoveEffectiveness } from './stats.js';
-import { attackerAbilityMultiplier, defenderAbilityMultiplier } from './abilities.js';
+import { calculateStat, calculateStatBoost, getMoveEffectiveness } from './Stats.js';
+import { attackerAbilityMultiplier, defenderAbilityMultiplier } from './Abilities.js';
 
 // Effective Speed including stat boosts.
 function effectiveSpeed(mon) {

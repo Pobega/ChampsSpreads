@@ -3,9 +3,9 @@
 // Makes it obvious the list is filtered to that format's legal species / learners /
 // holders. Reads STATE.format reactively — the view it lives in re-renders on a
 // format change, so no own subscription is needed.
-import { html } from './preact.js';
-import { STATE } from '../state.js';
-import { REGULATIONS } from '../data/regulations.js';
+import { html } from './Preact.js';
+import { STATE } from '../State.js';
+import { REGULATIONS } from '../data/Regulations.js';
 
 export function RegulationBadge() {
   const reg = REGULATIONS[STATE.format];

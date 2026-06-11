@@ -85,7 +85,7 @@
   </script>
 
   <script type="module">
-    import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
+    import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/Damage.js';
 
     // Synthetic test mons with round base stats so the math is traceable.
     const NORMAL_MON = (overrides = {}) => ({
@@ -1141,7 +1141,7 @@
 
   <!-- resolveEffectiveMove: the single source of truth shared by the calc + UI -->
   <script type="module">
-    import { resolveEffectiveMove } from './src/engine/damage.js';
+    import { resolveEffectiveMove } from './src/engine/Damage.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -1180,7 +1180,7 @@
 
   <!-- Move effectiveness label/tone tests (context-aware coloring) -->
   <script type="module">
-    import { effectivenessInfo } from './src/engine/stats.js';
+    import { effectivenessInfo } from './src/engine/Stats.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -1221,7 +1221,7 @@
 
   <!-- Damage-card move-line golden tests (resolved type + BP must not drift) -->
   <script type="module">
-    import { buildMoveLine } from './src/ui/result-summary.js';
+    import { buildMoveLine } from './src/ui/ResultSummary.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -1345,8 +1345,8 @@
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
-    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isFormatLegal, SPEED_TIERS, speedTier } from './src/data/dex.js';
-    import { resolveLegalSet, resolveNonLegalForms, NON_LEGAL_FORMS, REGULATIONS } from './src/data/regulations.js';
+    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isFormatLegal, SPEED_TIERS, speedTier } from './src/data/Dex.js';
+    import { resolveLegalSet, resolveNonLegalForms, NON_LEGAL_FORMS, REGULATIONS } from './src/data/Regulations.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -1661,7 +1661,7 @@
 
   <!-- Attackdex pure-logic tests (sortMoves / filterMoves / spreadKind) -->
   <script type="module">
-    import { sortMoves, filterMoves, spreadKind, isSpreadMove } from './src/data/moves.js';
+    import { sortMoves, filterMoves, spreadKind, isSpreadMove } from './src/data/Moves.js';
 
     const results = document.getElementById('results');
 
@@ -1847,7 +1847,7 @@
 
   <!-- Search-suggestion ranking tests (buildSuggestions) -->
   <script type="module">
-    import { buildSuggestions } from './src/ui-preact/suggestions.js';
+    import { buildSuggestions } from './src/ui-preact/Suggestions.js';
 
     const results = document.getElementById('results');
     const vals = (s) => s.map((x) => x.value);
@@ -1937,7 +1937,7 @@
 
   <!-- Abilitydex pure-logic tests (filterAbilities / sortAbilities / abilityTag) -->
   <script type="module">
-    import { filterAbilities, sortAbilities, abilityTag, isVgcAbility } from './src/data/abilities.js';
+    import { filterAbilities, sortAbilities, abilityTag, isVgcAbility } from './src/data/Abilities.js';
 
     const results = document.getElementById('results');
 
@@ -2087,7 +2087,7 @@
 
   <!-- Matchup export/import text round-trip tests -->
   <script type="module">
-    import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
+    import { exportMatchup, importMatchup } from './src/data/MatchupText.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -2195,7 +2195,7 @@
 
   <!-- EV/nature optimizer goldens (optimizeSurvival / optimizeOffensive) -->
   <script type="module">
-    import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
+    import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/Optimize.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -2290,7 +2290,7 @@
 
   <!-- Cache versioning (cacheKey / pruneOldCaches) -->
   <script type="module">
-    import { CACHE_VERSION, cacheKey, pruneOldCaches } from './src/api/cache.js';
+    import { CACHE_VERSION, cacheKey, pruneOldCaches } from './src/api/Cache.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -2368,7 +2368,7 @@
 
   <!-- Smart default-move pick (pickDefaultMove) tests -->
   <script type="module">
-    import { pickDefaultMove } from './src/engine/default-move.js';
+    import { pickDefaultMove } from './src/engine/DefaultMove.js';
 
     const results = document.getElementById('results');
 
@@ -2610,7 +2610,7 @@
 
   <!-- Smart default nature + SP spread (pickAttackerSpread / pickDefenderSpread) -->
   <script type="module">
-    import { pickAttackerSpread, pickDefenderSpread } from './src/engine/default-spread.js';
+    import { pickAttackerSpread, pickDefenderSpread } from './src/engine/DefaultSpread.js';
 
     const results = document.getElementById('results');
     // Base-stat factory; Spe defaults to a fast 100 (Spe investment) but slow
@@ -2713,7 +2713,7 @@
 
   <!-- Expanded ability engine: type-changers, immunities, conditional boosts -->
   <script type="module">
-    import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
+    import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/Damage.js';
 
     const results = document.getElementById('results');
 
