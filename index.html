@@ -81,71 +81,78 @@
     <!-- Compact Responsive Header -->
     <header class="bg-slate-800 border-b border-slate-700 py-3 px-4 sm:px-6 shadow-md">
       <div
-        class="max-w-[1440px] mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+        class="max-w-[1440px] mx-auto flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4"
       >
-        <!-- Logo / Title (Compact) -->
-        <div class="flex items-center gap-2.5 min-w-0">
-          <!-- Brand Rotom sprite: Preact Brand island (tints its glow to the format). -->
-          <div
-            id="brand-rotom-root"
-            class="flex items-center justify-center w-11 h-11 shrink-0"
-          ></div>
-          <div class="min-w-0">
-            <h1
-              class="text-sm sm:text-base font-black tracking-wider bg-gradient-to-r from-amber-400 via-orange-500 to-sky-400 bg-clip-text text-transparent uppercase truncate"
-            >
-              Rotometrics
-            </h1>
-            <p
-              id="brand-subtitle"
-              class="text-[9px] text-slate-400 font-semibold tracking-wider uppercase truncate block"
-            >
-              VGC Spread Optimizer
-            </p>
+        <!-- Top row on mobile: brand on the left, the format pill + Load Sample +
+           Export/Import on the right. `sm:contents` flattens this wrapper so on
+           desktop its children sit inline on the single header row again. -->
+        <div class="flex items-center gap-2 w-full sm:w-auto sm:contents">
+          <!-- Logo / Title (Compact). mr-auto pushes the controls to the right. -->
+          <div class="flex items-center gap-2.5 min-w-0 mr-auto">
+            <!-- Brand Rotom sprite: Preact Brand island (tints its glow to the format). -->
+            <div
+              id="brand-rotom-root"
+              class="flex items-center justify-center w-11 h-11 shrink-0"
+            ></div>
+            <div class="min-w-0">
+              <h1
+                class="text-sm sm:text-base font-black tracking-wider bg-gradient-to-r from-amber-400 via-orange-500 to-sky-400 bg-clip-text text-transparent uppercase truncate"
+              >
+                Rotometrics
+              </h1>
+              <p
+                id="brand-subtitle"
+                class="text-[9px] text-slate-400 font-semibold tracking-wider uppercase truncate block"
+              >
+                VGC Spread Optimizer
+              </p>
+            </div>
           </div>
+          <!-- Regulation selector island. Rides the top row beside the brand on
+             mobile; sm:order-2 keeps it after the nav toggle on the flattened
+             desktop row. -->
+          <div id="format-selector-root" class="shrink-0 sm:order-2"></div>
         </div>
 
-        <!-- Header Controls. On phones the brand takes its own row above and these
-           drop to a full-width second row that spreads across; from sm+ they sit
-           inline at the right of the brand as before. -->
-        <div
-          class="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 w-full sm:w-auto justify-between sm:justify-end"
-        >
-          <!-- View Toggle: Calculator | Pokédex -->
+        <!-- Second row on mobile: the page-nav toggle + Load Sample + Export/Import.
+           sm:contents flattens this wrapper so the nav pill (sm:order-1) and the
+           Load/Export island (sm:order-3) drop back inline on the desktop row. -->
+        <div class="flex items-center gap-2 w-full sm:w-auto sm:contents">
+          <!-- View Toggle: big tap targets (each button flex-1, taller, larger glyph). -->
           <div
-            class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 gap-0.5"
+            class="flex-1 sm:flex-none sm:order-1 flex items-center bg-slate-900 border border-slate-700 rounded-lg p-1 gap-1 sm:p-0.5 sm:gap-0.5"
           >
             <button
               id="nav-calculator"
-              class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow"
+              class="flex-1 sm:flex-none flex items-center justify-center text-sm sm:text-[10px] font-extrabold uppercase tracking-wider py-2.5 sm:py-1.5 px-2 sm:px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow"
             >
               <i class="fa-solid fa-meteor sm:hidden"></i
               ><span class="hidden sm:inline">Calculator</span>
             </button>
             <button
               id="nav-pokedex"
-              class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white"
+              class="flex-1 sm:flex-none flex items-center justify-center text-sm sm:text-[10px] font-extrabold uppercase tracking-wider py-2.5 sm:py-1.5 px-2 sm:px-2.5 rounded-md transition text-slate-400 hover:text-white"
             >
               <i class="fa-solid fa-book sm:hidden"></i
               ><span class="hidden sm:inline">Pokédex</span>
             </button>
             <button
               id="nav-attackdex"
-              class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white"
+              class="flex-1 sm:flex-none flex items-center justify-center text-sm sm:text-[10px] font-extrabold uppercase tracking-wider py-2.5 sm:py-1.5 px-2 sm:px-2.5 rounded-md transition text-slate-400 hover:text-white"
             >
               <i class="fa-solid fa-burst sm:hidden"></i
               ><span class="hidden sm:inline">Attackdex</span>
             </button>
             <button
               id="nav-abilitydex"
-              class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white"
+              class="flex-1 sm:flex-none flex items-center justify-center text-sm sm:text-[10px] font-extrabold uppercase tracking-wider py-2.5 sm:py-1.5 px-2 sm:px-2.5 rounded-md transition text-slate-400 hover:text-white"
             >
               <i class="fa-solid fa-atom sm:hidden"></i
               ><span class="hidden sm:inline">Abilitydex</span>
             </button>
           </div>
-          <!-- Format pill + Load Sample + Export/Import: Preact HeaderControls island.
-             `contents` keeps its children as direct flex items of this bar. -->
+          <!-- Load Sample + Export/Import: Preact HeaderControls island. `contents`
+             keeps the two buttons as direct flex items of this row (sm:order-3). -->
           <div id="header-controls-root" class="contents"></div>
         </div>
       </div>

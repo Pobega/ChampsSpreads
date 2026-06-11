@@ -48,7 +48,7 @@ import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
 import { CenterPanel } from './src/ui-preact/OptimizerPanel.js';
 import { ResultsHUD } from './src/ui-preact/ResultsHUD.js';
-import { Brand, HeaderControls } from './src/ui-preact/HeaderControls.js';
+import { Brand, FormatSelector, HeaderControls } from './src/ui-preact/HeaderControls.js';
 import { ExportImportModal } from './src/ui-preact/ExportImportModal.js';
 import { setRecompute, notify, DERIVED } from './src/ui-preact/Store.js';
 
@@ -695,6 +695,7 @@ async function init() {
   // adding a regulation is purely a data change in regulations.js. The theme tint
   // is reactive (no applyFormTheme): the islands re-render from STATE.format.
   mountIsland(Brand, {}, document.getElementById('brand-rotom-root'));
+  mountIsland(FormatSelector, {}, document.getElementById('format-selector-root'));
   mountIsland(
     HeaderControls,
     { onLoadSample: loadSampleVGCScenario },
